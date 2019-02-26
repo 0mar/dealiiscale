@@ -10,11 +10,11 @@ Other options are available as well and should work, but the rest of this README
 
 ## Compiling deal.II programs
 
-deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake isn't present on your system, its easily installed using [Homebrew][4].
+deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, its easily installed using [Homebrew][4].
 Opening the deal.II app will open a shell with preset environment variables that make compilation of your programs 'easy'. 
-For some reason, this app takes quite some time to load, and its structure doesn't (by default) allow for the use of IDE's or other shells/terminals.
+For some reason, this app takes quite some time to load, and its structure does not (by default) allow for the use of IDEs or other shells/terminals.
 
-Luckily, we don't need to open the deal.II app to compile it's programs, since we can point CMake to the installation.
+Luckily, we do not need to open the deal.II app to compile our programs, since we can point CMake to the installation.
 
 After installation of version `9.0.0`, add the following line to your CMake:
 
@@ -40,9 +40,11 @@ This repo has currently two 'roughly working' implementations:
 
 ## Disclaimer
 
-This is a sandbox. Comments are sparse. So are structure and responsible coding choices.Dive in at your own risk.
+This is a sandbox. Comments are sparse. So are structure and responsible coding choices.
+Dive in at your own risk.
 
 [1]: https://www.dealii.org/
 [2]: http://urn.kb.se/resolve?urn=urn:nbn:se:kau:diva-68686
 [3]: https://www.dealii.org/download.html
 [4]: https://brew.sh
+[5]: https://www.dealii.org/developer/doxygen/deal.II/Tutorial.html
