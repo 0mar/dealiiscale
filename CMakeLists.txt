@@ -7,7 +7,7 @@ set(deal.II_DIR /Applications/deal.II-9.0.0.app/Contents/Resources/lib/cmake/dea
 
 add_executable(templater templater.cpp)
 
-SET(TARGET "simple")
+SET(TARGET "manufactured")
 SET(TARGET_SRC ${TARGET}.cpp)
 FIND_PACKAGE(deal.II 9.0.0 QUIET HINTS ${deal.II_DIR} ${DEAL_II_DIR} $ENV{DEAL_II_DIR})
 IF(NOT ${deal.II_FOUND})
