@@ -41,7 +41,8 @@
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/solver_cg.h>
 #include <deal.II/lac/precondition.h>
-
+#include <deal.II/base/convergence_table.h>
+#include <deal.II/fe/fe_values.h>
 #include <deal.II/numerics/data_out.h>
 #include <fstream>
 #include <iostream>
@@ -67,6 +68,8 @@ public:
 
     virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
+    virtual Tensor<1,dim> gradient(const Point<dim> &p, const unsigned int component=0) const;
+
     void set_macro_solution(double macro_solution);
 
 private:
@@ -80,6 +83,15 @@ double MicroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const 
         val += p(i) * p(i) * macro_solution;
     }
     return val;
+}
+
+template <int dim>
+Tensor<1,dim> MicroBoundary<dim>::gradient(const Point<dim> &p, const unsigned int) const {
+    Tensor<1,dim> return_val;
+
+    return_val[0] = 2*p(0);
+    return_val[1] = 2*p(1);
+    return return_val;
 }
 
 template<int dim>
@@ -96,6 +108,8 @@ public:
 
     virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
+    virtual Tensor<1,dim> gradient(const Point<dim> &p, const unsigned int component=0) const;
+
 private:
     const double lambda = std::sqrt(8. / 3.); // Coming from manufactured problem
 };
@@ -105,6 +119,15 @@ double MacroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const 
     double val = 0;
     val = std::sin(lambda * p(0)) + std::cos(lambda * p(1));
     return val;
+}
+
+template <int dim>
+Tensor<1,dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned int) const {
+    Tensor<1,dim> return_val;
+
+    return_val[0] = lambda*std::cos(lambda*p(0));
+    return_val[1] = -lambda*std::sin(lambda*p(1));
+    return return_val;
 }
 
 template<int dim>
@@ -130,7 +153,9 @@ private:
 
     void solve();
 
-    void output_results() const;
+    void process_solution();
+
+    void output_results();
 
     const double laplacian = 4;
 
@@ -138,6 +163,8 @@ private:
     FE_Q<dim> fe;
     DoFHandler<dim> dof_handler;
     DoFHandler<dim> *macro_dof_handler;
+    ConvergenceTable convergence_table;
+    unsigned int cycle;
 
 
     SparsityPattern sparsity_pattern;
@@ -164,7 +191,9 @@ private:
 
     void solve();
 
-    void output_results() const;
+    void output_results();
+
+    void process_solution();
 
     Triangulation<dim> triangulation;
     FE_Q<dim> fe;
@@ -177,6 +206,8 @@ private:
     Vector<double> system_rhs;
     MicroSolver<dim> micro;
     MacroBoundary<dim> boundary;
+    ConvergenceTable convergence_table;
+    int cycle;
 
 };
 
@@ -185,15 +216,19 @@ MacroSolver<dim>::MacroSolver(): fe(1), dof_handler(triangulation), micro(&dof_h
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
     make_grid();
     setup_system();
+    cycle=0;
     micro.setup();
-    micro.run();
-    this->run();
+    for (unsigned int i=0;i<5;i++) {
+        micro.run();
+        this->run();
+        cycle++;
+    }
 }
 
 template<int dim>
 void MacroSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(2);
+    triangulation.refine_global(3);
 
     std::cout << "   Number of active cells: "
               << triangulation.n_active_cells()
@@ -241,6 +276,8 @@ void MacroSolver<dim>::assemble_system() {
     Vector<double> cell_rhs(dofs_per_cell);
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+    system_matrix=0;
+    system_rhs=0;
 
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
@@ -293,14 +330,36 @@ void MacroSolver<dim>::solve() {
 
     // We have made one addition, though: since we suppress output from the
     // linear solvers, we have to print the number of iterations by hand.
-    std::cout << "   " << solver_control.last_step()
-              << " CG iterations needed to obtain convergence."
-              << std::endl;
+    printf("Convergence after %d CG iterations\n",solver_control.last_step());
+    cycle++;
 }
 
+template<int dim>
+void MacroSolver<dim>::process_solution() {
+    const unsigned int n_active = triangulation.n_active_cells();
+    const unsigned int n_dofs = dof_handler.n_dofs();
+    Vector<float> difference_per_cell(n_active);
+    VectorTools::integrate_difference(dof_handler,solution,boundary,difference_per_cell,QGauss<dim>(3),VectorTools::L2_norm);
+    double l2_error = difference_per_cell.l2_norm();
+    VectorTools::integrate_difference(dof_handler,solution,boundary,difference_per_cell,QGauss<dim>(3),VectorTools::H1_seminorm);
+    double h1_error = difference_per_cell.l2_norm();
+    printf("Cycle: %d\n, Number of active cells: %d\n, Number of DoFs, %d\n",cycle,n_active,n_dofs);
+    convergence_table.add_value("cycle", cycle);
+    convergence_table.add_value("cells", n_active);
+    convergence_table.add_value("dofs", n_dofs);
+    convergence_table.add_value("L2", l2_error);
+    convergence_table.add_value("H1", h1_error);
+
+}
 
 template<int dim>
-void MacroSolver<dim>::output_results() const {
+void MacroSolver<dim>::output_results() {
+
+    convergence_table.set_precision("L2", 3);
+    convergence_table.set_precision("H1", 3);
+    convergence_table.set_scientific("L2", true);
+    convergence_table.set_scientific("H1", true);
+    convergence_table.write_text(std::cout);
     DataOut<dim> data_out;
 
     data_out.attach_dof_handler(dof_handler);
@@ -317,6 +376,7 @@ template<int dim>
 void MacroSolver<dim>::run() {
     assemble_system();
     solve();
+    process_solution();
     output_results();
 }
 
@@ -327,6 +387,7 @@ MicroSolver<dim>::MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double>
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
     this->macro_dof_handler = macro_dof_handler;
     this->macro_solution = macro_solution;
+    cycle =0;
 }
 
 template<int dim>
@@ -381,7 +442,23 @@ void MicroSolver<dim>::setup_scatter() {
 template<int dim>
 double MicroSolver<dim>::get_macro_contribution(unsigned int dof_index) {
     // manufactured as: f(x) = \int_Y \rho(x,y)dy
-    return solutions.at(dof_index).l1_norm();
+    double integral = 0;
+//    QGauss<dim> quadrature_formula(2);
+//    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
+//    const unsigned int dofs_per_cell = fe.dofs_per_cell;
+//    const unsigned int n_q_points = quadrature_formula.size();
+//    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+//    for (const auto &cell: dof_handler.active_cell_iterators()) {
+//        fe_values.reinit(cell);
+//        cell->get_dof_indices(local_dof_indices);
+//        for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+//            for (unsigned int i = 0; i < dofs_per_cell; i++) {
+//                integral += 1 * solutions.at(dof_index)(local_dof_indices.at(i)) * fe_values.JxW(q_index);
+//            }
+//        }
+//    }
+    integral = std::copysign(solutions.at(dof_index).l1_norm(),(*macro_solution)(dof_index));
+    return integral;
 }
 
 template<int dim>
@@ -405,7 +482,7 @@ void MicroSolver<dim>::assemble_system() {
     Vector<double> cell_rhs(dofs_per_cell);
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-
+    system_matrix = 0;
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
@@ -428,6 +505,7 @@ void MicroSolver<dim>::assemble_system() {
             }
         }
         for (unsigned int k = 0; k < macro_dofs; k++) {
+            righthandsides.at(k) = 0;
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
                     cell_rhs(i) += -laplacian * (*macro_solution)(k);
@@ -439,7 +517,7 @@ void MicroSolver<dim>::assemble_system() {
 
     }
     for (unsigned int k = 0; k < macro_dofs; k++) {
-        this->boundary.set_macro_solution((*macro_solution)(k));
+        this->boundary.set_macro_solution((*macro_solution)(k)); // todo: evaluate the point from dof
         std::map<types::global_dof_index, double> boundary_values;
         VectorTools::interpolate_boundary_values(dof_handler, 0, boundary, boundary_values);
         MatrixTools::apply_boundary_values(boundary_values, system_matrix, solutions.at(k), righthandsides.at(k));
@@ -466,12 +544,35 @@ void MicroSolver<dim>::solve() {
     std::cout << "   " << solver_control.last_step()
               << " CG iterations needed to obtain convergence."
               << std::endl;
+    cycle++;
 }
 
 
 template<int dim>
-void MicroSolver<dim>::output_results() const {
+void MicroSolver<dim>::process_solution() {
+    for (unsigned int k=0;k<macro_dof_handler->n_dofs();k++) {
+        boundary.set_macro_solution((*macro_solution)(k));
+        const unsigned int n_active = triangulation.n_active_cells();
+        const unsigned int n_dofs = dof_handler.n_dofs();
+        Vector<float> difference_per_cell(n_active);
+        VectorTools::integrate_difference(dof_handler,solutions.at(k),boundary,difference_per_cell,QGauss<dim>(3),VectorTools::L2_norm);
+        double l2_error = difference_per_cell.l2_norm();
+        VectorTools::integrate_difference(dof_handler,solutions.at(k),boundary,difference_per_cell,QGauss<dim>(3),VectorTools::H1_seminorm);
+        double h1_error = difference_per_cell.l2_norm();
+        printf("Cycle: %d\n, Number of active cells: %d\n, Number of DoFs, %d\n",cycle,n_active,n_dofs);
+        convergence_table.add_value("cycle", cycle);
+        convergence_table.add_value("cells", n_active);
+        convergence_table.add_value("dofs", n_dofs);
+        convergence_table.add_value("L2", l2_error);
+        convergence_table.add_value("H1", h1_error);
+        std::ofstream micro_file("results/micro_solution"+std::to_string(k)+".txt",std::ofstream::app);
+        convergence_table.write_text(micro_file);
+    }
+}
+template<int dim>
+void MicroSolver<dim>::output_results() {
     for (unsigned int k = 0; k < macro_dof_handler->n_dofs(); k++) {
+
         DataOut<dim> data_out;
 
         data_out.attach_dof_handler(dof_handler);
@@ -490,6 +591,7 @@ template<int dim>
 void MicroSolver<dim>::run() {
     assemble_system();
     solve();
+    process_solution();
     output_results();
 }
 
