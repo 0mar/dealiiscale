@@ -104,7 +104,7 @@ void PlaceSolver<dim>::build_function() {
     QGauss<dim> quadrature_formula(2);
     FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points = quadrature_formula.size(); // Todo: Where are these quadrature points located?
+    const unsigned int n_q_points = quadrature_formula.size();
     Vector<double> cell_function(dofs_per_cell);
     function.reinit(dof_handler.n_dofs());
     function = 0;
@@ -118,12 +118,12 @@ void PlaceSolver<dim>::build_function() {
                 cell_function(i) +=
                         fe_values.shape_value(i, q_index) * real_function(fe_values.quadrature_point(q_index)) *
                         fe_values.JxW(q_index);
-                // Todo: Why this last factor? Is it the jacobian of the transformation from ref to actual element?
+
             }
         }
         // Get corresponding global locations of the local ones.
         for (unsigned int i = 0; i < dofs_per_cell; i++) {
-            function(local_dof_indices[i]) += cell_function(i); // Todo: Does it have to be +=?
+            function(local_dof_indices[i]) += cell_function(i);
         }
     }
 }
@@ -133,7 +133,7 @@ void PlaceSolver<dim>::build_matrix() {
     QGauss<dim> quadrature_formula(2);
     FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points = quadrature_formula.size(); // Todo: Where are these quadrature points located?
+    const unsigned int n_q_points = quadrature_formula.size();
     Vector<double> cell_function(dofs_per_cell);
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
@@ -475,8 +475,8 @@ void MacroSolver<dim>::output_results() const {
 
     data_out.build_patches();
 
-    std::ofstream output("results/solution-" + std::to_string(dim) + "d.vtk");
-    data_out.write_vtk(output);
+    std::ofstream output("results/macro-solution.gpl");
+    data_out.write_gnuplot(output);
 }
 
 
@@ -591,9 +591,10 @@ void MicroSolver<dim>::assemble_system() {
         for (unsigned int i = 0; i < dofs_per_cell; i++) {
             for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
                 for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                    cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
-                                          fe_values.shape_grad(j, q_index) *
-                                          fe_values.JxW(q_index));
+                    cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) * fe_values.shape_grad(j, q_index)  +
+                                          fe_values.shape_value(i, q_index) * fe_values.shape_value(j, q_index) /
+                                          this->time_delta) *
+                                          fe_values.JxW(q_index);
                 }
             }
         }
@@ -608,7 +609,8 @@ void MicroSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
                     cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                    fe_values.JxW(q_index));
+                                    initial_condition(fe_values.quadrature_point(q_index)) )*
+                                    fe_values.JxW(q_index);
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
             }
@@ -619,7 +621,8 @@ void MicroSolver<dim>::assemble_system() {
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler,0,BoundaryValues<dim>(),boundary_values);
     MatrixTools::apply_boundary_values(boundary_values,system_matrix,solutions.at(0),righthandsides.at(0));
-    //FixMe: This must somehow only be applied to rhs; how to fix this?
+    // This code assumes the sparsity pattern of the matrix doesn't change.
+    // That is what experiments seems to point out. // fixme, do with robin, then we have proof.
 }
 
 
