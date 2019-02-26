@@ -1,4 +1,4 @@
-# deal.II implmentation of multiscale equations
+# deal.II implementation of multiscale PDE
 
 This repository contains a setup for a [deal.ii][1] implementation for a two-scale system of equations.
 The target system is described in [this thesis][2], but the current status of the implementation is still a proof of concept.
