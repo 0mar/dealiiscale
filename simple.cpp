@@ -324,7 +324,7 @@ private:
 //template<int dim>
 //double RightHandSide<dim>::value(const Point<dim> &p,
 //                                 const unsigned int /*component*/) const {
-//    //Todo: For finding the gradient in all points, check step 15.
+//    //Todo: For finding the gradient in all points, check step 15. For boundary integrals, step 7.
 //    double return_value = 0.0;
 //    for (unsigned int i = 0; i < dim; ++i)
 //        return_value += 4.0 * std::pow(p(i), 4.0);
