@@ -1,0 +1,200 @@
+\documentclass{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[parfill]{parskip}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{a4wide}
+\usepackage{color}
+\usepackage{graphicx}
+
+\newcommand{\eps}{\varepsilon}
+\newcommand{\bigo}[1]{\mathcal{O}\left(#1\right)}
+\newcommand{\note}[1]{\emph{\color{blue}#1}}
+\renewcommand{\L}{\mathcal{ L}}
+\newcommand{\R}{\mathbb{ R}}
+\newcommand{\N}{\mathbb{ N}}
+\newtheorem{defin}{Definition}
+\newtheorem{prop}{Property}
+
+\renewcommand{\H}{\mathcal{ H}}
+\newcommand{\B}{\mathcal{ B}}
+\renewcommand{\P}{\mathbb{ P}}
+\newcommand{\K}{\mathcal{ K}}
+\newcommand{\V}{\mathcal{ V}}
+\title{Activity report for Omar\textsuperscript{2} collaboration in Sussex}
+\author{Omar Richardson}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+This report contains a summary on the activities during a four-week research visit to the MPS in the University of Sussex, where Omar Richardson collaborated with Omar Lakkis and Chandrasekhar Venkataraman.
+
+This report is structured as follows. Section~\ref{sec:problem} describes the problem under consideration. Section~\ref{sec:space} proposes a space discretization for the aforementioned problem, while Section~\ref{sec:time} suggests a time discretization. Section~\ref{sec:dealii} provides some detail on the finite element library deal.ii and describes what should be considered while implementing a multiscale finite element problem. In Section~\ref{sec:manufactured}, we present a manufactured problem of which we know a priori know the exact solution.
+Finally, Section~\ref{sec:adaptivity} contains some possible routes forward regarding adaptivity.
+
+\section{Problem description}
+\label{sec:problem}
+
+We consider the following problem, posed on two spatial scales $\Omega\subset \R^{d_1}$ and $Y \subset \R^{d_2}$ with $d_1,d_2 \in \{1,2,3\}$ in time interval $t\in S := (0,T)$ for some $T>0$. Find the two \emph{pressures} $\pi: S\times\Omega \to \R $ and $\rho: S\times\Omega\times Y\to \R$ that satisfy:
+
+\begin{align}
+    \label{eq:main_ellip}&-A\Delta_x\pi=f(\pi,\rho)  &\mbox{ in }S\times\Omega,\\
+    \label{eq:main_para}&\partial_t\rho-D\Delta_y\rho = 0  &\mbox{ in }S\times\Omega\times Y,\\
+    \label{eq:main_robin}&D\nabla_y\rho\cdot n_y= k(\pi+p_F-R\rho)&\mbox{ in } S\times\Omega\times\Gamma_R,\\
+    \label{eq:main_neumann}&D\nabla_y\rho\cdot n_y=0&\mbox{ in }S\times\Omega\times\Gamma_N,\\
+    \label{eq:main_dirichlet}&\pi=0 &\mbox{ in }S\times\partial\Omega,\\
+    \label{eq:main_initial}&\rho(0,x,y)=\rho_I(x,y)&\mbox{ in } \overline{\Omega\times Y},
+\end{align}
+where $\Gamma_R \cup \Gamma_N = \partial Y$, $\Gamma_R \cap \Gamma_N = \emptyset$ and $f:S\times\Omega\times Y \to \R$ is a function. We refer to \eqref{eq:main_ellip}-\eqref{eq:main_initial} as ($P_1$).
+
+
+\subsection{Weak solutions}
+
+We are interested in solutions to ($P_1$) in the weak sense. This is motivated by the fact that the underlying structured media can be of composite type, allowing for discontinuities in the model parameters.
+
+\begin{defin}[Weak solution]
+    A weak solution of ($P_1$) is a pair
+    \begin{equation*}
+        (\pi,\rho)\in\L^2(S;\H_0^1(\Omega))\times \L^2(S;\L^2(\Omega;\H^1(Y)))\cap \H^1(S;\L^2(\Omega;\L^2(Y)))
+    \end{equation*}
+    that satisfies for all test functions $(\varphi,\psi) \in \H^1_0(\Omega)\times \L^2(\Omega;\H^1(Y))$ the identities
+
+\begin{equation}
+    \label{eq:weak_pi_cont}
+    A\int_\Omega\nabla_x\pi\cdot\nabla_x\varphi dx=\int_\Omega f(\pi,\rho)\varphi dx,
+\end{equation}
+and
+\begin{equation}
+    \label{eq:weak_rho_cont}
+    \int_\Omega\int_Y\partial_t\rho\psi dydx+D\int_\Omega \int_Y\nabla_y \rho\cdot\nabla_y\psi dydx= \kappa\int_\Omega\int_{\Gamma_R}(\pi+p_F-R\rho)\psi d\sigma_ydx,
+\end{equation}
+for almost every $t \in S$ .
+\end{defin}
+
+\section{Space discretization}
+\label{sec:space}
+In this section we prove that ($P_1$) has a weak solution by approximating it with a Galerkin projection.
+We show the projection exists and is unique, and proceed by proving it converges to the weak solution of ($P_1$).
+First, we introduce the necessary tools for defining the Galerkin approximation.
+
+We use one mesh partition for each of the two spatial scales.
+Let $\B_H$ be a mesh partition for $\Omega$ consisting of simplices. We denote the diameter of an element $B \in \B_H$ with $H_B$, and the global mesh size with $H:= \max_{B \in \B_H} H_B$.
+We introduce a similar mesh partition $\K_h$ for $Y$ with global mesh size $h:= \max_{K \in \K_h} h_K$.
+
+Let $l\in \N$ be the order of the finite element spaces.
+Our macroscopic and microscopic finite element spaces $V_H$ and $W_h$ are defined as, respectively:
+\begin{align*}
+    V_H &:= \left\{ \left. v \in C^0(\Omega)\right|\,v|_B \in \P^l(B) \mbox{ for all } B \in \B_H  \right\},\\
+        W_h &:= \left\{ \left. w \in C^0(Y)\right|\,w|_K \in \P^l(K) \mbox{ for all } K \in \K_h  \right\}.
+\end{align*}
+where $\P^k(W)$ denotes the function space of polynomials of degree $k$ on set $W$.
+
+Let $\langle \xi_B \rangle_{\B_H}:= \operatorname{span}(V_H)$ and $ \langle \eta_K \rangle_{\K_h}:= \operatorname{span}(W_h)$ defined such that
+\begin{equation}
+    \xi_j(x_i) = \eta_j(y_i) = \delta_{ij},
+\end{equation}
+
+and let $\alpha_B,\beta_{BK} : S \to \R$ denote the Galerkin projection coefficient for a patch $B$ and $B\times K$, respectively. We introduce the following Galerkin approximations of the functions $\pi$ and $\rho$:
+\begin{equation}
+    \begin{split}
+        \pi^H(t,x) &:= \sum_{B \in \B_H} \alpha_B(t) \xi_B(x),\\
+        \rho^{H,h}(t,x,y) &:= \sum_{B \in \B_H, K \in \K_h} \beta_{BK}(t) \xi_B(x) \eta_K(y),
+    \end{split}
+    \label{eq:trunc}
+\end{equation}
+where we clamp $\alpha_B(t)=0$ for all $B\in \B_H$ with $\partial B \cap \partial \Omega\neq \emptyset $ to represent the macroscopic Dirichlet boundary condition.
+
+Reducing the space of test functions to $V^H$ and $W^h$, we obtain the following discrete weak formulation: find a solution pair
+\[(\pi^H(t,x),\rho^{H,h}(t,x,y)) \in \L^2(S;V^H)\times \L^2(S;V^H\times W^h)\] that are solutions to
+\begin{equation}
+    \label{eq:weak_pi}
+    A\int_\Omega\nabla_x\pi^H\cdot\nabla_x\varphi dx=\int_\Omega f(\pi^H,\rho^{H,h})\varphi dx,
+\end{equation}
+and
+\begin{equation}
+    \label{eq:weak_rho}
+    \begin{split}
+    &\int_\Omega\int_Y\partial_t\rho^{H,h}\psi dydx+D\int_\Omega \int_Y\nabla_y \rho^{H,h}\cdot\nabla_y\psi dydx\\
+    &\quad= \kappa\int_\Omega\int_{\Gamma_R}(\pi^H+p_F-R\rho^{H,h})\psi d\sigma_ydx,
+    \end{split}
+\end{equation}
+for any $\varphi \in V_H$ and $\psi \in V_H \times W_h$ and almost every $t \in S$.
+
+These concepts lead us to the first proposition.
+\ \\
+\begin{prop}[Existence and uniqueness of the Galerkin approximation]
+    \label{prop:ex_un}
+    There exists a unique solution $(\pi^H,\rho^{H,h})$ to the system in \eqref{eq:weak_pi}-\eqref{eq:weak_rho}.
+\end{prop}
+\begin{proof}
+    The proof is divided in three steps.  In step 1, the local existence in time is proven. In step 2, global existence in time is proven. Step 3 is concerned with proving the uniqueness of the system.
+
+    We introduce an integer index for $\alpha_B(t)$ and $\beta_{BK}(t)$ to increase the legibility of arguments in this proof.
+    Let $N_1 := \{1,\dots, |\B_H|\}$ and $N_2 := \{1,\dots, |\K_h|\}$. We introduce bijective mappings $n_1:N_1\to \B_H$ and $n_2: N_2 \to \K_h$, so that each index $j\in N_1$ corresponds to an element $B \in \B_H$ and each index $k\in N_2$ corresponds to a $K \in \K_h$.
+
+    \textit{Step 1: local existence of solutions to \eqref{eq:weak_pi} - \eqref{eq:weak_rho}}:
+    By substituting $\varphi = \xi_i$ and $\psi = \xi_i\eta_k$ for $i\in N_1$ and $k\in N_2$ in \eqref{eq:weak_pi}-\eqref{eq:weak_rho} we obtain the following system of ordinary differential equations coupled with algebraic equations.
+
+    \begin{align}
+        \sum_{j\in N_1} P_{ij} \alpha_j(t) &= F_i(\alpha,\beta)\label{eq:ode_alpha} \mbox{ for }i\in N_1,\\
+        \beta^\prime_{ik}(t) + \sum_{j\in N_1,l\in N_2} Q_{ijkl} \beta_{jl}(t) &= c_{ik} + \sum_{j\in N_1} E_{ijk}\alpha_j\label{eq:ode_beta}\mbox{ for }i\in N_1\mbox{ and }k \in N_2,
+    \end{align}
+    with
+    \begin{equation}
+        \begin{split}
+            P_{ij} &:= A \int_\Omega \nabla_x \xi_i \cdot \nabla_x \xi_j\,dx,\\
+            F_i &:= \int_\Omega f \left( \sum_{j\in N_1}\alpha_j(t) \xi_j,\sum_{j\in N_1,l\in N_2}\beta_{jl}(t)\xi_j\eta_l \right)\xi_i\,dx,\\
+            Q_{ijkl} &:= D \int_\Omega \xi_i\xi_jdx\int_{Y} \nabla_y \eta_k\cdot \nabla_y \eta_ldy + \kappa R\int_\Omega \xi_i\xi_j dx\int_{\Gamma_R}\eta_k \eta_ld\sigma_y,\\
+            E_{ijk} &:= \kappa\int_\Omega\xi_i\xi_j dx\int_{\Gamma_R} \eta_kd\sigma_y,\\
+            c_{ik}&:= \kappa p_F\int_\Omega \xi_i dx\int_{\Gamma_R} \eta_k d\sigma_y\,
+        \end{split}
+        \label{eq:matrices}
+    \end{equation}
+    Applying \eqref{eq:main_initial} to \eqref{eq:weak_pi} and \eqref{eq:weak_rho} yields:
+    \begin{equation}
+        \begin{split}
+            \alpha_i(0) &= \int_\Omega \xi_i\pi_I\,dx,\\
+            \beta_{ik}(0) &= \int_\Omega\int_Y\xi_i\eta_k\rho_Idydx.
+        \end{split}
+        \label{eq:fem_init}
+    \end{equation}
+
+    For all $t \in S$, the coefficients $\alpha_i(t), \beta_{ik}(t)$ of \eqref{eq:trunc} are determined by \eqref{eq:ode_alpha}, \eqref{eq:ode_beta} and \eqref{eq:fem_init}.
+\end{proof}
+
+\begin{equation}\end{equation}
+
+\section{Time discretization}
+\label{sec:time}
+Implementation of this scheme requires a discretization of $\alpha_i(t)$ and $\beta_{ik}(t)$ in \eqref{eq:ode_alpha}-\eqref{eq:ode_beta}.
+
+In this section, we propose a mix of explicit and implicit first order time integration. Assuming the notation and variables from the previous section, we propose the following scheme:
+
+Let $\Delta t>0$ be fixed, and let $\alpha_i^n := \alpha_i(n\Delta t)$ and $\beta_{ij}^n := \beta_{ik}(n\Delta t)$ for any $i\in N_1$, $j \in N_2$ and $n\geq0$. Then, given some $\alpha_i^0$ and $\beta_{ik}^0$ we obtain the following scheme:
+\begin{align}
+    \sum_{j\in N_1} P_{ij} \alpha_j^n &= F_i(\alpha^{n-1},\beta^{n-1})\label{eq:discr_alpha} \mbox{ for }i\in N_1,\\
+    \beta_{ik}^{n} + \Delta t\sum_{j\in N_1,l\in N_2} Q_{ijkl} \beta_{jl}^{n} &= \beta_{ik}^{n-1} + \Delta tc_{ik} + \Delta t\sum_{j\in N_1} E_{ijk}\alpha_j^{n-1}\label{eq:discr_beta}\mbox{ for }i\in N_1\mbox{ and }k \in N_2,
+\end{align}
+
+\section{deal.II}
+\label{sec:dealii}
+\begin{itemize}
+    \item Description of the package dealII.
+    \item Description of the structure of finite element programs.
+    \item Description of a multiscale structure; confer how we can reuse and be quicker.
+\end{itemize}
+
+\section{Manufactured problem with solutions}
+\label{sec:manufactured}
+
+\section{Concepts for adaptivity}
+\label{sec:adaptivity}
+\begin{itemize}
+    \item Cheap as possible micromesh, expensive macromesh.
+    \item Minimize maximum error.
+\end{itemize}
+
+\bibliography{literature}
+\bibliographystyle{ieeetr}
+\end{document}

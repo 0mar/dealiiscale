@@ -2,6 +2,7 @@
 
 This repository contains a setup for a [deal.ii][1] implementation for a two-scale system of equations.
 The target system is described in [this thesis][2], but the current status of the implementation is still a proof of concept.
+A more detailed description of the mathematical framework behind this implementation is present in `latex/main.tex`.
 
 ## Installation for macOS
 
@@ -10,7 +11,7 @@ Other options are available as well and should work, but the rest of this README
 
 ## Compiling deal.II programs
 
-deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, its easily installed using [Homebrew][4].
+deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, it is easily installed using [Homebrew][4].
 Opening the deal.II app will open a shell with preset environment variables that make compilation of your programs 'easy'. 
 For some reason, this app takes quite some time to load, and its structure does not (by default) allow for the use of IDEs or other shells/terminals.
 
