@@ -159,7 +159,7 @@ private:
     void process_solution();
 
 
-    const double laplacian = 4;
+    const double laplacian = 4.;
 
     Triangulation<dim> triangulation;
     FE_Q<dim> fe;
@@ -180,18 +180,14 @@ private:
 template<int dim>
 class MacroSolver {
 public:
-    MacroSolver();
+    MacroSolver(unsigned int refine_level);
 
     void run();
 
     void process_solution();
 
-    double get_micro_contribution(unsigned int dof_handler);
-
-    double get_exact_micro_contribution(unsigned int dof_handler);
-
 private:
-    void make_grid();
+    void make_grid(unsigned int refine_level);
 
     void setup_system();
 
@@ -218,25 +214,25 @@ private:
 };
 
 template<int dim>
-MacroSolver<dim>::MacroSolver(): fe(1), dof_handler(triangulation), micro(&dof_handler, &solution), boundary() {
+MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation), micro(&dof_handler, &solution), boundary() {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
-    make_grid();
+    make_grid(refine_level);
     setup_system();
     cycle = 0;
     micro.setup();
-    for (unsigned int i = 0; i < 5; i++) {
-        micro.run();
+    for (unsigned int i = 0; i < 1; i++) {
+//        micro.run();
         this->run();
         cycle++;
     }
-    micro.output_results();
+//    micro.output_results();
     this->output_results();
 }
 
 template<int dim>
-void MacroSolver<dim>::make_grid() {
+void MacroSolver<dim>::make_grid(unsigned int refine_level) {
     GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(3);
+    triangulation.refine_global(refine_level);
 
     std::cout << "   Number of active cells: "
               << triangulation.n_active_cells()
@@ -297,11 +293,12 @@ void MacroSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j)
                     cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
-                                          fe_values.shape_grad(j, q_index) *
-                                          fe_values.JxW(q_index));
+                            fe_values.shape_grad(j, q_index) - micro.get_macro_contribution(local_dof_indices[i])
+                            * fe_values.shape_value(i,q_index)* fe_values.shape_value(j,q_index))*fe_values.JxW(q_index);
+
 
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                micro.get_macro_contribution(local_dof_indices[i]) *
+                                0* // debug
                                 fe_values.JxW(q_index));
             }
 
@@ -390,20 +387,6 @@ void MacroSolver<dim>::run() {
 }
 
 template<int dim>
-double MacroSolver<dim>::get_micro_contribution(unsigned int dof_handler) {
-    double average = 0;
-    return average;
-}
-
-
-template<int dim>
-double MacroSolver<dim>::get_exact_micro_contribution(unsigned int dof_handler) {
-    double average = 0;
-    return average;
-}
-
-
-template<int dim>
 MicroSolver<dim>::MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution): fe(1), dof_handler(
         triangulation), boundary() {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
@@ -480,7 +463,7 @@ double MicroSolver<dim>::get_macro_contribution(unsigned int dof_index) {
 //            }
 //        }
 //    }
-    integral = std::copysign(solutions.at(dof_index).l1_norm(), (*macro_solution)(dof_index));
+    integral = 8./3;//*(*macro_solution)(dof_index); // debug
     return integral;
 }
 
@@ -538,7 +521,6 @@ void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
                     cell_rhs(i) += -laplacian * (*macro_solution)(k) * fe_values.JxW(q_index);
-                    cell_rhs(i) += -laplacian * fe_values.JxW(q_index);
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
             }
@@ -585,7 +567,7 @@ void MicroSolver<dim>::process_solution() {
         VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
                                           VectorTools::H1_seminorm);
         double h1_error = difference_per_cell.l2_norm();
-        printf("Cycle: %d\n, Number of active cells: %d\n, Number of DoFs, %d\n", cycle, n_active, n_dofs);
+//        printf("Cycle: %d\n, Number of active cells: %d\n, Number of DoFs, %d\n", cycle, n_active, n_dofs);
         convergence_table.add_value("cycle", cycle);
         convergence_table.add_value("cells", n_active);
         convergence_table.add_value("dofs", n_dofs);
@@ -631,9 +613,8 @@ int main() {
 //        MacroSolver<3> laplace_problem_3d;
 //        laplace_problem_3d.run();
 //    }
-    {
-        MacroSolver<2> macro;
+for (unsigned int i=0;i<5;i++) {
+        MacroSolver<2> macro(i);
     }
-
     return 0;
 }
