@@ -18,7 +18,9 @@ if(NOT ${deal.II_FOUND})
 endif()
 
 deal_II_initialize_cached_variables()
-add_executable(manufactured manufactured.cpp)
+
+add_executable(manufactured manufactured.h manufactured.cpp)
 deal_II_setup_target(manufactured)
+
 add_executable(demo demo.cpp)
 deal_II_setup_target(demo)

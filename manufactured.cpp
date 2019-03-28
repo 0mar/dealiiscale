@@ -18,64 +18,8 @@
  */
 
 
-// @sect3{Include files}
-
-// The first few (many?) include files have already been used in the previous
-// example, so we will not explain their meaning here again.
-#include <deal.II/grid/tria.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/tria_accessor.h>
-#include <deal.II/grid/tria_iterator.h>
-#include <deal.II/dofs/dof_accessor.h>
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/function.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/matrix_tools.h>
-#include <deal.II/lac/vector.h>
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/sparse_matrix.h>
-#include <deal.II/lac/dynamic_sparsity_pattern.h>
-#include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/precondition.h>
-#include <deal.II/base/convergence_table.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/numerics/data_out.h>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <memory>
-#include <cmath>
-#include <stdlib.h>
-// This is new, however: in the previous example we got some unwanted output
-// from the linear solvers. If we want to suppress it, we have to include this
-// file and add a single line somewhere to the program (see the main()
-// function below for that):
-#include <deal.II/base/logstream.h>
-
-// The final step, as in previous programs, is to import all the deal.II class
-// and function names into the global namespace:
+#include "manufactured.h"
 using namespace dealii;
-
-template<int dim>
-class MicroBoundary : public Function<dim> {
-public:
-    MicroBoundary() : Function<dim>() {
-
-    }
-
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
-
-    void set_macro_solution(double macro_solution);
-
-private:
-    double macro_solution = 0;
-};
 
 template<int dim>
 double MicroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
@@ -100,20 +44,6 @@ void MicroBoundary<dim>::set_macro_solution(const double macro_solution) {
     this->macro_solution = macro_solution;
 }
 
-template<int dim>
-class MacroBoundary : public Function<dim> {
-public:
-    MacroBoundary() : Function<dim>() {
-
-    }
-
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
-
-private:
-    const double lambda = std::sqrt(8. / 3.); // Coming from manufactured problem
-};
 
 template<int dim>
 double MacroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
@@ -130,88 +60,6 @@ Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned 
     return_val[1] = -lambda * std::sin(lambda * p(1));
     return return_val;
 }
-
-template<int dim>
-class MicroSolver {
-public:
-    MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution);
-
-    void setup();
-
-    void run();
-
-    double get_macro_contribution(unsigned int dof_index);
-
-    void output_results();
-
-private:
-
-    void make_grid();
-
-    void setup_system();
-
-    void setup_scatter();
-
-    void assemble_system();
-
-    void solve();
-
-    void process_solution();
-
-
-    const double laplacian = 4.;
-
-    Triangulation<dim> triangulation;
-    FE_Q<dim> fe;
-    DoFHandler<dim> dof_handler;
-    DoFHandler<dim> *macro_dof_handler;
-    ConvergenceTable convergence_table;
-    unsigned int cycle;
-
-
-    SparsityPattern sparsity_pattern;
-    std::vector<SparseMatrix<double>> system_matrices;
-    Vector<double> *macro_solution;
-    std::vector<Vector<double>> solutions;
-    std::vector<Vector<double>> righthandsides;
-    MicroBoundary<dim> boundary;
-};
-
-template<int dim>
-class MacroSolver {
-public:
-    MacroSolver(unsigned int refine_level);
-
-    void run();
-
-    void process_solution();
-
-private:
-    void make_grid(unsigned int refine_level);
-
-    void setup_system();
-
-    void assemble_system();
-
-    void solve();
-
-    void output_results();
-
-    Triangulation<dim> triangulation;
-    FE_Q<dim> fe;
-    DoFHandler<dim> dof_handler;
-
-    SparsityPattern sparsity_pattern;
-    SparseMatrix<double> system_matrix;
-
-    Vector<double> solution;
-    Vector<double> system_rhs;
-    MicroSolver<dim> micro;
-    MacroBoundary<dim> boundary;
-    ConvergenceTable convergence_table;
-    int cycle;
-
-};
 
 template<int dim>
 MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation), micro(&dof_handler, &solution), boundary() {
@@ -594,7 +442,6 @@ void MicroSolver<dim>::output_results() {
 
 }
 
-
 template<int dim>
 void MicroSolver<dim>::run() {
     assemble_system();
@@ -602,19 +449,3 @@ void MicroSolver<dim>::run() {
     process_solution();
 }
 
-int main() {
-    deallog.depth_console(0);
-//    {
-//        MacroSolver<2> laplace_problem_2d;
-//        laplace_problem_2d.run();
-//    }
-//
-//    {
-//        MacroSolver<3> laplace_problem_3d;
-//        laplace_problem_3d.run();
-//    }
-for (unsigned int i=0;i<5;i++) {
-        MacroSolver<2> macro(i);
-    }
-    return 0;
-}
