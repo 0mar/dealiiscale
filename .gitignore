@@ -5,6 +5,7 @@ CMakeCache.txt
 CMakeFiles/
 Makefile
 cmake-build-debug/
+cmake-build-release/
 cmake_install.cmake
 *.cbp
 step-*
