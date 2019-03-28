@@ -18,6 +18,7 @@
 
 \renewcommand{\H}{\mathcal{ H}}
 \newcommand{\B}{\mathcal{ B}}
+\newcommand{\dealii}{deal.ii{}}
 \renewcommand{\P}{\mathbb{ P}}
 \newcommand{\K}{\mathcal{ K}}
 \newcommand{\V}{\mathcal{ V}}
@@ -31,7 +32,7 @@
 This report contains a summary on the activities during a four-week research visit to the MPS in the University of Sussex, where Omar Richardson collaborated with Omar Lakkis and Chandrasekhar Venkataraman.
 
 This report is structured as follows. Section~\ref{sec:problem} describes the problem under consideration. Section~\ref{sec:space} proposes a space discretization for the aforementioned problem, while Section~\ref{sec:time} suggests a time discretization. Section~\ref{sec:dealii} provides some detail on the finite element library deal.ii and describes what should be considered while implementing a multiscale finite element problem. In Section~\ref{sec:manufactured}, we present a manufactured problem of which we know a priori know the exact solution.
-Finally, Section~\ref{sec:adaptivity} contains some possible routes forward regarding adaptivity.
+Finally, Section~\ref{sec:adaptivity} describes some possible routes forward regarding adaptivity.
 
 \section{Problem description}
 \label{sec:problem}
@@ -177,24 +178,105 @@ Let $\Delta t>0$ be fixed, and let $\alpha_i^n := \alpha_i(n\Delta t)$ and $\bet
     \beta_{ik}^{n} + \Delta t\sum_{j\in N_1,l\in N_2} Q_{ijkl} \beta_{jl}^{n} &= \beta_{ik}^{n-1} + \Delta tc_{ik} + \Delta t\sum_{j\in N_1} E_{ijk}\alpha_j^{n-1}\label{eq:discr_beta}\mbox{ for }i\in N_1\mbox{ and }k \in N_2,
 \end{align}
 
+This time discretization is explicit in the macroscopic equation and implicit in the microscopic equation. This avoids approximating the nonlinear term $f$, and ensures (hopefully) more stability in the microscopic equation without much of a cost, since this equation is linear.
+
+Convergence of this scheme is as of now still an open problem.
+
 \section{deal.II}
 \label{sec:dealii}
+
+Finite element library deal.ii is a C++ library that is able to solve finite element problems. It is an open source library that is under active development. Selling points are its dimension independent implementation formulation, its support for many different kinds of finite elements and the possibility for grid refinement. Possible issues are its restriction to quadrilaterals and the fact that some routines are implemented in a black-box-like manner.
+
+\subsection{Implementation structure}
+Implementations in deal.II follow the object-oriented paradigm. This means that mathematical concepts like functions, solution approximations, boundary conditions, matrices, grids and triangulations are represented with instances of deal.II objects.
+
+Most finite element codes in deal.II is roughly structured in the same way:
+
+\begin{enumerate}
+    \item Create a domain and a ``triangulation'' of that domain.
+    \item Distribute the degrees of freedom based on the triangulation and the degree of finite elements.
+    \item Initialize the system matrix and the right hand side and solution vector.
+    \item Assemble the system by looping over cells and integrate the discrete weak form per cell.
+    \item Interpolate and apply the boundary conditions.
+    \item Solve the system, either directly or iteratively.
+    \item Post-process and output the solution.
+\end{enumerate}
+
+
+
+\subsection{Multiscale implementations}
+When one tries to solve a multiscale finite element problem numerically, it is important to consider how the implementation will be structured. 
+Doing it naively can lead to a computational effort which would exceed the single scale problem, i.e. creating a micro-problem for each degree of freedom on the macroscopic grid.
+Luckily, most problems allow for a reuse of objects and structures, saving both memory and computational effort.
+
+For our multiscale problem, we suggest the following improvements over said naive implementation. Some of these improvements rely on assumptions which will no longer hold in more general or more complicated cases. In that case, they will be revised when necessary.
 \begin{itemize}
-    \item Description of the package dealII.
-    \item Description of the structure of finite element programs.
-    \item Description of a multiscale structure; confer how we can reuse and be quicker.
+    \item Share among all microscopic instances: the microscopic grid, triangulation, degree of freedoms and the sparsity pattern of the system matrix.
+    \item Create one microscopic grid for each macroscopic vertex, where we can easily evaluate the value of $\pi$.
 \end{itemize}
 
 \section{Manufactured problem with solutions}
+
+\subsection{Problem descroption}
+\label{sub:problem_descroption}
+
 \label{sec:manufactured}
+In this section we propose a multiscale PDE with two-way coupling of which we know the exact solution. We use this system to test our implementation and see if the scheme we use converges with the desired order.
+
+Let us assume the same notation as in Section~\ref{sec:problem}. 
+Now, we are looking for a pair of solutions $(\pi(x),\rho(x,y))$ that solve the following system:
+\begin{align}
+    \label{eq:man_ellip}&-\Delta_x \pi(x) = \int_Y \rho(x,y) dy &\mbox{ in } \Omega\\
+    \label{eq:man_para}&- \Delta_y \rho(x,y) = -\Delta_y r(y) &\mbox{ in }  \Omega\times Y \\
+    \label{eq:man_ell_bc}&\pi(x) = p(x)  &\mbox{ on } \partial \Omega \\
+    \label{eq:man_para_bc}&\rho(x,y) = p(x)r(y) &\mbox{ on } \Omega \times \partial Y
+\end{align}
+for some $p(x)$ and $r(y)$. 
+For the rest of this discussion, we fix $\Omega = [0,1]^2$, $Y = [0,1]^2$, $p(x) = \cos(x_1) + \sin(x_2)$ and $r(y) = y_1^2 + y_2^2$.
+This results in the solution pair:
+\begin{equation}
+    \pi(x) =  \cos(x_1) + \sin(x_2),\quad \rho(x,y) = \left( \cos(x_1) + \sin(x_2) \right) \left(  y_1^2 + y_2^2 \right)
+\end{equation}
+
+We use deal.II to solve the provided system. We do so by an iterative scheme; take an initial guess for the macroscopic solution (for instance, $\pi=1$), and using this as data to solve the microscopic systems. Then, take the solutions of the microscopic systems as data for the macroscopic system and solve that. 
+
+\subsection{Convergence}
+\emph{Get this to converge.}
 
 \section{Concepts for adaptivity}
 \label{sec:adaptivity}
-\begin{itemize}
-    \item Cheap as possible micromesh, expensive macromesh.
-    \item Minimize maximum error.
-\end{itemize}
 
+In this section, we shortly describe three possible strategies that can increase the accuracy of this finite element scheme, based on a posteriori error indicators. 
+One of the goals is to find out which of these strategies produces the highest accuracy, given the same amount of computational power.
+Each of these strategies is based on microscopic refinement; the macroscopic mesh is left as is. 
+As a microscopic error indicator, we use $\eta(x,y)$, defined only for $x \in \Omega$ which correspond to vertices on the discretization of $\Omega$ and $y \in Y$ which correspond to elements on the discretization of $Y$.
+As a macroscopic error indicator, we use $\xi(x)$, similarly defined.
+
+\subsection{Maximum error minimization}
+\label{sec:max_min}
+This strategy is based on the desire to use one microscopic grid for all microscopic systems.
+We compute the microscopic error indicator for each microscopic element, but collapse them to fit on a single microscopic grid by maximizing over all macroscopic vertices, i.e., we define a single error indicator $\tilde{\eta}:Y \to \R$ as:
+\begin{equation}
+    \tilde{\eta}(y) := \max_{x\in \Omega} \eta(x,y),
+\end{equation}
+and we use this error indicator to decide on refinement for all microscopic grids. 
+This way, we are able to reuse the same microscopic grid for all microscopic systems, all the while still being able to make guarantees on the upper bound of the error.
+\subsection{Error grouping}
+\label{sec:error_grouping}
+The first approach is memory-efficient, but might refine microscopic systems in locations where it is not necessary and for that reason become computationally inefficient.
+For this reason, we propose a generalization that can compromise between memory usage and CPU usage.
+We drop the requirement that all microscopic systems have the same microscopic grid and instead introduce $n$ possibly different grids.
+After the first iteration, we group the microscopic error indicators on similarity into $n$ different groups (how to do this is not trivial), and for each group, create a new grid (and corresponding data structures).
+This grid will be a refinement of the previous grid based on the collapsed error indicator of its group.
+
+Things to keep in mind when grouping error indicators is not only error magnitude, but also error localisation.
+
+\subsection{Macro-based micro error indicators}
+As a last option, we drop any restrictions on microscopic grid similarity and instead try to not only minimize microscopic errors but also macroscopic ones, by refining the microscopic grid in locations where it contributes to a larger macroscopic error, giving rise to the following refinement strategy: Given a threshold $\bar{\eta}= \bar{\eta}(\xi(x))$, refine the microscopic grid when
+\begin{equation}
+    \eta(x,y) > \bar{\eta}(\xi(x))
+\end{equation}
+where the relation between $\bar{\eta}$ on $\xi$ has to be explored.
 \bibliography{literature}
 \bibliographystyle{ieeetr}
 \end{document}
