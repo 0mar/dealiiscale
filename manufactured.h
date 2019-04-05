@@ -14,15 +14,13 @@
  * ---------------------------------------------------------------------
 
  *
- * Author: Wolfgang Bangerth, University of Heidelberg, 1999
+ * Author: Omar Richardson, Karlstad University, 2019
  */
 
 
 #ifndef MANUFACTURED_H
 #define MANUFACTURED_H
 
-// The first few (many?) include files have already been used in the previous
-// example, so we will not explain their meaning here again.
 #include <deal.II/grid/tria.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/grid/grid_generator.h>
@@ -51,13 +49,8 @@
 #include <memory>
 #include <cmath>
 #include <stdlib.h>
-// This is new, however: in the previous example we got some unwanted output
-// from the linear solvers. If we want to suppress it, we have to include this
-// file and add a single line somewhere to the program (see the main()
-// function below for that):
 #include <deal.II/base/logstream.h>
-// The final step, as in previous programs, is to import all the deal.II class
-// and function names into the global namespace:
+
 using namespace dealii;
 
 template<int dim>
@@ -67,10 +60,27 @@ public:
 
     }
 
+    /**
+     * Compute the value of the microscopic boundary at a given point
+     * @param p The nD point where the boundary condition is evaluated
+     * @param component Component of the vector: not used in this case
+     * @return Value of the microscopic boundary at p
+     */
     virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
+    /**
+     * Compute the analytic gradient of the boundary at point p. Necessary for Robin/Neumann boundary conditions and
+     * exact evaluation of the error.
+     * @param p The nD point where the boundary condition is evaluated
+     * @param component Component of the vector: not used in this case
+     * @return gradient of the microscopic boundary condition at p
+    */
     virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
 
+    /**
+     * Set a macroscopic solution point for the boundary (corresponding to the computed value on the grid)
+     * @param macro_solution Value of the macroscopic solution for the corresponding microscopic system.
+     */
     void set_macro_solution(double macro_solution);
 
 private:
@@ -84,8 +94,22 @@ public:
 
     }
 
+    /**
+     * Creates a macroscopic boundary (only Dirichlet at this point)
+     * @param p The point where the boundary condition is evaluated
+     * @param component Component of the vector: not used in this case
+     * @return Value of the microscopic boundary condition at p
+     */
     virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
+
+    /**
+     * Compute the analytic gradient of the boundary at point p. Necessary for Robin/Neumann boundary conditions and
+     * exact evaluation of the error.
+     * @param p The nD point where the boundary condition is evaluated
+     * @param component Component of the vector: not used in this case
+     * @return gradient of the microscopic boundary condition at p
+    */
     virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
 
 private:
@@ -95,10 +119,22 @@ private:
 template<int dim>
 class MicroSolver {
 public:
+
+    /**
+     * Create a Microsolver that resolves the microscopic systems.
+     * @param macro_dof_handler The macroscopic degrees of freedom
+     * @param macro_solution The macroscopic solution
+     */
     MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution);
 
+    /**
+     * Collection method for setting up all necessary tools for the microsolver
+     */
     void setup();
 
+    /**
+     * Collection method for solving the micro systems
+     */
     void run();
 
     double get_macro_contribution(unsigned int dof_index);
@@ -174,7 +210,7 @@ private:
 
 };
 
-int main(int argc, char *argv[]) {
+int main() {
     deallog.depth_console(0);
 //    {
 //        MacroSolver<2> laplace_problem_2d;
@@ -185,7 +221,7 @@ int main(int argc, char *argv[]) {
 //        MacroSolver<3> laplace_problem_3d;
 //        laplace_problem_3d.run();
 //    }
-    for (unsigned int i = 0; i < 5; i++) {
+    for (unsigned int i = 0; i < 10; i++) {
         MacroSolver<2> macro(i);
     }
     return 0;
