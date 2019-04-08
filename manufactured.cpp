@@ -266,6 +266,10 @@ void MicroSolver<dim>::process_solution() {
 template<int dim>
 void MicroSolver<dim>::output_results() {
     for (unsigned int k = 0; k < 1; k++) { // Sync with process_solution
+        convergence_table.set_precision("L2", 3);
+        convergence_table.set_precision("H1", 3);
+        convergence_table.set_scientific("L2", true);
+        convergence_table.set_scientific("H1", true);
         std::ofstream micro_file("results/micro_solution" + std::to_string(k) + ".txt", std::ofstream::app);
         convergence_table.write_text(micro_file);
         DataOut<dim> data_out;
@@ -292,14 +296,14 @@ void MicroSolver<dim>::run() {
 
 template<int dim>
 MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation),
-                                                          micro(&dof_handler, &solution, 3),
+                                                          micro(&dof_handler, &solution, 1),
                                                           boundary() { // micro refine level // fixme
     make_grid(refine_level);
     setup_system();
     this->solution = 1; // debug purposes. todo: make varying. Run solution once?
     cycle = 0;
     micro.setup();
-    for (unsigned int i = 0; i < 2; i++) {
+    for (unsigned int i = 0; i < 7; i++) {
         micro.run();
         cycle++;
         micro.refine_grid();
