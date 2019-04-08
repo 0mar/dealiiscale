@@ -125,7 +125,7 @@ public:
      * @param macro_dof_handler The macroscopic degrees of freedom
      * @param macro_solution The macroscopic solution
      */
-    MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution);
+    MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution, unsigned int refine_level);
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -137,23 +137,58 @@ public:
      */
     void run();
 
+    void refine_grid();
+
+    /**
+     * Compute the right hand side of the Macroscopic function;
+     * a contribution from the microscopic solution.
+     * @param dof_index Degree of freedom corresponding to the microscopic grid.
+     * @return double with the value of the integral/other RHS function
+     */
     double get_macro_contribution(unsigned int dof_index);
 
+    /**
+     * Output the results/write them to file/something
+     */
     void output_results();
+
+    /**
+     * Post-process the solution (write convergence estimates and other stuff)
+     */
+    void process_solution();
+
+    unsigned int refine_level; // todo: Set to private when we've asserted implementation works.
 
 private:
 
+    /**
+     * Create a domain and make a triangulation
+     */
     void make_grid();
 
+    /**
+     * Common data structures are created in this method
+     * Distribute the degrees of freedom
+     * Create a common sparsity pattern based on the mesh
+     */
     void setup_system();
 
+    /**
+     * Specific data structures are created in this method.
+     * Create specific right hand sides and solution vectors.
+     */
     void setup_scatter();
 
+    /**
+     * Actual important method: Create the system matrices and create the right hand side vectors
+     * by looping over all the cells and computing the discrete weak forms
+     */
     void assemble_system();
 
+    /**
+     * Solve the system we obtained in `assemble_system`.
+     */
     void solve();
-
-    void process_solution();
 
 
     const double laplacian = 4.;
@@ -212,18 +247,10 @@ private:
 
 int main() {
     deallog.depth_console(0);
-//    {
-//        MacroSolver<2> laplace_problem_2d;
-//        laplace_problem_2d.run();
+    MacroSolver<2> macro(2);
+//    for (unsigned int i = 0; i < 10; i++) {
+//        MacroSolver<2> macro(i);
 //    }
-//
-//    {
-//        MacroSolver<3> laplace_problem_3d;
-//        laplace_problem_3d.run();
-//    }
-    for (unsigned int i = 0; i < 10; i++) {
-        MacroSolver<2> macro(i);
-    }
     return 0;
 }
 

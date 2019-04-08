@@ -66,8 +66,10 @@ Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned 
 }
 
 template<int dim>
-MicroSolver<dim>::MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution): fe(1), dof_handler(
+MicroSolver<dim>::MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution,
+                              unsigned int refine_level): fe(1), dof_handler(
         triangulation), boundary() {
+    this->refine_level = refine_level;
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
     this->macro_dof_handler = macro_dof_handler;
     this->macro_solution = macro_solution;
@@ -76,7 +78,6 @@ MicroSolver<dim>::MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double>
 
 template<int dim>
 void MicroSolver<dim>::setup() {
-
     make_grid();
     setup_system();
     setup_scatter();
@@ -86,7 +87,7 @@ template<int dim>
 void MicroSolver<dim>::make_grid() {
     std::cout << "Setting up micro grid" << std::endl;
     GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(4);
+    triangulation.refine_global(refine_level);
 
     std::cout << "   Number of active cells: "
               << triangulation.n_active_cells()
@@ -110,7 +111,17 @@ void MicroSolver<dim>::setup_system() {
 }
 
 template<int dim>
+void MicroSolver<dim>::refine_grid() {
+    triangulation.refine_global(1);
+    setup_system();
+    setup_scatter();
+}
+
+template<int dim>
 void MicroSolver<dim>::setup_scatter() {
+    solutions.clear();
+    righthandsides.clear();
+    system_matrices.clear();
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int i = 0; i < macro_dof_handler->n_dofs(); i++) {
         Vector<double> solution(n_dofs);
@@ -176,7 +187,6 @@ void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
-        cell_rhs = 0;
 
         cell->get_dof_indices(local_dof_indices);
         for (unsigned int i = 0; i < dofs_per_cell; i++) {
@@ -197,9 +207,11 @@ void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation
             }
         }
         for (unsigned int k = 0; k < macro_dofs; k++) {
+            cell_rhs = 0;
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-                    cell_rhs(i) += -laplacian * (*macro_solution)(k) * fe_values.JxW(q_index);
+                    cell_rhs(i) += -laplacian * (*macro_solution)(k) * fe_values.shape_value(i, q_index) *
+                                   fe_values.JxW(q_index);
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
             }
@@ -222,10 +234,6 @@ void MicroSolver<dim>::solve() {
     for (unsigned int k = 0; k < macro_dof_handler->n_dofs(); k++) {
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
     }
-
-
-    // We have made one addition, though: since we suppress output from the
-    // linear solvers, we have to print the number of iterations by hand.
     std::cout << "   " << solver_control.last_step()
               << " CG iterations needed to obtain convergence."
               << std::endl;
@@ -235,7 +243,8 @@ void MicroSolver<dim>::solve() {
 
 template<int dim>
 void MicroSolver<dim>::process_solution() {
-    for (unsigned int k = 0; k < macro_dof_handler->n_dofs(); k++) {
+    for (unsigned int k = 0;
+         k < 1; k++) { // Todo: Obviously, I do not want all the loose points. Find a generic error indicator
         boundary.set_macro_solution((*macro_solution)(k));
         const unsigned int n_active = triangulation.n_active_cells();
         const unsigned int n_dofs = dof_handler.n_dofs();
@@ -246,7 +255,6 @@ void MicroSolver<dim>::process_solution() {
         VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
                                           VectorTools::H1_seminorm);
         double h1_error = difference_per_cell.l2_norm();
-//        printf("Cycle: %d\n, Number of active cells: %d\n, Number of DoFs, %d\n", cycle, n_active, n_dofs);
         convergence_table.add_value("cycle", cycle);
         convergence_table.add_value("cells", n_active);
         convergence_table.add_value("dofs", n_dofs);
@@ -257,7 +265,7 @@ void MicroSolver<dim>::process_solution() {
 
 template<int dim>
 void MicroSolver<dim>::output_results() {
-    for (unsigned int k = 0; k < macro_dof_handler->n_dofs(); k++) {
+    for (unsigned int k = 0; k < 1; k++) { // Sync with process_solution
         std::ofstream micro_file("results/micro_solution" + std::to_string(k) + ".txt", std::ofstream::app);
         convergence_table.write_text(micro_file);
         DataOut<dim> data_out;
@@ -269,6 +277,7 @@ void MicroSolver<dim>::output_results() {
 
         std::ofstream output("results/solution-" + std::to_string(k) + ".gpl");
         data_out.write_gnuplot(output);
+
     }
 
 }
@@ -283,19 +292,21 @@ void MicroSolver<dim>::run() {
 
 template<int dim>
 MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation),
-                                                          micro(&dof_handler, &solution), boundary() {
-//    std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
+                                                          micro(&dof_handler, &solution, 3),
+                                                          boundary() { // micro refine level // fixme
     make_grid(refine_level);
     setup_system();
+    this->solution = 1; // debug purposes. todo: make varying. Run solution once?
     cycle = 0;
     micro.setup();
-    for (unsigned int i = 0; i < 1; i++) {
-//        micro.run();
-        this->run();
+    for (unsigned int i = 0; i < 2; i++) {
+        micro.run();
         cycle++;
+        micro.refine_grid();
     }
-//    micro.output_results();
-    this->output_results();
+    micro.run();
+    micro.output_results();
+//    this->output_results();
 }
 
 template<int dim>
