@@ -136,30 +136,31 @@ void MicroSolver<dim>::setup_scatter() {
 }
 
 template<int dim>
-double MicroSolver<dim>::get_macro_contribution(unsigned int dof_index) {
+double MicroSolver<dim>::get_macro_contribution(unsigned int dof_index) { // todo: check
     // manufactured as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
-//    QGauss<dim> quadrature_formula(2);
-//    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
-//    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-//    const unsigned int n_q_points = quadrature_formula.size();
-//    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-//    for (const auto &cell: dof_handler.active_cell_iterators()) {
-//        fe_values.reinit(cell);
-//        cell->get_dof_indices(local_dof_indices);
-//        for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-//            for (unsigned int i = 0; i < dofs_per_cell; i++) {
-//                integral += 1 * solutions.at(dof_index)(local_dof_indices.at(i)) * fe_values.JxW(q_index);
-//            }
-//        }
-//    }
-    integral = 8. / 3;//*(*macro_solution)(dof_index); // debug
+    QGauss<dim> quadrature_formula(2);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
+    const unsigned int dofs_per_cell = fe.dofs_per_cell;
+    const unsigned int n_q_points = quadrature_formula.size();
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+    for (const auto &cell: dof_handler.active_cell_iterators()) {
+        fe_values.reinit(cell);
+        cell->get_dof_indices(local_dof_indices);
+        std::vector<double> interp_solution(n_q_points);
+        fe_values.get_function_values(solutions.at(dof_index), interp_solution);
+        for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+            integral += interp_solution[q_index] * fe_values.JxW(q_index);
+
+        }
+    }
     return integral;
 }
 
 template<int dim>
 void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation and test
     QGauss<dim> quadrature_formula(2);
+
 
 
 //    const RightHandSide<dim> right_hand_side;
@@ -179,6 +180,7 @@ void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     for (unsigned int k = 0; k < macro_dofs; k++) {
+        printf("Micro: Using macro solution %.3e for %d\n", (*macro_solution)(k), k);
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
@@ -243,9 +245,9 @@ void MicroSolver<dim>::solve() {
 
 template<int dim>
 void MicroSolver<dim>::process_solution() {
-    for (unsigned int k = 0;
-         k < 1; k++) { // Todo: Obviously, I do not want all the loose points. Find a generic error indicator
-        boundary.set_macro_solution((*macro_solution)(k));
+    for (unsigned int k = 10;
+         k < 11; k++) { // Todo: Obviously, I do not want all the loose points. Find a generic error indicator
+        boundary.set_macro_solution((*macro_solution)(k)); // todo: Make exact
         const unsigned int n_active = triangulation.n_active_cells();
         const unsigned int n_dofs = dof_handler.n_dofs();
         Vector<float> difference_per_cell(n_active);
@@ -260,12 +262,18 @@ void MicroSolver<dim>::process_solution() {
         convergence_table.add_value("dofs", n_dofs);
         convergence_table.add_value("L2", l2_error);
         convergence_table.add_value("H1", h1_error);
+        std::ofstream vals("results/micro_vals.txt", std::iostream::app);
+        for (double d: solutions.at(k)) {
+            vals << d << " ";
+        }
+        vals << "\n";
+        vals.close();
     }
 }
 
 template<int dim>
 void MicroSolver<dim>::output_results() {
-    for (unsigned int k = 0; k < 1; k++) { // Sync with process_solution
+    for (unsigned int k = 10; k < 11; k++) { // Sync with process_solution
         convergence_table.set_precision("L2", 3);
         convergence_table.set_precision("H1", 3);
         convergence_table.set_scientific("L2", true);
@@ -296,21 +304,19 @@ void MicroSolver<dim>::run() {
 
 template<int dim>
 MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation),
-                                                          micro(&dof_handler, &solution, 1),
+                                                          micro(&dof_handler, &solution, 4),
                                                           boundary() { // micro refine level // fixme
     make_grid(refine_level);
     setup_system();
-    this->solution = 1; // debug purposes. todo: make varying. Run solution once?
     cycle = 0;
     micro.setup();
-    for (unsigned int i = 0; i < 7; i++) {
+    for (unsigned int i = 0; i < 14; i++) {
+        this->run();
         micro.run();
         cycle++;
-        micro.refine_grid();
     }
-    micro.run();
     micro.output_results();
-//    this->output_results();
+    this->output_results();
 }
 
 template<int dim>
@@ -377,14 +383,12 @@ void MacroSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j)
                     cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
-                                          fe_values.shape_grad(j, q_index) -
-                                          micro.get_macro_contribution(local_dof_indices[i])
-                                          * fe_values.shape_value(i, q_index) * fe_values.shape_value(j, q_index)) *
+                                          fe_values.shape_grad(j, q_index)) *
                                          fe_values.JxW(q_index);
 
 
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                0 * // debug
+                                micro.get_macro_contribution(local_dof_indices[i]) *
                                 fe_values.JxW(q_index));
             }
 
@@ -415,7 +419,6 @@ void MacroSolver<dim>::solve() {
     // We have made one addition, though: since we suppress output from the
     // linear solvers, we have to print the number of iterations by hand.
     printf("Convergence after %d CG iterations\n", solver_control.last_step());
-    cycle++;
 }
 
 template<int dim>
@@ -429,13 +432,18 @@ void MacroSolver<dim>::process_solution() {
     VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::H1_seminorm);
     double h1_error = difference_per_cell.l2_norm();
-    printf("Cycle: %d\n, Number of active cells: %d\n, Number of DoFs, %d\n", cycle, n_active, n_dofs);
+    printf("Cycle: %d\n", cycle);
     convergence_table.add_value("cycle", cycle);
     convergence_table.add_value("cells", n_active);
     convergence_table.add_value("dofs", n_dofs);
     convergence_table.add_value("L2", l2_error);
     convergence_table.add_value("H1", h1_error);
-
+    std::ofstream vals("results/macro_vals.txt", std::iostream::app);
+    for (double d: solution) {
+        vals << d << " ";
+    }
+    vals << "\n";
+    vals.close();
 }
 
 template<int dim>
