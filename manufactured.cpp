@@ -153,14 +153,14 @@ double MicroSolver<dim>::get_macro_contribution(unsigned int cell_index) {
         std::vector<double> interp_solution(n_q_points);
         fe_values.get_function_values(solutions.at(cell_index), interp_solution);
         for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-            integral += interp_solution[q_index] * fe_values.JxW(q_index); // todo: Really the JxW here?
+            integral += interp_solution[q_index] * fe_values.JxW(q_index); 
         }
     }
     return integral;
 }
 
 template<int dim>
-void MicroSolver<dim>::get_macro_rhs(Triangulation<dim> &macro_triangulation, Vector<double> macro_rhs) {
+void MicroSolver<dim>::get_macro_rhs(Triangulation<dim> &macro_triangulation, Vector<double> &macro_rhs) {
     macro_rhs = 0;
     if (macro_rhs.size() != num_grids()) {
         throw std::invalid_argument(
@@ -253,7 +253,7 @@ void MicroSolver<dim>::solve() {
 template<int dim>
 void MicroSolver<dim>::process_solution() {
     for (unsigned int k = num_grids() / 2; k < num_grids() / 2 + 1; k++) { // Todo: better generic error indicator
-        boundary.set_macro_cell_index(k); // todo: make exact
+        boundary.set_macro_cell_index(k); 
         const unsigned int n_active = triangulation.n_active_cells();
         const unsigned int n_dofs = dof_handler.n_dofs();
         Vector<float> difference_per_cell(n_active);
@@ -284,7 +284,7 @@ void MicroSolver<dim>::output_results() {
         convergence_table.set_precision("H1", 3);
         convergence_table.set_scientific("L2", true);
         convergence_table.set_scientific("H1", true);
-        std::ofstream micro_file("results/micro_solution" + std::to_string(k) + ".txt", std::ofstream::app);
+        std::ofstream micro_file("results/micro_convergence" + std::to_string(0) + ".txt", std::ofstream::app);
         convergence_table.write_text(micro_file);
         DataOut<dim> data_out;
 
@@ -315,7 +315,7 @@ unsigned int MicroSolver<dim>::num_grids() const {
 template<int dim>
 MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation),
                                                           micro(&interpolated_solution, refine_level),
-                                                          boundary() { // micro refine level // todo fix parameter setup
+                                                          boundary() { 
     make_grid(refine_level);
     setup_system();
     cycle = 0;
@@ -323,6 +323,8 @@ MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(tri
     compute_exact_value(cell_average);
     micro.setup();
     micro.boundary.set_macro_solution(cell_average);
+    this->run();
+    micro.run();
     this->run();
     micro.run();
     this->run();
@@ -381,7 +383,6 @@ void MacroSolver<dim>::assemble_system() {
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
-
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
@@ -446,7 +447,7 @@ void MacroSolver<dim>::interpolate_function(const Vector<double> &func, Vector<d
     for (const auto &cell:dof_handler.active_cell_iterators()) {
         fe_value.reinit(cell);
         fe_value.get_function_values(func, mid_point_value);
-        interp_func[cell->active_cell_index()] = mid_point_value[0]; // todo: multiply with Hessian?
+        interp_func[cell->active_cell_index()] = mid_point_value[0];
     }
 }
 

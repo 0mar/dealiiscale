@@ -153,7 +153,7 @@ public:
      */
     double get_macro_contribution(unsigned int cell_index);
 
-    void get_macro_rhs(Triangulation<dim> &macro_triangulation, Vector<double> macro_rhs);
+    void get_macro_rhs(Triangulation<dim> &macro_triangulation, Vector<double> &macro_rhs);
 
     /**
      * Output the results/write them to file/something
