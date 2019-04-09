@@ -164,8 +164,6 @@ These concepts lead us to the first proposition.
     For all $t \in S$, the coefficients $\alpha_i(t), \beta_{ik}(t)$ of \eqref{eq:trunc} are determined by \eqref{eq:ode_alpha}, \eqref{eq:ode_beta} and \eqref{eq:fem_init}.
 \end{proof}
 
-\begin{equation}\end{equation}
-
 \section{Time discretization}
 \label{sec:time}
 Implementation of this scheme requires a discretization of $\alpha_i(t)$ and $\beta_{ik}(t)$ in \eqref{eq:ode_alpha}-\eqref{eq:ode_beta}.
@@ -212,9 +210,19 @@ Luckily, most problems allow for a reuse of objects and structures, saving both 
 For our multiscale problem, we suggest the following improvements over said naive implementation. Some of these improvements rely on assumptions which will no longer hold in more general or more complicated cases. In that case, they will be revised when necessary.
 \begin{itemize}
     \item Share among all microscopic instances: the microscopic grid, triangulation, degree of freedoms and the sparsity pattern of the system matrix.
-    \item Create one microscopic grid for each macroscopic vertex, where we can easily evaluate the value of $\pi$.
+    \item Create one microscopic system for each macroscopic cell, where we can easily interpolate the required value of $\pi$.
 \end{itemize}
 
+In order to create a two-way information exchange between the microscopic and macroscopic grid, we require some technicalities in our implementation.
+
+Because each microscopic system is defined for a macroscopic cell, we associate a specific local value of $\pi$ with each system: the finite element function value for the mid-point of the cell.
+By using mid-point quadrature integration techniques, we are able to derive this value from the finite element solution of $\pi$.
+
+The right hand side of the macroscopic system requires the integral of $\rho$ over $Y$. Using a second-order gaussian integration technique we obtain a value of this right hand side for each cell center.
+An improvement would be to interpolate these central cell values to all quadrature points.
+This could be done by either (1) creating a microscopic grid for each quadrature point, although that has the drawback that the order of integration heavily impacts the computational load, or (2) using a linear interpolation technique to obtain a better approximation of the right hand side in the quadrature points, although that cannot (reliable) be extended to higher order interpolation.
+
+In the present implementation, however, we find solace in the fact that this piecewise constant approximation of the right hand side function is still a consistent one.
 \section{Manufactured problem with solutions}
 
 \subsection{Problem description}
@@ -238,7 +246,9 @@ This results in the solution pair:
     \pi(x) =  \cos(x_1) + \sin(x_2),\quad \rho(x,y) = \left( \cos(x_1) + \sin(x_2) \right) \left(  y_1^2 + y_2^2 \right)
 \end{equation}
 
-We use deal.II to solve the provided system. We do so by an iterative scheme; take an initial guess for the macroscopic solution (for instance, $\pi=1$), and using this as data to solve the microscopic systems. Then, take the solutions of the microscopic systems as data for the macroscopic system and solve that.
+We use deal.II to solve the provided system. We do so by an iterative scheme; take an initial guess for the macroscopic solution (for instance, $\pi=1$), and using this as data to solve the microscopic systems.
+Then, take the solutions of the microscopic systems as data and solve the macroscopic system.
+Repeat this process until the difference in subsequent solution approximations no longer exceeds a specified tolerance.
 
 \subsection{Convergence}
 To assess the quality of this implementation, we use the following three tests:
@@ -248,29 +258,48 @@ To assess the quality of this implementation, we use the following three tests:
     \item Test the convergence of the full multiscale system, both in number of iterations as in the grid points.
 \end{enumerate}
 
-In Figure~\ref{fig:micro_convergence}, we see that...
-In Figure~\ref{fig:macro_convergence}, we see that...
-Finally, in Figure~\ref{fig:multiscale_convergence}, we see convergence of the full system.
+In Figure~\ref{fig:micro_convergence}, we see a standard quadratic convergence for the $\L^2$ error and linear convergence for the $\H^1$ error, in line with the standard finite element error estimates.
 
 \begin{figure}[ht]
+    \centering
     \includegraphics[width=0.8\textwidth]{micro_convergence.pdf}
-    \caption{$\L^2$ and $\H^1$ errors of the microscopic scheme as a function of the number of degrees of freedom, log-log plot}
+    \caption{$\L^2$ and $\H^1$ errors of the microscopic scheme as a function of the number of degrees of freedom in a log-log plot.}
     \label{fig:micro_convergence}
 \end{figure}
 
+This same behaviour is illustrated in Figure~\ref{fig:macro_convergence}.
+
 \begin{figure}[ht]
+    \centering
     \includegraphics[width=0.8\textwidth]{macro_convergence.pdf}
-    \caption{$\L^2$ and $\H^1$ errors of the macroscopic scheme as a function of the number of degrees of freedom, log-log plot}
+    \caption{$\L^2$ and $\H^1$ errors of the macroscopic scheme as a function of the number of degrees of freedom in a log-log plot.}
     \label{fig:macro_convergence}
 \end{figure}
 
+Subsequently, in Figure~\ref{fig:multiscale_macro} and Figure~\ref{fig:multiscale_micro}, we observe convergence of the full multiscale system.
+Notice how in the macroscopic equation, each subsequent iteration decreases the error by a seemingly fixed amount, while in the microscopic equation, convergence does not always occur monotonously.
+
+Also notice how the rate of convergence in the $\L^2$ norm is not maintained in the largest grid, due to what seems a lack of iterations.
+A third interesting observation is the seemingly quadratic convergence of the $\H^1$ error in the microscopic system. The reason for this is still to be analysed.
+
+Finally, observe how in the microscopic system, the error of the first iteration reduces as the number of degrees of freedom increases. This occurs because we solve the macroscopic equation before we solve the microscopic one, therefore having better initial data as the macroscopic equation does.
+For higher grid resolution, an increasing minimum number of iterations is necessary to obtain the the highest accuracy. Regardless, convergence is largely as expected.
+
 \begin{figure}[ht]
-    \includegraphics[width=0.8\textwidth]{multiscale_convergence.pdf}
-    \caption{$\L^2$ and $\H^1$ errors of the multiscale scheme as a function of the number of degrees of freedom, log-log plot}
-    \label{fig:multiscale_convergence}
+    \centering
+    \includegraphics[width=0.8\textwidth]{multiscale_macro.pdf}
+    \caption{$\L^2$ and $\H^1$ errors of the macroscopic part of the multiscale equation as a function of the number of degrees of freedom, log-log plot. Each point corresponds to an iteration, the line corresponds to the final iteration.}
+    \label{fig:multiscale_macro}
 \end{figure}
 
-\section{Concepts for adaptivity}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{multiscale_micro.pdf}
+    \caption{$\L^2$ and $\H^1$ errors of the macroscopic part of the multiscale equation as a function of the number of degrees of freedom, log-log plot. Each point corresponds to an iteration, the line corresponds to the final iteration.}
+    \label{fig:multiscale_micro}
+\end{figure}
+
+\section{Future work: Concepts for adaptivity}
 \label{sec:adaptivity}
 
 In this section, we shortly describe three possible strategies that can increase the accuracy of this finite element scheme, based on a posteriori error indicators.
