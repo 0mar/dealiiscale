@@ -43,6 +43,9 @@
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/numerics/data_out.h>
+#include <deal.II/grid/grid_out.h>
+#include <deal.II/numerics/error_estimator.h>
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -81,10 +84,13 @@ public:
      * Set a macroscopic solution point for the boundary (corresponding to the computed value on the grid)
      * @param macro_solution Value of the macroscopic solution for the corresponding microscopic system.
      */
-    void set_macro_solution(double macro_solution);
+    void set_macro_solution(const Vector<double> &macro_solution);
+
+    void set_macro_cell_index(unsigned int index);
 
 private:
-    double macro_solution = 0;
+    Vector<double> macro_sol;
+    unsigned int macro_cell_index = 0;
 };
 
 template<int dim>
@@ -125,7 +131,7 @@ public:
      * @param macro_dof_handler The macroscopic degrees of freedom
      * @param macro_solution The macroscopic solution
      */
-    MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution, unsigned int refine_level);
+    MicroSolver(Vector<double> *macro_solution, unsigned int refine_level);
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -145,7 +151,9 @@ public:
      * @param dof_index Degree of freedom corresponding to the microscopic grid.
      * @return double with the value of the integral/other RHS function
      */
-    double get_macro_contribution(unsigned int dof_index);
+    double get_macro_contribution(unsigned int cell_index);
+
+    void get_macro_rhs(Triangulation<dim> &macro_triangulation, Vector<double> macro_rhs);
 
     /**
      * Output the results/write them to file/something
@@ -159,6 +167,7 @@ public:
 
     unsigned int refine_level; // todo: Set to private when we've asserted implementation works.
 
+    unsigned int num_grids() const;
 private:
 
     /**
@@ -196,7 +205,6 @@ private:
     Triangulation<dim> triangulation;
     FE_Q<dim> fe;
     DoFHandler<dim> dof_handler;
-    DoFHandler<dim> *macro_dof_handler;
     ConvergenceTable convergence_table;
     unsigned int cycle;
 
@@ -206,6 +214,8 @@ private:
     Vector<double> *macro_solution;
     std::vector<Vector<double>> solutions;
     std::vector<Vector<double>> righthandsides;
+
+public:
     MicroBoundary<dim> boundary;
 };
 
@@ -218,12 +228,21 @@ public:
 
     void process_solution();
 
+    void compute_exact_value(Vector<double> &exact_values);
+
 private:
     void make_grid(unsigned int refine_level);
 
     void setup_system();
 
     void assemble_system();
+
+    /**
+     * Interpolate a finite element function defined on the present grid to a single value per cell.
+     * @param fe Finite element function corresponding to the finite element space
+     * @return Vector (finite element function) with length `#cells`
+     */
+    void interpolate_function(const Vector<double> &func, Vector<double> &interp_func);
 
     void solve();
 
@@ -237,6 +256,7 @@ private:
     SparseMatrix<double> system_matrix;
 
     Vector<double> solution;
+    Vector<double> interpolated_solution;
     Vector<double> system_rhs;
     MicroSolver<dim> micro;
     MacroBoundary<dim> boundary;

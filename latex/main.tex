@@ -217,8 +217,8 @@ For our multiscale problem, we suggest the following improvements over said naiv
 
 \section{Manufactured problem with solutions}
 
-\subsection{Problem descroption}
-\label{sub:problem_descroption}
+\subsection{Problem description}
+\label{sub:problem_description}
 
 \label{sec:manufactured}
 In this section we propose a multiscale PDE with two-way coupling of which we know the exact solution. We use this system to test our implementation and see if the scheme we use converges with the desired order.
@@ -227,7 +227,7 @@ Let us assume the same notation as in Section~\ref{sec:problem}.
 Now, we are looking for a pair of solutions $(\pi(x),\rho(x,y))$ that solve the following system:
 \begin{align}
     \label{eq:man_ellip}&-\Delta_x \pi(x) = \int_Y \rho(x,y) dy &\mbox{ in } \Omega\\
-    \label{eq:man_para}&- \Delta_y \rho(x,y) = -\Delta_y r(y) &\mbox{ in }  \Omega\times Y \\
+    \label{eq:man_para}&- \Delta_y \rho(x,y) = -p(x)\Delta_y r(y) &\mbox{ in }  \Omega\times Y \\
     \label{eq:man_ell_bc}&\pi(x) = p(x)  &\mbox{ on } \partial \Omega \\
     \label{eq:man_para_bc}&\rho(x,y) = p(x)r(y) &\mbox{ on } \Omega \times \partial Y
 \end{align}

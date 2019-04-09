@@ -29,7 +29,7 @@ template<int dim>
 double MicroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
     double val = 0;
     for (unsigned int i = 0; i < dim; i++) {
-        val += p(i) * p(i) * macro_solution;
+        val += p(i) * p(i) * macro_sol[macro_cell_index];
     }
     return val;
 }
@@ -38,20 +38,24 @@ template<int dim>
 Tensor<1, dim> MicroBoundary<dim>::gradient(const Point<dim> &p, const unsigned int) const {
     Tensor<1, dim> return_val;
 
-    return_val[0] = 2 * p(0) * macro_solution;
-    return_val[1] = 2 * p(1) * macro_solution;
+    return_val[0] = 2 * p(0) * macro_sol[macro_cell_index];
+    return_val[1] = 2 * p(1) * macro_sol[macro_cell_index];
     return return_val;
 }
 
 template<int dim>
-void MicroBoundary<dim>::set_macro_solution(const double macro_solution) {
-    this->macro_solution = macro_solution;
+void MicroBoundary<dim>::set_macro_solution(const Vector<double> &macro_solution) {
+    this->macro_sol = macro_solution;
 }
 
+template<int dim>
+void MicroBoundary<dim>::set_macro_cell_index(const unsigned int index) {
+    macro_cell_index = index;
+}
 
 template<int dim>
 double MacroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = 0; // Todo: prescribe pi and solve rho, then prescribe rho and solve pi
+    double val = 0;
     val = std::sin(lambda * p(0)) + std::cos(lambda * p(1));
     return val;
 }
@@ -66,12 +70,11 @@ Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned 
 }
 
 template<int dim>
-MicroSolver<dim>::MicroSolver(DoFHandler<dim> *macro_dof_handler, Vector<double> *macro_solution,
+MicroSolver<dim>::MicroSolver(Vector<double> *macro_solution,
                               unsigned int refine_level): fe(1), dof_handler(
         triangulation), boundary() {
     this->refine_level = refine_level;
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
-    this->macro_dof_handler = macro_dof_handler;
     this->macro_solution = macro_solution;
     cycle = 0;
 }
@@ -123,7 +126,7 @@ void MicroSolver<dim>::setup_scatter() {
     righthandsides.clear();
     system_matrices.clear();
     unsigned int n_dofs = dof_handler.n_dofs();
-    for (unsigned int i = 0; i < macro_dof_handler->n_dofs(); i++) {
+    for (unsigned int i = 0; i < num_grids(); i++) {
         Vector<double> solution(n_dofs);
         solutions.push_back(solution);
 
@@ -136,7 +139,7 @@ void MicroSolver<dim>::setup_scatter() {
 }
 
 template<int dim>
-double MicroSolver<dim>::get_macro_contribution(unsigned int dof_index) { // todo: check
+double MicroSolver<dim>::get_macro_contribution(unsigned int cell_index) {
     // manufactured as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
     QGauss<dim> quadrature_formula(2);
@@ -148,24 +151,30 @@ double MicroSolver<dim>::get_macro_contribution(unsigned int dof_index) { // tod
         fe_values.reinit(cell);
         cell->get_dof_indices(local_dof_indices);
         std::vector<double> interp_solution(n_q_points);
-        fe_values.get_function_values(solutions.at(dof_index), interp_solution);
+        fe_values.get_function_values(solutions.at(cell_index), interp_solution);
         for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-            integral += interp_solution[q_index] * fe_values.JxW(q_index);
-
+            integral += interp_solution[q_index] * fe_values.JxW(q_index); // todo: Really the JxW here?
         }
     }
     return integral;
 }
 
 template<int dim>
-void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation and test
+void MicroSolver<dim>::get_macro_rhs(Triangulation<dim> &macro_triangulation, Vector<double> macro_rhs) {
+    macro_rhs = 0;
+    if (macro_rhs.size() != num_grids()) {
+        throw std::invalid_argument(
+                "func lengths:" + std::to_string(macro_rhs.size()) + "/" + std::to_string(num_grids()));
+    }
+
+    for (const auto &cell: macro_triangulation.active_cell_iterators()) {
+        macro_rhs[cell->active_cell_index()] = get_macro_contribution(cell->active_cell_index()); // optimize
+    }
+}
+
+template<int dim>
+void MicroSolver<dim>::assemble_system() {
     QGauss<dim> quadrature_formula(2);
-
-
-
-//    const RightHandSide<dim> right_hand_side;
-
-
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
@@ -173,13 +182,12 @@ void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
-    const unsigned int macro_dofs = macro_dof_handler->n_dofs();
 
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    for (unsigned int k = 0; k < macro_dofs; k++) {
+    for (unsigned int k = 0; k < num_grids(); k++) {
         printf("Micro: Using macro solution %.3e for %d\n", (*macro_solution)(k), k);
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
@@ -201,14 +209,14 @@ void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation
         }
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
             for (unsigned int j = 0; j < dofs_per_cell; ++j) {
-                for (unsigned int k = 0; k < macro_dofs; k++) {
+                for (unsigned int k = 0; k < num_grids(); k++) {
                     system_matrices.at(k).add(local_dof_indices[i],
                                               local_dof_indices[j],
                                               cell_matrix(i, j));
                 }
             }
         }
-        for (unsigned int k = 0; k < macro_dofs; k++) {
+        for (unsigned int k = 0; k < num_grids(); k++) {
             cell_rhs = 0;
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
@@ -219,8 +227,8 @@ void MicroSolver<dim>::assemble_system() { // todo: L2 norm, solo implementation
             }
         }
     }
-    for (unsigned int k = 0; k < macro_dofs; k++) {
-        this->boundary.set_macro_solution((*macro_solution)(k)); // todo: evaluate the point from dof
+    for (unsigned int k = 0; k < num_grids(); k++) {
+        this->boundary.set_macro_cell_index(k);
         std::map<types::global_dof_index, double> boundary_values;
         VectorTools::interpolate_boundary_values(dof_handler, 0, boundary, boundary_values);
         MatrixTools::apply_boundary_values(boundary_values, system_matrices.at(k), solutions.at(k),
@@ -233,7 +241,7 @@ template<int dim>
 void MicroSolver<dim>::solve() {
     SolverControl solver_control(1000, 1e-12);
     SolverCG<> solver(solver_control);
-    for (unsigned int k = 0; k < macro_dof_handler->n_dofs(); k++) {
+    for (unsigned int k = 0; k < num_grids(); k++) {
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
     }
     std::cout << "   " << solver_control.last_step()
@@ -245,9 +253,10 @@ void MicroSolver<dim>::solve() {
 
 template<int dim>
 void MicroSolver<dim>::process_solution() {
-    for (unsigned int k = 10;
-         k < 11; k++) { // Todo: Obviously, I do not want all the loose points. Find a generic error indicator
-        boundary.set_macro_solution((*macro_solution)(k)); // todo: Make exact
+    for (unsigned int k = num_grids() / 2;
+         k < num_grids() / 2 +
+             1; k++) { // Todo: Obviously, I do not want all the loose points. Find a generic error indicator
+        boundary.set_macro_cell_index(k); // todo: make exact
         const unsigned int n_active = triangulation.n_active_cells();
         const unsigned int n_dofs = dof_handler.n_dofs();
         Vector<float> difference_per_cell(n_active);
@@ -301,15 +310,22 @@ void MicroSolver<dim>::run() {
     process_solution();
 }
 
+template<int dim>
+unsigned int MicroSolver<dim>::num_grids() const {
+    return macro_solution->size();
+}
 
 template<int dim>
 MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation),
-                                                          micro(&dof_handler, &solution, 4),
-                                                          boundary() { // micro refine level // fixme
+                                                          micro(&interpolated_solution, 4),
+                                                          boundary() { // micro refine level // todo fix parameter setup
     make_grid(refine_level);
     setup_system();
     cycle = 0;
+    Vector<double> cell_average(triangulation.n_active_cells());
+    compute_exact_value(cell_average);
     micro.setup();
+    micro.boundary.set_macro_solution(cell_average);
     for (unsigned int i = 0; i < 14; i++) {
         this->run();
         micro.run();
@@ -335,11 +351,9 @@ void MacroSolver<dim>::make_grid(unsigned int refine_level) {
 template<int dim>
 void MacroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-
 //    std::cout << "   Number of degrees of freedom: "
 //              << dof_handler.n_dofs()
 //              << std::endl;
-
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
@@ -348,6 +362,17 @@ void MacroSolver<dim>::setup_system() {
 
     solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
+    interpolated_solution.reinit(triangulation.n_active_cells());
+}
+
+template<int dim>
+void MacroSolver<dim>::compute_exact_value(Vector<double> &exact_values) {
+    FEValues<dim> fe_value(fe, QMidpoint<dim>(), update_quadrature_points);
+    for (const auto &cell: dof_handler.active_cell_iterators()) {
+        fe_value.reinit(cell);
+        std::vector<Point<dim>> quad_points = fe_value.get_quadrature_points();
+        exact_values[cell->active_cell_index()] = boundary.value(quad_points[0]);
+    }
 }
 
 template<int dim>
@@ -368,6 +393,10 @@ void MacroSolver<dim>::assemble_system() {
 
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
+    Vector<double> macro_rhs(triangulation.n_active_cells());
+    micro.get_macro_rhs(triangulation, macro_rhs);
+    // Todo: Interpolate from midpoint to Gaussian
+
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     system_matrix = 0;
@@ -388,7 +417,7 @@ void MacroSolver<dim>::assemble_system() {
 
 
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                micro.get_macro_contribution(local_dof_indices[i]) *
+                                macro_rhs[cell->active_cell_index()] *
                                 fe_values.JxW(q_index));
             }
 
@@ -402,13 +431,29 @@ void MacroSolver<dim>::assemble_system() {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
         }
     }
-
-
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler, 0, boundary, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
+template<int dim>
+void MacroSolver<dim>::interpolate_function(const Vector<double> &func, Vector<double> &interp_func) {
+    interp_func = 0;
+    if (func.size() != dof_handler.n_dofs()) {
+        throw std::invalid_argument(
+                "func lengths:" + std::to_string(dof_handler.n_dofs()) + "/" + std::to_string(func.size()));
+    } else if (interp_func.size() != triangulation.n_active_cells()) {
+        throw std::invalid_argument("func lengths:" + std::to_string(interp_func.size()) + "/" +
+                                    std::to_string(triangulation.n_active_cells()));
+    }
+    FEValues<dim> fe_value(fe, QMidpoint<dim>(), update_values | update_quadrature_points | update_JxW_values);
+    std::vector<double> mid_point_value(1);
+    for (const auto &cell:dof_handler.active_cell_iterators()) {
+        fe_value.reinit(cell);
+        fe_value.get_function_values(func, mid_point_value);
+        interp_func[cell->active_cell_index()] = mid_point_value[0]; // todo: multiply with Hessian?
+    }
+}
 
 template<int dim>
 void MacroSolver<dim>::solve() {
@@ -419,6 +464,7 @@ void MacroSolver<dim>::solve() {
     // We have made one addition, though: since we suppress output from the
     // linear solvers, we have to print the number of iterations by hand.
     printf("Convergence after %d CG iterations\n", solver_control.last_step());
+    interpolate_function(solution, interpolated_solution);
 }
 
 template<int dim>
