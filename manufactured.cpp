@@ -188,7 +188,6 @@ void MicroSolver<dim>::assemble_system() {
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     for (unsigned int k = 0; k < num_grids(); k++) {
-        printf("Micro: Using macro solution %.3e for %d\n", (*macro_solution)(k), k);
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
@@ -253,9 +252,7 @@ void MicroSolver<dim>::solve() {
 
 template<int dim>
 void MicroSolver<dim>::process_solution() {
-    for (unsigned int k = num_grids() / 2;
-         k < num_grids() / 2 +
-             1; k++) { // Todo: Obviously, I do not want all the loose points. Find a generic error indicator
+    for (unsigned int k = num_grids() / 2; k < num_grids() / 2 + 1; k++) { // Todo: better generic error indicator
         boundary.set_macro_cell_index(k); // todo: make exact
         const unsigned int n_active = triangulation.n_active_cells();
         const unsigned int n_dofs = dof_handler.n_dofs();
@@ -282,7 +279,7 @@ void MicroSolver<dim>::process_solution() {
 
 template<int dim>
 void MicroSolver<dim>::output_results() {
-    for (unsigned int k = 10; k < 11; k++) { // Sync with process_solution
+    for (unsigned int k = num_grids() / 2; k < num_grids() / 2 + 1; k++) { // Sync with process_solution
         convergence_table.set_precision("L2", 3);
         convergence_table.set_precision("H1", 3);
         convergence_table.set_scientific("L2", true);
@@ -317,7 +314,7 @@ unsigned int MicroSolver<dim>::num_grids() const {
 
 template<int dim>
 MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation),
-                                                          micro(&interpolated_solution, 4),
+                                                          micro(&interpolated_solution, refine_level),
                                                           boundary() { // micro refine level // todo fix parameter setup
     make_grid(refine_level);
     setup_system();
@@ -326,11 +323,9 @@ MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(tri
     compute_exact_value(cell_average);
     micro.setup();
     micro.boundary.set_macro_solution(cell_average);
-    for (unsigned int i = 0; i < 14; i++) {
-        this->run();
-        micro.run();
-        cycle++;
-    }
+    this->run();
+    micro.run();
+    this->run();
     micro.output_results();
     this->output_results();
 }
