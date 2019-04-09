@@ -205,7 +205,7 @@ Most finite element codes in deal.II is roughly structured in the same way:
 
 
 \subsection{Multiscale implementations}
-When one tries to solve a multiscale finite element problem numerically, it is important to consider how the implementation will be structured. 
+When one tries to solve a multiscale finite element problem numerically, it is important to consider how the implementation will be structured.
 Doing it naively can lead to a computational effort which would exceed the single scale problem, i.e. creating a micro-problem for each degree of freedom on the macroscopic grid.
 Luckily, most problems allow for a reuse of objects and structures, saving both memory and computational effort.
 
@@ -223,7 +223,7 @@ For our multiscale problem, we suggest the following improvements over said naiv
 \label{sec:manufactured}
 In this section we propose a multiscale PDE with two-way coupling of which we know the exact solution. We use this system to test our implementation and see if the scheme we use converges with the desired order.
 
-Let us assume the same notation as in Section~\ref{sec:problem}. 
+Let us assume the same notation as in Section~\ref{sec:problem}.
 Now, we are looking for a pair of solutions $(\pi(x),\rho(x,y))$ that solve the following system:
 \begin{align}
     \label{eq:man_ellip}&-\Delta_x \pi(x) = \int_Y \rho(x,y) dy &\mbox{ in } \Omega\\
@@ -231,24 +231,51 @@ Now, we are looking for a pair of solutions $(\pi(x),\rho(x,y))$ that solve the 
     \label{eq:man_ell_bc}&\pi(x) = p(x)  &\mbox{ on } \partial \Omega \\
     \label{eq:man_para_bc}&\rho(x,y) = p(x)r(y) &\mbox{ on } \Omega \times \partial Y
 \end{align}
-for some $p(x)$ and $r(y)$. 
+for some $p(x)$ and $r(y)$.
 For the rest of this discussion, we fix $\Omega = [0,1]^2$, $Y = [0,1]^2$, $p(x) = \cos(x_1) + \sin(x_2)$ and $r(y) = y_1^2 + y_2^2$.
 This results in the solution pair:
 \begin{equation}
     \pi(x) =  \cos(x_1) + \sin(x_2),\quad \rho(x,y) = \left( \cos(x_1) + \sin(x_2) \right) \left(  y_1^2 + y_2^2 \right)
 \end{equation}
 
-We use deal.II to solve the provided system. We do so by an iterative scheme; take an initial guess for the macroscopic solution (for instance, $\pi=1$), and using this as data to solve the microscopic systems. Then, take the solutions of the microscopic systems as data for the macroscopic system and solve that. 
+We use deal.II to solve the provided system. We do so by an iterative scheme; take an initial guess for the macroscopic solution (for instance, $\pi=1$), and using this as data to solve the microscopic systems. Then, take the solutions of the microscopic systems as data for the macroscopic system and solve that.
 
 \subsection{Convergence}
-\emph{Get this to converge.}
+To assess the quality of this implementation, we use the following three tests:
+\begin{enumerate}
+    \item Test the convergence of the microscopic scheme, given the correct macroscopic solution
+    \item Test the convergence of the macroscopic scheme, given the correct microscopic solution
+    \item Test the convergence of the full multiscale system, both in number of iterations as in the grid points.
+\end{enumerate}
+
+In Figure~\ref{fig:micro_convergence}, we see that...
+In Figure~\ref{fig:macro_convergence}, we see that...
+Finally, in Figure~\ref{fig:multiscale_convergence}, we see convergence of the full system.
+
+\begin{figure}[ht]
+    \includegraphics[width=0.8\textwidth]{micro_convergence.pdf}
+    \caption{$\L^2$ and $\H^1$ errors of the microscopic scheme as a function of the number of degrees of freedom, log-log plot}
+    \label{fig:micro_convergence}
+\end{figure}
+
+\begin{figure}[ht]
+    \includegraphics[width=0.8\textwidth]{macro_convergence.pdf}
+    \caption{$\L^2$ and $\H^1$ errors of the macroscopic scheme as a function of the number of degrees of freedom, log-log plot}
+    \label{fig:macro_convergence}
+\end{figure}
+
+\begin{figure}[ht]
+    \includegraphics[width=0.8\textwidth]{multiscale_convergence.pdf}
+    \caption{$\L^2$ and $\H^1$ errors of the multiscale scheme as a function of the number of degrees of freedom, log-log plot}
+    \label{fig:multiscale_convergence}
+\end{figure}
 
 \section{Concepts for adaptivity}
 \label{sec:adaptivity}
 
-In this section, we shortly describe three possible strategies that can increase the accuracy of this finite element scheme, based on a posteriori error indicators. 
+In this section, we shortly describe three possible strategies that can increase the accuracy of this finite element scheme, based on a posteriori error indicators.
 One of the goals is to find out which of these strategies produces the highest accuracy, given the same amount of computational power.
-Each of these strategies is based on microscopic refinement; the macroscopic mesh is left as is. 
+Each of these strategies is based on microscopic refinement; the macroscopic mesh is left as is.
 As a microscopic error indicator, we use $\eta(x,y)$, defined only for $x \in \Omega$ which correspond to vertices on the discretization of $\Omega$ and $y \in Y$ which correspond to elements on the discretization of $Y$.
 As a macroscopic error indicator, we use $\xi(x)$, similarly defined.
 
@@ -259,7 +286,7 @@ We compute the microscopic error indicator for each microscopic element, but col
 \begin{equation}
     \tilde{\eta}(y) := \max_{x\in \Omega} \eta(x,y),
 \end{equation}
-and we use this error indicator to decide on refinement for all microscopic grids. 
+and we use this error indicator to decide on refinement for all microscopic grids.
 This way, we are able to reuse the same microscopic grid for all microscopic systems, all the while still being able to make guarantees on the upper bound of the error.
 \subsection{Error grouping}
 \label{sec:error_grouping}
