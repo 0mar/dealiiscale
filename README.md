@@ -54,15 +54,15 @@ For a full (but not minimal) example of a deal.II CMake file, check the repo.
 
 deal.II comes with many examples, located in `/Applications/deal.II-9.0.0.app/Contents/Resources/examples`, also found in a more legible format on the [tutorial page][5].
 
-This repo has currently two 'roughly working' implementations:
+This repo has currently three 'roughly working' implementations:
 
-- `simple.cpp`, a working start for the target system
-- `manufactured.cpp`, an multiscale elliptic-elliptic solver with convergence testing.
-
+- `demo.cpp`, a verbatim copy of a tutorial (step 3) to check if the installation works
+- `manufactured.cpp`, a multiscale elliptic-elliptic solver with convergence testing.
+- `simple.cpp`, a working start for the target system.
 
 ## Disclaimer
 
-This is a sandbox. Comments are sparse. So are structure and responsible coding choices.
+This is a sandbox. Structure and sensible coding choices are sparse.
 Dive in at your own risk.
 
 [1]: https://www.dealii.org/

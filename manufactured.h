@@ -81,15 +81,29 @@ public:
     virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
 
     /**
-     * Set a macroscopic solution point for the boundary (corresponding to the computed value on the grid)
+     * Set a precomputed macroscopic solution for the boundary.
+     * After this value is set, individual microboundaries can be imposed by simply setting the macroscopic cell index.
      * @param macro_solution Value of the macroscopic solution for the corresponding microscopic system.
      */
     void set_macro_solution(const Vector<double> &macro_solution);
 
+    /**
+     *
+     * Set the macroscopic cell index so that the microboundary has the appropriate macroscopic value.
+     * @param index
+     */
     void set_macro_cell_index(unsigned int index);
 
 private:
+
+    /**
+     * Contains the macroscopic exact solution
+     */
     Vector<double> macro_sol;
+
+    /**
+     * The macroscopic cell this boundary needs to work on.
+     */
     unsigned int macro_cell_index = 0;
 };
 
@@ -143,6 +157,9 @@ public:
      */
     void run();
 
+    /**
+     * Refine the grid by splitting each cell in four new cells.
+     */
     void refine_grid();
 
     /**
@@ -153,6 +170,11 @@ public:
      */
     double get_macro_contribution(unsigned int cell_index);
 
+    /**
+     * Compute the macroscopic right hand side function
+     * @param macro_triangulation The triangulation for the macro grid
+     * @param macro_rhs Output vector where the interpolated RHS will be stored (number of elements = number of cells)
+     */
     void get_macro_rhs(Triangulation<dim> &macro_triangulation, Vector<double> &macro_rhs);
 
     /**
@@ -165,8 +187,15 @@ public:
      */
     void process_solution();
 
-    unsigned int refine_level; // todo: Set to private when we've asserted implementation works.
+    /**
+     * The level of refinement (every +1 means a bisection)
+     */
+    unsigned int refine_level; // todo: Set to private?
 
+    /**
+     * Getter for the number of microgrids.
+     * @return number of microgrids based on the number of macroscopic cells.
+     */
     unsigned int num_grids() const;
 private:
 
@@ -222,19 +251,43 @@ public:
 template<int dim>
 class MacroSolver {
 public:
+    /**
+     * Create and run a macroscopic solver with the given resolution (number of unit square bisections)
+     * @param refine_level Number of macroscopic and microscopic bisections.
+     */
     MacroSolver(unsigned int refine_level);
 
+    /**
+     * Assemble the system, solve the system and process the solution.
+     */
     void run();
 
+    /**
+     * Compute residual/convergence estimates and add them to the convergence table.
+     */
     void process_solution();
 
+    /**
+     * Compute the exact solution value based on the analytic solution present in the boundary condition
+     * @param exact_values Output vector
+     */
     void compute_exact_value(Vector<double> &exact_values);
 
 private:
+    /**
+     * Create the grid and triangulation
+     * @param refine_level Number of bisections done on the unit square
+     */
     void make_grid(unsigned int refine_level);
 
+    /**
+     * Compute the degrees of freedom, set up the structure of the system matrix and right hand side/solution vectors.
+     */
     void setup_system();
 
+    /**
+     * Compute the actual system matrix and right hand side based on the discrete weak form of the macro PDE.
+     */
     void assemble_system();
 
     /**
@@ -244,8 +297,14 @@ private:
      */
     void interpolate_function(const Vector<double> &func, Vector<double> &interp_func);
 
+    /**
+     * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
+     */
     void solve();
 
+    /**
+     * Write the results to file, both convergence results as .gpl files for gnuplot or whatever.
+     */
     void output_results();
 
     Triangulation<dim> triangulation;
@@ -265,6 +324,10 @@ private:
 
 };
 
+/**
+ * Run that solver
+ * @return 0
+ */
 int main() {
     deallog.depth_console(0);
     for (int i = 2; i < 10; i++) {

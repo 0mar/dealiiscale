@@ -14,7 +14,7 @@
  * ---------------------------------------------------------------------
 
  *
- * Author: Wolfgang Bangerth, University of Heidelberg, 1999
+ * Author: Omar Richardson, Karlstad University, 2019
  */
 
 
@@ -22,9 +22,6 @@
 
 using namespace dealii;
 
-/*
- *
- */
 template<int dim>
 double MicroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
     double val = 0;
