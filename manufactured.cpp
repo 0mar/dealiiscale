@@ -323,11 +323,10 @@ MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(tri
     compute_exact_value(cell_average);
     micro.setup();
     micro.boundary.set_macro_solution(cell_average);
-    this->run();
-    micro.run();
-    this->run();
-    micro.run();
-    this->run();
+    for (int i = 0; i < 10; i++) {
+        this->run();
+        micro.run();
+    }
     micro.output_results();
     this->output_results();
 }
