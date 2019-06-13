@@ -9,3 +9,4 @@ cmake-build-release/
 cmake_install.cmake
 *.cbp
 step-*
+*.md
