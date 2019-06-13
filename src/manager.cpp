@@ -1,6 +1,6 @@
-//
-// Created by omar on 6/13/19.
-//
+/*
+ * Author: Omar Richardson, Karlstad University, 2019
+ */
 
 #include "manager.h"
 

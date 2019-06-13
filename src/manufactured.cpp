@@ -1,4 +1,6 @@
-
+/*
+ * Author: Omar Richardson, Karlstad University, 2019
+ */
 
 #include <deal.II/base/logstream.h>
 #include "macro.h"
