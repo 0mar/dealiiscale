@@ -512,3 +512,41 @@ void MacroSolver<dim>::run() {
     solve();
     process_solution();
 }
+
+// Explicit instantiation
+
+template
+class MicroBoundary<1>;
+
+template
+class MicroBoundary<2>;
+
+template
+class MicroBoundary<3>;
+
+template
+class MacroBoundary<1>;
+
+template
+class MacroBoundary<2>;
+
+template
+class MacroBoundary<3>;
+
+template
+class MicroSolver<1>;
+
+template
+class MicroSolver<2>;
+
+template
+class MicroSolver<3>;
+
+template
+class MacroSolver<1>;
+
+template
+class MacroSolver<2>;
+
+template
+class MacroSolver<3>;

@@ -19,8 +19,11 @@ endif()
 
 deal_II_initialize_cached_variables()
 
-add_executable(manufactured manufactured.h manufactured.cpp)
+add_library(manufactured manufactured.cpp manufactured.h)
 deal_II_setup_target(manufactured)
+add_executable(typical manager.cpp manager.h)
+deal_II_setup_target(typical)
+target_link_libraries(typical manufactured)
 
 add_executable(demo demo.cpp)
 deal_II_setup_target(demo)
