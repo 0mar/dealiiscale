@@ -1,6 +1,6 @@
 # deal.II implementation of multiscale PDE
 
-This repository contains a setup for a [deal.ii][1] implementation for a two-scale system of equations.
+This repository contains a setup for a [deal.II][1] implementation for a two-scale system of equations.
 The target system is described in [this thesis][2], but the current status of the implementation is still a proof of concept.
 A more detailed description of the mathematical framework behind this implementation is present in `latex/main.tex`.
 
@@ -16,7 +16,7 @@ Other options are available as well and should work, but the rest of this README
 
 ## Installation for Linux (Ubuntu)
 
-Most popular distros have deal.II available in their repos. For Ubuntu, deal.ii is installed using
+Most popular distros have deal.II available in their repos. For Ubuntu, deal.II is installed using
 
 ```bash
 sudo apt install lib-deal.ii-dev
@@ -31,6 +31,7 @@ echo 'deb http://archive.ubuntu.com/ubuntu/ cosmic main universe' | sudo tee -a 
 sudo apt update
 ```
 But be aware that this last option will update all of software from the repository to its 18.10 version, which in some cases might not be recommendable.
+
 ## Compiling deal.II programs
 
 deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, it is easily installed using [Homebrew][4] (Mac).
@@ -44,11 +45,14 @@ After installation of version `9.0.0`, add the following lines to your CMake:
 ```cmake
 set(deal.II_DIR /Applications/deal.II-9.0.0.app/Contents/Resources/lib/cmake/deal.II)
 FIND_PACKAGE(deal.II 9.0.0 QUIET HINTS ${deal.II_DIR} ${DEAL_II_DIR} $ENV{DEAL_II_DIR})
-
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 ```
 
-For a full (but not minimal) example of a deal.II CMake file, check the repo.
+For default installations on Linux systems, the first line can be changed to
+```cmake
+set(deal.II_DIR /usr/share/cmake/deal.II)
+```
+For a full (but not minimal) example of a deal.II CMake file, check the repository. This CMake file deals with both Mac and Ubuntu installations.
 
 ## Implementations present
 
@@ -62,8 +66,8 @@ This repo has currently three 'roughly working' implementations:
 
 ## Disclaimer
 
-This is a sandbox. Structure and sensible coding choices are sparse.
-Dive in at your own risk.
+This is a work in progress. Structure and implementations can change and break at any time.
+However, effort will be taken to ensure the `master` branch always contains a working version of the software.
 
 [1]: https://www.dealii.org/
 [2]: http://urn.kb.se/resolve?urn=urn:nbn:se:kau:diva-68686
