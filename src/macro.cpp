@@ -25,26 +25,24 @@ Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned 
 
 
 template<int dim>
-MacroSolver<dim>::MacroSolver(unsigned int refine_level): fe(1), dof_handler(triangulation),
-                                                          micro(&interpolated_solution, refine_level),
-                                                          boundary() {
-    make_grid(refine_level);
-    setup_system();
+MacroSolver<dim>::MacroSolver(): fe(1), dof_handler(triangulation), boundary() {
+    refine_level = 1;
     cycle = 0;
-    Vector<double> cell_average(triangulation.n_active_cells());
-    compute_exact_value(cell_average);
-    micro.setup();
-    micro.boundary.set_macro_solution(cell_average);
-    for (int i = 0; i < 10; i++) {
-        this->run();
-        micro.run();
-    }
-    micro.output_results();
-    this->output_results();
 }
 
 template<int dim>
-void MacroSolver<dim>::make_grid(unsigned int refine_level) {
+void MacroSolver<dim>::setup() {
+    make_grid();
+    setup_system();
+}
+
+template<int dim>
+void MacroSolver<dim>::set_refine_level(int num_bisections) {
+    this->refine_level = num_bisections;
+}
+
+template<int dim>
+void MacroSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
 
@@ -74,13 +72,15 @@ void MacroSolver<dim>::setup_system() {
 }
 
 template<int dim>
-void MacroSolver<dim>::compute_exact_value(Vector<double> &exact_values) {
+Vector<double> MacroSolver<dim>::get_exact_solution() {
+    Vector<double> exact_values(triangulation.n_active_cells());
     FEValues<dim> fe_value(fe, QMidpoint<dim>(), update_quadrature_points);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_value.reinit(cell);
         std::vector<Point<dim>> quad_points = fe_value.get_quadrature_points();
         exact_values[cell->active_cell_index()] = boundary.value(quad_points[0]);
     }
+    return exact_values;
 }
 
 template<int dim>
@@ -100,9 +100,6 @@ void MacroSolver<dim>::assemble_system() {
 
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
-    Vector<double> macro_rhs(triangulation.n_active_cells());
-    micro.get_macro_rhs(triangulation, macro_rhs);
-    // Todo: Interpolate from midpoint to Gaussian
 
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
@@ -124,7 +121,7 @@ void MacroSolver<dim>::assemble_system() {
 
 
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                macro_rhs[cell->active_cell_index()] *
+                                micro_contribution[cell->active_cell_index()] *
                                 fe_values.JxW(q_index));
             }
 
@@ -218,6 +215,29 @@ void MacroSolver<dim>::output_results() {
 
     std::ofstream output("results/macro-solution.gpl");
     data_out.write_gnuplot(output);
+}
+
+template<int dim>
+void MacroSolver<dim>::set_micro_contribution(const Vector<double> micro_rhs) {
+    micro_contribution = micro_rhs;
+}
+
+template<int dim>
+Vector<double> MacroSolver<dim>::get_contribution() {
+    // Todo :Change it such that it is computed in the other class, using the solution and the grid.
+    // Now the dependencies are split into two places.
+    return solution;
+}
+
+template<int dim>
+void MacroSolver<dim>::set_micro_solutions(const std::vector<Vector<double>> &solutions) {
+    this->micro_solutions = solutions;
+
+}
+
+template<int dim>
+Vector<double> MacroSolver<dim>::get_solution() {
+    return solution;
 }
 
 

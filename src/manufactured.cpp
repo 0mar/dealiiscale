@@ -3,7 +3,7 @@
  */
 
 #include <deal.II/base/logstream.h>
-#include "macro.h"
+#include "manager.h"
 
 
 /**
@@ -12,8 +12,9 @@
  */
 int main() {
     dealii::deallog.depth_console(0);
-    for (int i = 2; i < 10; i++) {
-        MacroSolver<2> macro(i);
-    }
+    Manager manager(4, 4);
+    manager.setup();
+    manager.run();
+    manager.output_results();
     return 0;
 }

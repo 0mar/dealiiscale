@@ -38,9 +38,8 @@
 #include <cmath>
 #include <stdlib.h>
 #include <deal.II/base/logstream.h>
-#include "micro.h"
-using namespace dealii;
 
+using namespace dealii;
 
 template<int dim>
 class MacroBoundary : public Function<dim> {
@@ -79,7 +78,12 @@ public:
      * Create and run a macroscopic solver with the given resolution (number of unit square bisections)
      * @param refine_level Number of macroscopic and microscopic bisections.
      */
-    MacroSolver(unsigned int refine_level);
+    MacroSolver();
+
+    /**
+     * All the methods that setup the system
+     */
+    void setup();
 
     /**
      * Assemble the system, solve the system and process the solution.
@@ -92,17 +96,41 @@ public:
     void process_solution();
 
     /**
+     * Compute the microscopic right hand side function
+     * @param micro_triangulation The triangulation for the micro grid
+     * @param micro_rhs Output vector where the interpolated RHS will be stored (number of elements = number of cells)
+     */
+    void set_micro_contribution(Vector<double> micro_rhs);
+
+    Vector<double> get_contribution();
+
+    void set_micro_solutions(const std::vector<Vector<double>> &solutions);
+    /**
      * Compute the exact solution value based on the analytic solution present in the boundary condition
      * @param exact_values Output vector
      */
-    void compute_exact_value(Vector<double> &exact_values);
+    Vector<double> get_exact_solution();
 
+    /**
+     * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
+     * @param refine_level number of bisections of the grid.
+     */
+    void set_refine_level(int num_bisections);
+
+    /**
+     * Write the results to file, both convergence results as .gpl files for gnuplot or whatever.
+     */
+    void output_results();
+
+    Vector<double> get_solution();
+
+    Triangulation<dim> triangulation;
 private:
     /**
      * Create the grid and triangulation
      * @param refine_level Number of bisections done on the unit square
      */
-    void make_grid(unsigned int refine_level);
+    void make_grid();
 
     /**
      * Compute the degrees of freedom, set up the structure of the system matrix and right hand side/solution vectors.
@@ -126,12 +154,6 @@ private:
      */
     void solve();
 
-    /**
-     * Write the results to file, both convergence results as .gpl files for gnuplot or whatever.
-     */
-    void output_results();
-
-    Triangulation<dim> triangulation;
     FE_Q<dim> fe;
     DoFHandler<dim> dof_handler;
 
@@ -141,10 +163,12 @@ private:
     Vector<double> solution;
     Vector<double> interpolated_solution;
     Vector<double> system_rhs;
-    MicroSolver<dim> micro;
+    Vector<double> micro_contribution;
+    std::vector<Vector<double>> micro_solutions;
     MacroBoundary<dim> boundary;
     ConvergenceTable convergence_table;
     int cycle;
+    int refine_level;
 
 };
 

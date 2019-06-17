@@ -101,7 +101,7 @@ public:
      * @param macro_dof_handler The macroscopic degrees of freedom
      * @param macro_solution The macroscopic solution
      */
-    MicroSolver(Vector<double> *macro_solution, unsigned int refine_level);
+    MicroSolver();
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -114,6 +114,12 @@ public:
     void run();
 
     /**
+     * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
+     * @param refine_level number of bisections of the grid.
+     */
+    void set_refine_level(int refinement_level);
+
+    /**
      * Refine the grid by splitting each cell in four new cells.
      */
     void refine_grid();
@@ -124,14 +130,20 @@ public:
      * @param dof_index Degree of freedom corresponding to the microscopic grid.
      * @return double with the value of the integral/other RHS function
      */
-    double get_macro_contribution(unsigned int cell_index);
+    double integrate_micro_grid(unsigned int cell_index);
 
     /**
      * Compute the macroscopic right hand side function
      * @param macro_triangulation The triangulation for the macro grid
      * @param macro_rhs Output vector where the interpolated RHS will be stored (number of elements = number of cells)
      */
-    void get_macro_rhs(Triangulation<dim> &macro_triangulation, Vector<double> &macro_rhs);
+    void set_macro_contribution(Vector<double> macro_rhs);
+
+    Vector<double> get_contribution(Triangulation<dim> &macro_tria);
+
+    void set_macro_solution(Vector<double> macro_solution);
+
+    void set_macro_boundary_condition(const Vector<double> &macro_condition);
 
     /**
      * Output the results/write them to file/something
@@ -144,15 +156,24 @@ public:
     void process_solution();
 
     /**
+     * Getter for the number of microgrids.
+     * @return number of microgrids based on the number of macroscopic cells.
+     */
+    unsigned int get_num_grids() const;
+
+    void set_num_grids(unsigned int _num_grids);
+
+
+    /**
      * The level of refinement (every +1 means a bisection)
      */
     unsigned int refine_level; // todo: Set to private?
 
-    /**
-     * Getter for the number of microgrids.
-     * @return number of microgrids based on the number of macroscopic cells.
-     */
-    unsigned int num_grids() const;
+    std::vector<Vector<double>> get_solutions();
+
+    Triangulation<dim> triangulation;
+
+    MicroBoundary<dim> boundary;
 private:
 
     /**
@@ -187,21 +208,17 @@ private:
 
     const double laplacian = 4.;
 
-    Triangulation<dim> triangulation;
     FE_Q<dim> fe;
     DoFHandler<dim> dof_handler;
     ConvergenceTable convergence_table;
     unsigned int cycle;
-
-
+    unsigned int num_grids;
     SparsityPattern sparsity_pattern;
+    Vector<double> macro_solution;
+    Vector<double> macro_contribution;
     std::vector<SparseMatrix<double>> system_matrices;
-    Vector<double> *macro_solution;
     std::vector<Vector<double>> solutions;
     std::vector<Vector<double>> righthandsides;
-
-public:
-    MicroBoundary<dim> boundary;
 };
 
 #endif //MICRO_H
