@@ -154,6 +154,7 @@ public:
 
     void set_num_grids(unsigned int _num_grids);
 
+    Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
     MicroBoundary<dim> boundary;
@@ -199,7 +200,6 @@ private:
      */
     unsigned int refine_level;
     FE_Q<dim> fe;
-    Triangulation<dim> triangulation;
     ConvergenceTable convergence_table;
     unsigned int cycle;
     unsigned int num_grids;

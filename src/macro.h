@@ -114,8 +114,8 @@ public:
     void output_results();
 
     Vector<double> solution;
-    DoFHandler<dim> dof_handler;
     Triangulation<dim> triangulation;
+    DoFHandler<dim> dof_handler;
 
 private:
     /**
