@@ -124,14 +124,6 @@ public:
      */
     void refine_grid();
 
-    /**
-     * Compute the right hand side of the Macroscopic function;
-     * a contribution from the microscopic solution.
-     * @param dof_index Degree of freedom corresponding to the microscopic grid.
-     * @return double with the value of the integral/other RHS function
-     */
-    double integrate_micro_grid(unsigned int cell_index);
-
     void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler);
 
     void set_macro_boundary_condition(const Vector<double> &macro_condition);

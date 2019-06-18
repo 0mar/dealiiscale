@@ -146,6 +146,12 @@ private:
      */
     void compute_microscopic_contribution();
 
+    /**
+    * Compute the right hand side of the Macroscopic function;
+    * a contribution from the microscopic solution.
+    * @param dof_index Degree of freedom corresponding to the microscopic grid.
+    * @return double with the value of the integral/other RHS function
+    */
     double integrate_micro_grid(unsigned int cell_index);
 
     /**
