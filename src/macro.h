@@ -95,16 +95,7 @@ public:
      */
     void process_solution();
 
-    /**
-     * Compute the microscopic right hand side function
-     * @param micro_triangulation The triangulation for the micro grid
-     * @param micro_rhs Output vector where the interpolated RHS will be stored (number of elements = number of cells)
-     */
-    void set_micro_contribution(Vector<double> micro_rhs);
-
-    Vector<double> get_contribution();
-
-    void set_micro_solutions(const std::vector<Vector<double>> &solutions);
+    void set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler);
     /**
      * Compute the exact solution value based on the analytic solution present in the boundary condition
      * @param exact_values Output vector
@@ -122,9 +113,10 @@ public:
      */
     void output_results();
 
-    Vector<double> get_solution();
-
+    Vector<double> solution;
+    DoFHandler<dim> dof_handler;
     Triangulation<dim> triangulation;
+
 private:
     /**
      * Create the grid and triangulation
@@ -150,21 +142,26 @@ private:
     void interpolate_function(const Vector<double> &func, Vector<double> &interp_func);
 
     /**
+     * Use the (probably updated) microscopic data to compute new elements of the macroscopic system.
+     */
+    void compute_microscopic_contribution();
+
+    double integrate_micro_grid(unsigned int cell_index);
+
+    /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
      */
     void solve();
 
     FE_Q<dim> fe;
-    DoFHandler<dim> dof_handler;
 
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
-
-    Vector<double> solution;
+    DoFHandler<dim> *micro_dof_handler;
     Vector<double> interpolated_solution;
     Vector<double> system_rhs;
     Vector<double> micro_contribution;
-    std::vector<Vector<double>> micro_solutions;
+    std::vector<Vector<double>> *micro_solutions;
     MacroBoundary<dim> boundary;
     ConvergenceTable convergence_table;
     int cycle;

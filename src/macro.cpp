@@ -25,7 +25,8 @@ Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned 
 
 
 template<int dim>
-MacroSolver<dim>::MacroSolver(): fe(1), dof_handler(triangulation), boundary() {
+MacroSolver<dim>::MacroSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
+                                boundary() {
     refine_level = 1;
     cycle = 0;
 }
@@ -69,6 +70,7 @@ void MacroSolver<dim>::setup_system() {
     solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     interpolated_solution.reinit(triangulation.n_active_cells());
+    micro_contribution.reinit(triangulation.n_active_cells());
 }
 
 template<int dim>
@@ -164,9 +166,6 @@ void MacroSolver<dim>::solve() {
     SolverControl solver_control(1000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
-
-    // We have made one addition, though: since we suppress output from the
-    // linear solvers, we have to print the number of iterations by hand.
     printf("Convergence after %d CG iterations\n", solver_control.last_step());
     interpolate_function(solution, interpolated_solution);
 }
@@ -217,29 +216,41 @@ void MacroSolver<dim>::output_results() {
     data_out.write_gnuplot(output);
 }
 
-template<int dim>
-void MacroSolver<dim>::set_micro_contribution(const Vector<double> micro_rhs) {
-    micro_contribution = micro_rhs;
-}
 
 template<int dim>
-Vector<double> MacroSolver<dim>::get_contribution() {
-    // Todo :Change it such that it is computed in the other class, using the solution and the grid.
-    // Now the dependencies are split into two places.
-    return solution;
-}
-
-template<int dim>
-void MacroSolver<dim>::set_micro_solutions(const std::vector<Vector<double>> &solutions) {
-    this->micro_solutions = solutions;
+void MacroSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler) {
+    this->micro_solutions = _solutions;
+    this->micro_dof_handler = _dof_handler;
 
 }
 
 template<int dim>
-Vector<double> MacroSolver<dim>::get_solution() {
-    return solution;
+double MacroSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
+    // manufactured as: f(x) = \int_Y \rho(x,y)dy
+    double integral = 0;
+    QGauss<dim> quadrature_formula(2);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
+    const unsigned int dofs_per_cell = fe.dofs_per_cell;
+    const unsigned int n_q_points = quadrature_formula.size();
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+    for (const auto &cell: micro_dof_handler->active_cell_iterators()) {
+        fe_values.reinit(cell);
+        cell->get_dof_indices(local_dof_indices);
+        std::vector<double> interp_solution(n_q_points);
+        fe_values.get_function_values(micro_solutions->at(cell_index), interp_solution);
+        for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+            integral += interp_solution[q_index] * fe_values.JxW(q_index);
+        }
+    }
+    return integral;
 }
 
+template<int dim>
+void MacroSolver<dim>::compute_microscopic_contribution() {
+    for (const auto &cell: triangulation.active_cell_iterators()) {
+        micro_contribution[cell->active_cell_index()] = integrate_micro_grid(cell->active_cell_index()); // optimize
+    }
+}
 
 template<int dim>
 void MacroSolver<dim>::run() {

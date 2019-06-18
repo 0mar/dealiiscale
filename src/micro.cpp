@@ -37,7 +37,8 @@ void MicroBoundary<dim>::set_macro_cell_index(const unsigned int index) {
 }
 
 template<int dim>
-MicroSolver<dim>::MicroSolver(): boundary(), fe(1), dof_handler(triangulation) {
+MicroSolver<dim>::MicroSolver():  dof_handler(triangulation), boundary(), fe(1), macro_solution(nullptr),
+                                  macro_dof_handler(nullptr) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
     cycle = 0;
     refine_level = 1;
@@ -95,6 +96,7 @@ void MicroSolver<dim>::setup_scatter() {
     solutions.clear();
     righthandsides.clear();
     system_matrices.clear();
+    compute_macroscopic_contribution();
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int i = 0; i < num_grids; i++) {
         Vector<double> solution(n_dofs);
@@ -108,35 +110,11 @@ void MicroSolver<dim>::setup_scatter() {
     }
 }
 
-template<int dim>
-double MicroSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
-    // manufactured as: f(x) = \int_Y \rho(x,y)dy
-    double integral = 0;
-    QGauss<dim> quadrature_formula(2);
-    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points = quadrature_formula.size();
-    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    for (const auto &cell: dof_handler.active_cell_iterators()) {
-        fe_values.reinit(cell);
-        cell->get_dof_indices(local_dof_indices);
-        std::vector<double> interp_solution(n_q_points);
-        fe_values.get_function_values(solutions.at(cell_index), interp_solution);
-        for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-            integral += interp_solution[q_index] * fe_values.JxW(q_index);
-        }
-    }
-    return integral;
-}
 
 template<int dim>
-void MicroSolver<dim>::set_macro_contribution(const Vector<double> macro_rhs) {
-    this->macro_contribution = macro_rhs;
-}
-
-template<int dim>
-void MicroSolver<dim>::set_macro_solution(const Vector<double> macro_solution) {
-    this->macro_solution = macro_solution;
+void MicroSolver<dim>::set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler) {
+    this->macro_solution = _solution;
+    this->macro_dof_handler = _dof_handler;
 }
 
 template<int dim>
@@ -145,22 +123,8 @@ void MicroSolver<dim>::set_macro_boundary_condition(const Vector<double> &macro_
 }
 
 template<int dim>
-std::vector<Vector<double>> MicroSolver<dim>::get_solutions() {
-    return std::vector<Vector<double>>();
-}
-
-template<int dim>
-Vector<double> MicroSolver<dim>::get_contribution(Triangulation<dim> &macro_tria) {
-    Vector<double> macro_rhs(macro_tria.n_active_cells());
-    if (macro_rhs.size() != num_grids) {
-        throw std::invalid_argument(
-                "func lengths:" + std::to_string(macro_rhs.size()) + "/" + std::to_string(num_grids));
-    }
-
-    for (const auto &cell: macro_tria.active_cell_iterators()) {
-        macro_rhs[cell->active_cell_index()] = integrate_micro_grid(cell->active_cell_index()); // optimize
-    }
-    return macro_rhs;
+void MicroSolver<dim>::compute_macroscopic_contribution() {
+    // Nothing needs to happen in this simple case
 }
 
 template<int dim>
@@ -210,7 +174,7 @@ void MicroSolver<dim>::assemble_system() {
             cell_rhs = 0;
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-                    cell_rhs(i) += -laplacian * this->macro_solution(k) * fe_values.shape_value(i, q_index) *
+                    cell_rhs(i) += -laplacian * (*macro_solution)(k) * fe_values.shape_value(i, q_index) *
                                    fe_values.JxW(q_index);
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
@@ -243,7 +207,7 @@ void MicroSolver<dim>::solve() {
 
 template<int dim>
 void MicroSolver<dim>::process_solution() {
-    for (unsigned int k = num_grids / 2; k < num_grids / 2 + 1; k++) { // Todo: better generic error indicator
+    for (unsigned int k = num_grids / 2; k < num_grids / 2 + 1; k++) {
         boundary.set_macro_cell_index(k);
         const unsigned int n_active = triangulation.n_active_cells();
         const unsigned int n_dofs = dof_handler.n_dofs();

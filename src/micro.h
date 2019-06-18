@@ -132,16 +132,7 @@ public:
      */
     double integrate_micro_grid(unsigned int cell_index);
 
-    /**
-     * Compute the macroscopic right hand side function
-     * @param macro_triangulation The triangulation for the macro grid
-     * @param macro_rhs Output vector where the interpolated RHS will be stored (number of elements = number of cells)
-     */
-    void set_macro_contribution(Vector<double> macro_rhs);
-
-    Vector<double> get_contribution(Triangulation<dim> &macro_tria);
-
-    void set_macro_solution(Vector<double> macro_solution);
+    void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler);
 
     void set_macro_boundary_condition(const Vector<double> &macro_condition);
 
@@ -163,16 +154,8 @@ public:
 
     void set_num_grids(unsigned int _num_grids);
 
-
-    /**
-     * The level of refinement (every +1 means a bisection)
-     */
-    unsigned int refine_level; // todo: Set to private?
-
-    std::vector<Vector<double>> get_solutions();
-
-    Triangulation<dim> triangulation;
-
+    DoFHandler<dim> dof_handler;
+    std::vector<Vector<double>> solutions;
     MicroBoundary<dim> boundary;
 private:
 
@@ -205,19 +188,26 @@ private:
      */
     void solve();
 
+    /**
+     * Use the (probably updated) macroscopic data to compute new elements of the microscopic system.
+     */
+    void compute_macroscopic_contribution();
 
     const double laplacian = 4.;
-
+    /**
+     * The level of refinement (every +1 means a bisection)
+     */
+    unsigned int refine_level;
     FE_Q<dim> fe;
-    DoFHandler<dim> dof_handler;
+    Triangulation<dim> triangulation;
     ConvergenceTable convergence_table;
     unsigned int cycle;
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
-    Vector<double> macro_solution;
+    Vector<double> *macro_solution;
     Vector<double> macro_contribution;
+    DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
-    std::vector<Vector<double>> solutions;
     std::vector<Vector<double>> righthandsides;
 };
 
