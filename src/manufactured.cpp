@@ -4,7 +4,7 @@
 
 #include <deal.II/base/logstream.h>
 #include "manager.h"
-
+#include <cmath>
 
 /**
  * Run that solver
@@ -12,9 +12,11 @@
  */
 int main() {
     dealii::deallog.depth_console(0);
-    Manager manager(4, 4);
-    manager.setup();
-    manager.run();
-    manager.output_results();
+    for (unsigned int i = 2; i < 5; i++) {
+        Manager manager(i, i);
+        manager.setup();
+        manager.run();
+        manager.output_results();
+    }
     return 0;
 }
