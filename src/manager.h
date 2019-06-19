@@ -30,11 +30,14 @@ public:
 
 
 private:
-    int foo;
+    int cycle;
 
     void fixed_point_iterate();
 
-    double fem_error();
+    void compute_error(double &error_norm);
+
+
+    ConvergenceTable convergence_table;
 
 };
 

@@ -91,9 +91,9 @@ public:
     void run();
 
     /**
-     * Compute residual/convergence estimates and add them to the convergence table.
+     * Compute residual/convergence estimates.
      */
-    void process_solution();
+    void compute_error(double &l2_error, double &h1_error);
 
     void set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler);
     /**
@@ -107,11 +107,6 @@ public:
      * @param refine_level number of bisections of the grid.
      */
     void set_refine_level(int num_bisections);
-
-    /**
-     * Write the results to file, both convergence results as .gpl files for gnuplot or whatever.
-     */
-    void output_results();
 
     Vector<double> solution;
     Triangulation<dim> triangulation;
@@ -169,8 +164,6 @@ private:
     Vector<double> micro_contribution;
     std::vector<Vector<double>> *micro_solutions;
     MacroBoundary<dim> boundary;
-    ConvergenceTable convergence_table;
-    int cycle;
     int refine_level;
 
 };

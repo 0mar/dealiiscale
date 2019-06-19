@@ -28,7 +28,6 @@ template<int dim>
 MacroSolver<dim>::MacroSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
                                 boundary() {
     refine_level = 1;
-    cycle = 0;
 }
 
 template<int dim>
@@ -171,52 +170,17 @@ void MacroSolver<dim>::solve() {
 }
 
 template<int dim>
-void MacroSolver<dim>::process_solution() {
+void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     const unsigned int n_active = triangulation.n_active_cells();
     const unsigned int n_dofs = dof_handler.n_dofs();
     Vector<double> difference_per_cell(n_active);
     VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::L2_norm);
-    double l2_error = difference_per_cell.l2_norm();
+    l2_error = difference_per_cell.l2_norm();
     VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::H1_seminorm);
-    double h1_error = difference_per_cell.l2_norm();
-    printf("Cycle: %d\n", cycle);
-    convergence_table.add_value("cycle", cycle);
-    convergence_table.add_value("cells", n_active);
-    convergence_table.add_value("dofs", n_dofs);
-    convergence_table.add_value("L2", l2_error);
-    convergence_table.add_value("H1", h1_error);
-    std::ofstream vals("results/macro_vals.txt", std::iostream::app);
-    for (double d: solution) {
-        vals << d << " ";
-    }
-    vals << "\n";
-    vals.close();
-    cycle++;
+    h1_error = difference_per_cell.l2_norm();
 }
-
-template<int dim>
-void MacroSolver<dim>::output_results() {
-
-    convergence_table.set_precision("L2", 3);
-    convergence_table.set_precision("H1", 3);
-    convergence_table.set_scientific("L2", true);
-    convergence_table.set_scientific("H1", true);
-    std::ofstream convergence_output("results/macro_convergence.txt", std::iostream::app);
-    convergence_table.write_text(convergence_output);
-    convergence_output.close();
-    DataOut<dim> data_out;
-
-    data_out.attach_dof_handler(dof_handler);
-    data_out.add_data_vector(solution, "solution");
-
-    data_out.build_patches();
-
-    std::ofstream output("results/macro-solution.gpl");
-    data_out.write_gnuplot(output);
-}
-
 
 template<int dim>
 void MacroSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler) {
@@ -257,7 +221,6 @@ template<int dim>
 void MacroSolver<dim>::run() {
     assemble_system();
     solve();
-    process_solution();
 }
 
 // Explicit instantiation

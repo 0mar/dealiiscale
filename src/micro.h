@@ -129,14 +129,9 @@ public:
     void set_macro_boundary_condition(const Vector<double> &macro_condition);
 
     /**
-     * Output the results/write them to file/something
-     */
-    void output_results();
-
-    /**
      * Post-process the solution (write convergence estimates and other stuff)
      */
-    void process_solution();
+    void compute_error(double &l2_error, double &h1_error);
 
     /**
      * Getter for the number of microgrids.
@@ -192,8 +187,6 @@ private:
      */
     unsigned int refine_level;
     FE_Q<dim> fe;
-    ConvergenceTable convergence_table;
-    unsigned int cycle;
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
     Vector<double> *macro_solution;

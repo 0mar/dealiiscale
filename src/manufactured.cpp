@@ -16,7 +16,6 @@ int main() {
         Manager manager(i, i);
         manager.setup();
         manager.run();
-        manager.output_results();
     }
     return 0;
 }

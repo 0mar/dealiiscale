@@ -40,7 +40,6 @@ template<int dim>
 MicroSolver<dim>::MicroSolver():  dof_handler(triangulation), boundary(), fe(1), macro_solution(nullptr),
                                   macro_dof_handler(nullptr) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
-    cycle = 0;
     refine_level = 1;
     num_grids = 1;
 }
@@ -205,72 +204,32 @@ void MicroSolver<dim>::solve() {
 
 
 template<int dim>
-void MicroSolver<dim>::process_solution() {
+void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> macro_domain_l2_error(num_grids);
     Vector<double> macro_domain_h1_error(num_grids);
     for (unsigned int k = 0; k < num_grids; k++) {
         boundary.set_macro_cell_index(k); // Todo: Change when we separate boundary and exact solution.
         const unsigned int n_active = triangulation.n_active_cells();
-        const unsigned int n_dofs = dof_handler.n_dofs();
         Vector<double> difference_per_cell(n_active);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
                                           VectorTools::L2_norm);
-        double l2_error = difference_per_cell.l2_norm();
+        double micro_l2_error = difference_per_cell.l2_norm();
         VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
                                           VectorTools::H1_seminorm);
-        double h1_error = difference_per_cell.l2_norm();
-        convergence_table.add_value("cycle", cycle);
-        convergence_table.add_value("cells", n_active);
-        convergence_table.add_value("dofs", n_dofs);
-        convergence_table.add_value("L2", l2_error);
-        convergence_table.add_value("H1", h1_error);
-        std::ofstream vals("results/micro_vals.txt", std::iostream::app);
-        for (double d: solutions.at(k)) {
-            vals << d << " ";
-        }
-        vals << "\n";
-        vals.close();
-        macro_domain_l2_error(k) = l2_error;
-        macro_domain_h1_error(k) = h1_error;
+        double micro_h1_error = difference_per_cell.l2_norm();
+        macro_domain_l2_error(k) = micro_l2_error;
+        macro_domain_h1_error(k) = micro_h1_error;
     }
-    cycle++;
 //    Vector<double> macro_integral(num_grids);
 //    VectorTools::integrate_difference(*macro_dof_handler,macro_domain_l2_error,Functions::ZeroFunction<dim>(),macro_integral,QGauss<dim>(3),VectorTools::L2_norm);
-    double macro_l2_error =
-            macro_domain_h1_error.l2_norm() / macro_domain_l2_error.size(); // Is this the most correct norm?
-    double macro_h1_error = macro_domain_h1_error.l2_norm() / macro_domain_h1_error.size();
-    std::cout << macro_l2_error << std::endl;
-
-}
-
-template<int dim>
-void MicroSolver<dim>::output_results() {
-    for (unsigned int k = num_grids / 2; k < num_grids / 2 + 1; k++) { // Sync with process_solution
-        convergence_table.set_precision("L2", 3);
-        convergence_table.set_precision("H1", 3);
-        convergence_table.set_scientific("L2", true);
-        convergence_table.set_scientific("H1", true);
-        std::ofstream micro_file("results/micro_convergence.txt", std::ofstream::app);
-        convergence_table.write_text(micro_file);
-        DataOut<dim> data_out;
-
-        data_out.attach_dof_handler(dof_handler);
-        data_out.add_data_vector(solutions.at(k), "solution");
-
-        data_out.build_patches();
-
-        std::ofstream output("results/solution-" + std::to_string(k) + ".gpl");
-        data_out.write_gnuplot(output);
-
-    }
-
+    l2_error = macro_domain_h1_error.l2_norm() / macro_domain_l2_error.size(); // Is this the most correct norm?
+    h1_error = macro_domain_h1_error.l2_norm() / macro_domain_h1_error.size();
 }
 
 template<int dim>
 void MicroSolver<dim>::run() {
     assemble_system();
     solve();
-    process_solution();
 }
 
 template<int dim>
