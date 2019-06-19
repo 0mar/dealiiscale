@@ -18,13 +18,13 @@ void Manager::setup() {
     // Couple the macro structures with the micro structures.
     micro_solver.set_macro_solution(&macro_solver.solution, &macro_solver.dof_handler);
     macro_solver.set_micro_solutions(&micro_solver.solutions, &micro_solver.dof_handler);
-    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
-                                               "micro_convergence.txt"};
-    for (const std::string &out_file_name: out_file_names) {
-        std::ofstream ofs;
-        ofs.open("results/" + out_file_name, std::ofstream::out | std::ofstream::trunc);
-        ofs.close();
-    }
+//    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
+//                                               "micro_convergence.txt"};
+//    for (const std::string &out_file_name: out_file_names) {
+//        std::ofstream ofs;
+//        ofs.open("results/" + out_file_name, std::ofstream::out | std::ofstream::trunc);
+//        ofs.close();
+//    }
 }
 
 void Manager::run() {
