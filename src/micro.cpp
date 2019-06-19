@@ -201,17 +201,18 @@ void MicroSolver<dim>::solve() {
     std::cout << "   " << solver_control.last_step()
               << " CG iterations needed to obtain convergence."
               << std::endl;
-    cycle++;
 }
 
 
 template<int dim>
 void MicroSolver<dim>::process_solution() {
-    for (unsigned int k = num_grids / 2; k < num_grids / 2 + 1; k++) {
-        boundary.set_macro_cell_index(k);
+    Vector<double> macro_domain_l2_error(num_grids);
+    Vector<double> macro_domain_h1_error(num_grids);
+    for (unsigned int k = 0; k < num_grids; k++) {
+        boundary.set_macro_cell_index(k); // Todo: Change when we separate boundary and exact solution.
         const unsigned int n_active = triangulation.n_active_cells();
         const unsigned int n_dofs = dof_handler.n_dofs();
-        Vector<float> difference_per_cell(n_active);
+        Vector<double> difference_per_cell(n_active);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
                                           VectorTools::L2_norm);
         double l2_error = difference_per_cell.l2_norm();
@@ -229,7 +230,17 @@ void MicroSolver<dim>::process_solution() {
         }
         vals << "\n";
         vals.close();
+        macro_domain_l2_error(k) = l2_error;
+        macro_domain_h1_error(k) = h1_error;
     }
+    cycle++;
+//    Vector<double> macro_integral(num_grids);
+//    VectorTools::integrate_difference(*macro_dof_handler,macro_domain_l2_error,Functions::ZeroFunction<dim>(),macro_integral,QGauss<dim>(3),VectorTools::L2_norm);
+    double macro_l2_error =
+            macro_domain_h1_error.l2_norm() / macro_domain_l2_error.size(); // Is this the most correct norm?
+    double macro_h1_error = macro_domain_h1_error.l2_norm() / macro_domain_h1_error.size();
+    std::cout << macro_l2_error << std::endl;
+
 }
 
 template<int dim>
@@ -239,7 +250,7 @@ void MicroSolver<dim>::output_results() {
         convergence_table.set_precision("H1", 3);
         convergence_table.set_scientific("L2", true);
         convergence_table.set_scientific("H1", true);
-        std::ofstream micro_file("results/micro_convergence" + std::to_string(0) + ".txt", std::ofstream::app);
+        std::ofstream micro_file("results/micro_convergence.txt", std::ofstream::app);
         convergence_table.write_text(micro_file);
         DataOut<dim> data_out;
 
