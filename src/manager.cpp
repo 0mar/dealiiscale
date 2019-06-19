@@ -16,7 +16,7 @@ void Manager::setup() {
     micro_solver.setup();
     micro_solver.set_macro_boundary_condition(macro_solver.get_exact_solution());
     // Couple the macro structures with the micro structures.
-    micro_solver.set_macro_solution(&macro_solver.solution, &macro_solver.dof_handler);
+    micro_solver.set_macro_solution(&macro_solver.interpolated_solution, &macro_solver.dof_handler);
     macro_solver.set_micro_solutions(&micro_solver.solutions, &micro_solver.dof_handler);
 //    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
 //                                               "micro_convergence.txt"};

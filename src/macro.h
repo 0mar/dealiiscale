@@ -116,6 +116,7 @@ public:
     Vector<double> solution;
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
+    Vector<double> interpolated_solution;
 
 private:
     /**
@@ -164,7 +165,6 @@ private:
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
     DoFHandler<dim> *micro_dof_handler;
-    Vector<double> interpolated_solution;
     Vector<double> system_rhs;
     Vector<double> micro_contribution;
     std::vector<Vector<double>> *micro_solutions;
