@@ -12,7 +12,7 @@
  */
 int main() {
     dealii::deallog.depth_console(0);
-    for (unsigned int i = 2; i < 5; i++) {
+    for (unsigned int i = 2; i < 8; i++) {
         Manager manager(i, i);
         manager.setup();
         manager.run();
