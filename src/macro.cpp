@@ -174,7 +174,7 @@ template<int dim>
 void MacroSolver<dim>::process_solution() {
     const unsigned int n_active = triangulation.n_active_cells();
     const unsigned int n_dofs = dof_handler.n_dofs();
-    Vector<float> difference_per_cell(n_active);
+    Vector<double> difference_per_cell(n_active);
     VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::L2_norm);
     double l2_error = difference_per_cell.l2_norm();
@@ -193,6 +193,7 @@ void MacroSolver<dim>::process_solution() {
     }
     vals << "\n";
     vals.close();
+    cycle++;
 }
 
 template<int dim>
