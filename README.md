@@ -66,7 +66,24 @@ cmake ..
 make
 ``` 
 
-This builds a debug version of the code. One can then run any of the created binaries.
+This builds a debug version of the code. One can then run any of the created binaries, e.g. `manufactured`, like this:
+
+```bash
+cd bin
+./manufactured
+``` 
+
+## Report
+
+To test the implementations (currently `manufactured` and `separated`), one can do the following:
+```bash
+./manufactured
+./separated
+cd results
+make
+``` 
+
+This will post-process the output of the binaries into the latex report and compile it (requires `pdftex`)
 
 ## Implementations present
 
@@ -75,8 +92,10 @@ deal.II comes with many examples, located in `/Applications/deal.II-9.0.0.app/Co
 This repo has currently three 'roughly working' implementations:
 
 - `demo.cpp`, a verbatim copy of a tutorial (step 3) to check if the installation works
+- `separated.cpp`, a decoupled elliptic-elliptic solver used to test individual properties of the multiscale implementation
 - `manufactured.cpp`, a multiscale elliptic-elliptic solver with convergence testing.
 - `simple.cpp`, a working start for the target system.
+
 
 ## Disclaimer
 
