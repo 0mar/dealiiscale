@@ -42,7 +42,7 @@ private:
 
     std::string ct_file_name = "convergence.txt";
     ConvergenceTable convergence_table;
-
+    Vector<double> macro_solution;
 };
 
 
