@@ -4,8 +4,10 @@ set(CMAKE_CXX_STANDARD 14)
 
 if (APPLE)
     set(deal.II_DIR /Applications/deal.II-9.0.0.app/Contents/Resources/lib/cmake/deal.II)
-else () # todo Add switch for linux
+elseif (UNIX)
     set(deal.II_DIR /usr/share/cmake/deal.II)
+else ()
+    message(FATAL_ERROR "Runs only on Mac or Linux")
 endif ()
 
 find_package(deal.II 9.0 QUIET HINTS ${deal.II_DIR} ${DEAL_II_DIR} $ENV{DEAL_II_DIR})
