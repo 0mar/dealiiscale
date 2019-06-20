@@ -22,7 +22,7 @@
 \renewcommand{\P}{\mathbb{ P}}
 \newcommand{\K}{\mathcal{ K}}
 \newcommand{\V}{\mathcal{ V}}
-\title{Activity report for Omar\textsuperscript{2} collaboration in Sussex}
+\title{Multiscale deal.II implementation}
 \author{Omar Richardson}
 
 \begin{document}
@@ -262,7 +262,7 @@ In Figure~\ref{fig:micro_convergence}, we see a standard quadratic convergence f
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{micro_convergence.pdf}
+    \includegraphics[width=0.8\textwidth]{plot_micro_only_convergence.pdf}
     \caption{$\L^2$ and $\H^1$ errors of the microscopic scheme as a function of the number of degrees of freedom in a log-log plot.}
     \label{fig:micro_convergence}
 \end{figure}
@@ -271,12 +271,12 @@ This same behaviour is illustrated in Figure~\ref{fig:macro_convergence}.
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{macro_convergence.pdf}
+    \includegraphics[width=0.8\textwidth]{plot_macro_only_convergence.pdf}
     \caption{$\L^2$ and $\H^1$ errors of the macroscopic scheme as a function of the number of degrees of freedom in a log-log plot.}
     \label{fig:macro_convergence}
 \end{figure}
 
-Subsequently, in Figure~\ref{fig:multiscale_macro} and Figure~\ref{fig:multiscale_micro}, we observe convergence of the full multiscale system.
+Subsequently, in Figure~\ref{fig:mL2} to Figure~\ref{fig:MH1}, we observe convergence of the full multiscale system.
 Notice how in the macroscopic equation, each subsequent iteration decreases the error by a seemingly fixed amount, while in the microscopic equation, convergence does not always occur monotonously.
 
 Also notice how the rate of convergence in the $\L^2$ norm is not maintained in the largest grid, due to what seems a lack of iterations.
@@ -284,20 +284,32 @@ A third interesting observation is the seemingly quadratic convergence of the $\
 
 Finally, observe how in the microscopic system, the error of the first iteration reduces as the number of degrees of freedom increases. This occurs because we solve the macroscopic equation before we solve the microscopic one, therefore having better initial data as the macroscopic equation does.
 For higher grid resolution, an increasing minimum number of iterations is necessary to obtain the the highest accuracy. Regardless, convergence is largely as expected.
-
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{multiscale_macro.pdf}
-    \caption{$\L^2$ and $\H^1$ errors of the macroscopic part of the multiscale equation as a function of the number of degrees of freedom, log-log plot. Each point corresponds to an iteration, the line corresponds to the final iteration.}
-    \label{fig:multiscale_macro}
+    \includegraphics[width=0.8\textwidth]{plot_conv_mL2.pdf}
+    \caption{$\L^2$ errors of the microscopic part of the multiscale equation as a function of the number of degrees of freedom, log-log plot. Each point corresponds to a fixed point iteration.}
+    \label{fig:mL2}
+\end{figure}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plot_conv_mH1.pdf}
+    \caption{$\H^1$ errors of the microscopic part of the multiscale equation as a function of the number of degrees of freedom, log-log plot. Each point corresponds to a fixed point iteration.}
+    \label{fig:mH1}
+\end{figure}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plot_conv_ML2.pdf}
+    \caption{$\L^2$ errors of the macroscopic part of the multiscale equation as a function of the number of degrees of freedom, log-log plot. Each point corresponds to a fixed point iteration.}
+    \label{fig:ML2}
 \end{figure}
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{multiscale_micro.pdf}
-    \caption{$\L^2$ and $\H^1$ errors of the macroscopic part of the multiscale equation as a function of the number of degrees of freedom, log-log plot. Each point corresponds to an iteration, the line corresponds to the final iteration.}
-    \label{fig:multiscale_micro}
+    \includegraphics[width=0.8\textwidth]{plot_conv_MH1.pdf}
+    \caption{$\H^1$ errors of the macroscopic part of the multiscale equation as a function of the number of degrees of freedom, log-log plot. Each point corresponds to a fixed point iteration.}
+    \label{fig:MH1}
 \end{figure}
+
 
 \section{Future work: Concepts for adaptivity}
 \label{sec:adaptivity}
