@@ -57,11 +57,8 @@ void MicroSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
 
-    std::cout << "   Number of active cells: "
+    std::cout << "   Number of active cells: " // toto: Make sense of the output messages
               << triangulation.n_active_cells()
-              << std::endl
-              << "   Total number of cells: "
-              << triangulation.n_cells()
               << std::endl;
 }
 

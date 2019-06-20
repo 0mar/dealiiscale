@@ -9,7 +9,7 @@ using namespace dealii;
 
 template<int dim>
 double MacroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = 0;
+    double val = 0; // todo: remove
     val = std::sin(lambda * p(0)) + std::cos(lambda * p(1));
     return val;
 }
@@ -172,7 +172,6 @@ void MacroSolver<dim>::solve() {
 template<int dim>
 void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     const unsigned int n_active = triangulation.n_active_cells();
-    const unsigned int n_dofs = dof_handler.n_dofs();
     Vector<double> difference_per_cell(n_active);
     VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::L2_norm);
