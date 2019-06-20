@@ -27,3 +27,15 @@ target_link_libraries(manufactured multiscale)
 
 add_executable(demo src/demo.cpp)
 deal_II_setup_target(demo)
+
+set(PLOT_NOTEBOOK plot_convergence.ipynb)
+
+# Create result directory
+add_custom_command(TARGET manufactured POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${CMAKE_CURRENT_BINARY_DIR}/results)
+# Run everytime we make
+add_custom_command(TARGET manufactured POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/results
+        ${CMAKE_CURRENT_BINARY_DIR}/results)
