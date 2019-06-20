@@ -46,7 +46,4 @@ private:
 };
 
 
-
-
-
-#endif //DEALIISCALE_MANAGER_H
+#endif //DEALIISCALE_MICRO_MANAGER_H
