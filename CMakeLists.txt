@@ -21,9 +21,18 @@ deal_II_initialize_cached_variables()
 
 add_library(multiscale src/manager.h src/manager.cpp src/micro.h src/micro.cpp src/macro.h src/macro.cpp)
 deal_II_setup_target(multiscale)
+
+add_library(single_scale src/micro_manager.h src/micro_manager.cpp src/micro.h src/micro.cpp src/macro.h src/macro.cpp)
+deal_II_setup_target(single_scale)
+
+
 add_executable(manufactured src/manufactured.cpp)
 deal_II_setup_target(manufactured)
 target_link_libraries(manufactured multiscale)
+
+add_executable(separate src/separate_scales.cpp)
+deal_II_setup_target(separate)
+target_link_libraries(separate single_scale)
 
 add_executable(demo src/demo.cpp)
 deal_II_setup_target(demo)
