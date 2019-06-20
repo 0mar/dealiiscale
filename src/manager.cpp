@@ -30,14 +30,18 @@ void Manager::setup() {
 }
 
 void Manager::run() {
-    double eps = 1E-4;
-    double error_norm = 1.;
-    // while (std::fabs(error_norm) > eps) {
-    for (int i = 0; i < 10; i++) {
+    double old_residual = 1;
+    double residual = 0;
+    while (std::fabs(old_residual - residual) > eps) {
         // Todo: Interpolate from midpoint to Gaussian
         fixed_point_iterate();
-        compute_error(error_norm);
+        compute_residuals(old_residual, residual);
+        printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
         cycle++;
+        if (cycle > max_iterations) {
+            std::cout << "Can't get the residual small enough..." << std::endl;
+            break;
+        }
     }
     output_results();
 }
@@ -47,7 +51,7 @@ void Manager::fixed_point_iterate() {
     micro_solver.run();
 }
 
-void Manager::compute_error(double &error_norm) {
+void Manager::compute_residuals(double &old_residual, double &residual) {
     double macro_l2 = 0;
     double macro_h1 = 0;
     double micro_l2 = 0;
@@ -61,9 +65,14 @@ void Manager::compute_error(double &error_norm) {
     convergence_table.add_value("mH1", micro_h1);
     convergence_table.add_value("ML2", macro_l2);
     convergence_table.add_value("MH1", macro_h1);
-    error_norm = micro_l2 + macro_l2;
+    old_residual = residual;
+    residual = micro_l2 + macro_l2;
 }
 
+void Manager::set_ct_file_name(std::string &file_name) {
+    ct_file_name = file_name;
+
+}
 
 void Manager::output_results() {
     std::vector<std::string> error_classes = {"mL2", "mH1", "ML2", "MH1"};
@@ -71,7 +80,7 @@ void Manager::output_results() {
         convergence_table.set_precision(error_class, 3);
         convergence_table.set_scientific(error_class, true);
     }
-    std::ofstream convergence_output("results/convergence.txt", std::iostream::app);
+    std::ofstream convergence_output("results/" + ct_file_name, std::iostream::app);
     convergence_table.write_text(convergence_output);
     convergence_output.close();
     DataOut<MACRO_DIMENSIONS> data_out;

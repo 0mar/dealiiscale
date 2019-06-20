@@ -28,15 +28,20 @@ public:
 
     void output_results();
 
+    void set_ct_file_name(std::string &file_name);
+
+    double eps = 1E-4;
+    double max_iterations = 1E4;
+
+
 
 private:
     int cycle;
-
     void fixed_point_iterate();
 
-    void compute_error(double &error_norm);
+    void compute_residuals(double &old_residual, double &residual);
 
-
+    std::string ct_file_name = "convergence.txt";
     ConvergenceTable convergence_table;
 
 };

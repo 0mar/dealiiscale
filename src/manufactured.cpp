@@ -12,8 +12,13 @@
  */
 int main() {
     dealii::deallog.depth_console(0);
+    std::string file_name = "multi-convergence.txt";
+    std::ofstream ofs;
+    ofs.open("results/" + file_name, std::ofstream::out | std::ofstream::trunc);
+    ofs.close();
     for (unsigned int i = 2; i < 8; i++) {
         Manager manager(i, i);
+        manager.set_ct_file_name(file_name);
         manager.setup();
         manager.run();
     }
