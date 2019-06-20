@@ -32,7 +32,7 @@ sudo apt update
 ```
 But be aware that this last option will update all of software from the repository to its 18.10 version, which in some cases might not be recommendable.
 
-## Compiling deal.II programs
+## Configuring CMake for deal.II
 
 deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, it is easily installed using [Homebrew][4] (Mac).
 Opening the deal.II app will open a shell with preset environment variables that make compilation of your programs 'easy'. 
@@ -53,6 +53,20 @@ For default installations on Linux systems, the first line can be changed to
 set(deal.II_DIR /usr/share/cmake/deal.II)
 ```
 For a full (but not minimal) example of a deal.II CMake file, check the repository. This CMake file deals with both Mac and Ubuntu installations.
+
+## Compiling the source code
+
+To build and install the binaries in directory `bin` with a functioning CMake file, one can run the following commands:
+
+```bash
+git clone git@github.com:0mar/dealiiscale.git # if you haven't cloned the repository yet
+mkdir bin
+cd bin
+cmake ..
+make
+``` 
+
+This builds a debug version of the code. One can then run any of the created binaries.
 
 ## Implementations present
 
