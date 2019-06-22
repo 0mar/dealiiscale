@@ -81,12 +81,18 @@ public:
     MacroSolver();
 
     /**
-     * All the methods that setup the system
+     * All the methods that setup the system.
+     * 1. Create the grid.
+     * 2. Set the FE degree and compute the DoFs
+     * 3. Initialize FEM matrices and vectors
      */
     void setup();
 
     /**
-     * Assemble the system, solve the system and process the solution.
+     * All the methods (after setup()) necessary to compute a solution
+     * 4. Assemble the system matrix and right hand side
+     * 5. Solve the system
+     * 6. Process the solution (numerically)
      */
     void run();
 
@@ -95,7 +101,13 @@ public:
      */
     void compute_error(double &l2_error, double &h1_error);
 
+    /**
+     * Set the microscopic solutions pointers, so that this solver can compute its contribution from it.
+     * @param _solutions Pointer to a vector of microscopic solution vectors.
+     * @param _dof_handler Pointer to the microscopic DoF handler.
+     */
     void set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler);
+
     /**
      * Compute the exact solution value based on the analytic solution present in the boundary condition
      * @param exact_values Output vector

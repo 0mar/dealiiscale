@@ -9,7 +9,10 @@
 #include "macro.h"
 
 
-
+/**
+ * This class is mostly for testing purposes of the individual scales.
+ * This is too elaborate and constructed for solving an actual single scale problem
+ */
 class MicroManager {
 
 public:

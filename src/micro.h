@@ -98,8 +98,6 @@ public:
 
     /**
      * Create a Microsolver that resolves the microscopic systems.
-     * @param macro_dof_handler The macroscopic degrees of freedom
-     * @param macro_solution The macroscopic solution
      */
     MicroSolver();
 
@@ -120,12 +118,21 @@ public:
     void set_refine_level(int refinement_level);
 
     /**
-     * Refine the grid by splitting each cell in four new cells.
+     * Refine the grid by splitting each cell in 2^d new cells.
      */
     void refine_grid();
 
+    /**
+     * Set the macroscopic solution so that the solver can compute its contribution from it.
+     * @param _solution Pointer to the macroscopic solution (so that the content is always up to date).
+     * @param _dof_handler pointer to the DoF handler.
+     */
     void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler);
 
+    /**
+     * Set the x-variable component of the boundary condition.
+     * @param macro_condition Interpolated vector, one entry for every micro-grid.
+     */
     void set_macro_boundary_condition(const Vector<double> &macro_condition);
 
     /**
