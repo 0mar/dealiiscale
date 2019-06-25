@@ -39,6 +39,9 @@ target_link_libraries(separate single_scale)
 add_executable(demo src/demo.cpp)
 deal_II_setup_target(demo)
 
+add_executable(robin src/robin.cpp)
+deal_II_setup_target(robin)
+
 set(PLOT_NOTEBOOK plot_convergence.ipynb)
 
 # Create result directory
