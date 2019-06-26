@@ -12,7 +12,8 @@
  */
 int main() {
     dealii::deallog.depth_console(0);
-    std::string file_name = "multi-convergence.txt";
+    std::cout << "Warning: Not yet correctly implemented!" << std::endl;
+    std::string file_name = "two-scale-convergence.txt";
     std::ofstream ofs;
     ofs.open("results/" + file_name, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
