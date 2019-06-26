@@ -5,8 +5,8 @@
 #ifndef DEALIISCALE_MANAGER_H
 #define DEALIISCALE_MANAGER_H
 
-#include "micro.h"
-#include "macro.h"
+#include "pi_solver.h"
+#include "rho_solver.h"
 
 
 
@@ -15,8 +15,8 @@ class Manager {
 public:
     const static int MACRO_DIMENSIONS = 2;
     const static int MICRO_DIMENSIONS = 2;
-    MacroSolver<MACRO_DIMENSIONS> macro_solver;
-    MicroSolver<MICRO_DIMENSIONS> micro_solver;
+    PiSolver<MACRO_DIMENSIONS> pi_solver;
+    RhoSolver<MICRO_DIMENSIONS> rho_solver;
     int repetitions;
 
     /**

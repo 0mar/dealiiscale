@@ -21,26 +21,38 @@ endif ()
 
 deal_II_initialize_cached_variables()
 
-add_library(multiscale src/manager.h src/manager.cpp src/micro.h src/micro.cpp src/macro.h src/macro.cpp)
-deal_II_setup_target(multiscale)
+set(ELLIPTIC_DIR src/elliptic-elliptic) # Todo: Make a CMakeLists for each subdirectory
+set(PARABOLIC_DIR src/elliptic-parabolic)
+set(DEMO_DIR src/playground)
+add_library(elliptic ${ELLIPTIC_DIR}/manager.h ${ELLIPTIC_DIR}/manager.cpp ${ELLIPTIC_DIR}/micro.h ${ELLIPTIC_DIR}/micro.cpp ${ELLIPTIC_DIR}/macro.h ${ELLIPTIC_DIR}/macro.cpp)
+deal_II_setup_target(elliptic)
 
-add_library(single_scale src/micro_manager.h src/micro_manager.cpp src/micro.h src/micro.cpp src/macro.h src/macro.cpp src/micro_manager.h src/macro_manager.cpp)
+add_library(single_scale ${ELLIPTIC_DIR}/micro_manager.h ${ELLIPTIC_DIR}/micro_manager.cpp ${ELLIPTIC_DIR}/micro.h ${ELLIPTIC_DIR}/micro.cpp ${ELLIPTIC_DIR}/macro.h ${ELLIPTIC_DIR}/macro.cpp ${ELLIPTIC_DIR}/micro_manager.h ${ELLIPTIC_DIR}/macro_manager.cpp)
 deal_II_setup_target(single_scale)
 
+add_library(parabolic ${PARABOLIC_DIR}/manager.h ${PARABOLIC_DIR}/manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp)
+deal_II_setup_target(parabolic)
 
-add_executable(manufactured src/manufactured.cpp)
+add_executable(manufactured ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(manufactured)
 target_link_libraries(manufactured multiscale)
 
-add_executable(separate src/separate_scales.cpp)
+add_executable(solve_two_scale ${PARABOLIC_DIR}/two_scale.cpp)
+deal_II_setup_target(solve_two_scale)
+target_link_libraries(solve_two_scale parabolic)
+
+add_executable(separate ${ELLIPTIC_DIR}/separate_scales.cpp)
 deal_II_setup_target(separate)
 target_link_libraries(separate single_scale)
 
-add_executable(demo src/demo.cpp)
-deal_II_setup_target(demo)
+add_executable(simple ${DEMO_DIR}/simple.cpp)
+deal_II_setup_target(simple)
 
-add_executable(robin src/robin.cpp)
+add_executable(robin ${DEMO_DIR}/robin.cpp)
 deal_II_setup_target(robin)
+
+add_executable(demo ${DEMO_DIR}/demo.cpp)
+deal_II_setup_target(demo)
 
 set(PLOT_NOTEBOOK plot_convergence.ipynb)
 
