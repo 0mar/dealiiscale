@@ -90,6 +90,7 @@ void RhoSolver<dim>::refine_grid() {
 template<int dim>
 void RhoSolver<dim>::setup_scatter() {
     solutions.clear();
+    old_solutions.clear();
     righthandsides.clear();
     system_matrices.clear();
     compute_macroscopic_contribution();
@@ -97,6 +98,8 @@ void RhoSolver<dim>::setup_scatter() {
     for (unsigned int i = 0; i < num_grids; i++) {
         Vector<double> solution(n_dofs);
         solutions.push_back(solution);
+        Vector<double> old_solution(n_dofs);
+        old_solutions.push_back(old_solution);
 
         Vector<double> rhs(n_dofs);
         righthandsides.push_back(rhs);
@@ -122,6 +125,7 @@ template<int dim>
 void RhoSolver<dim>::compute_macroscopic_contribution() {
     // Nothing needs to happen in this simple case
 }
+
 
 template<int dim>
 void RhoSolver<dim>::assemble_system() {
@@ -221,6 +225,7 @@ void RhoSolver<dim>::compute_error(double &l2_error, double &h1_error) {
 //    VectorTools::integrate_difference(*macro_dof_handler,macro_domain_l2_error,Functions::ZeroFunction<dim>(),macro_integral,QGauss<dim>(3),VectorTools::L2_norm);
     l2_error = macro_domain_l2_error.l2_norm() / macro_domain_l2_error.size(); // Is this the most correct norm?
     h1_error = macro_domain_h1_error.l2_norm() / macro_domain_h1_error.size();
+    std::swap(solutions, old_solutions); // Todo: does this work as expected?
 }
 
 template<int dim>

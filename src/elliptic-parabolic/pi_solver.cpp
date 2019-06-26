@@ -67,6 +67,7 @@ void PiSolver<dim>::setup_system() {
     system_matrix.reinit(sparsity_pattern);
 
     solution.reinit(dof_handler.n_dofs());
+    old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     interpolated_solution.reinit(triangulation.n_active_cells());
     micro_contribution.reinit(triangulation.n_active_cells());
@@ -82,6 +83,12 @@ Vector<double> PiSolver<dim>::get_exact_solution() {
         exact_values[cell->active_cell_index()] = boundary.value(quad_points[0]);
     }
     return exact_values;
+}
+
+template<int dim>
+double PiSolver<dim>::get_pi_contribution_rhs(double s) {
+    const double g_s = std::fmax(1. - 2. * s / theta, 0);
+    return g_s;
 }
 
 template<int dim>
@@ -122,7 +129,7 @@ void PiSolver<dim>::assemble_system() {
 
 
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                micro_contribution[cell->active_cell_index()] *
+                                micro_contribution[cell->active_cell_index()] * // Interpolate solution data
                                 fe_values.JxW(q_index));
             }
 
@@ -179,6 +186,7 @@ void PiSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::H1_seminorm);
     h1_error = difference_per_cell.l2_norm();
+    std::swap(old_solution, solution);
 }
 
 template<int dim>
@@ -190,7 +198,7 @@ void PiSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions,
 
 template<int dim>
 double PiSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
-    // manufactured as: f(x) = \int_Y \rho(x,y)dy
+    // computed as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
     QGauss<dim> quadrature_formula(2);
     FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);

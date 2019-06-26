@@ -151,6 +151,7 @@ public:
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
+    std::vector<Vector<double>> old_solutions;
     MicroBoundary<dim> boundary;
 private:
 

@@ -121,6 +121,7 @@ public:
     void set_refine_level(int num_bisections);
 
     Vector<double> solution;
+    Vector<double> old_solution;
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     Vector<double> interpolated_solution;
@@ -163,6 +164,13 @@ private:
     double integrate_micro_grid(unsigned int cell_index);
 
     /**
+     * Compute the pi-dependent factor of the right hand side of the elliptic equation
+     * f(s) = g(s)*\int_Y \rho(x,y)dy.
+     * This method computes g(s): a hat function with support from 0 to some theta
+     */
+    double get_pi_contribution_rhs(double s);
+
+    /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
      */
     void solve();
@@ -177,6 +185,7 @@ private:
     std::vector<Vector<double>> *micro_solutions;
     MacroBoundary<dim> boundary;
     int refine_level;
+    const double theta = 10;
 
 };
 
