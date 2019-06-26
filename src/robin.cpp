@@ -56,7 +56,7 @@ template<int dim>
 double RightHandSide<dim>::value(const Point<dim> &p, const unsigned int) const {
     double radius_sqrd = 0;
     for (unsigned int i = 0; i < dim; ++i) {
-        radius_sqrd += p[0] * p[0];
+        radius_sqrd += p[i] * p[i];
     }
     return 8 - 4 * radius_sqrd;
 }
@@ -75,27 +75,10 @@ template<int dim>
 double Solution<dim>::value(const Point<dim> &p, const unsigned int) const {
     double radius_sqrd = 0;
     for (unsigned int i = 0; i < dim; ++i) {
-        radius_sqrd += p[0] * p[0];
+        radius_sqrd += p[i] * p[i];
     }
     return radius_sqrd * radius_sqrd / 4. - 2. * radius_sqrd;
 }
-
-template<int dim>
-class BoundaryValues : public Function<dim> {
-public:
-    BoundaryValues() : Function<dim>() {}
-
-    virtual double value(const Point<dim> &p,
-                         const unsigned int component = 0) const;
-};
-
-
-template<int dim>
-double BoundaryValues<dim>::value(const Point<dim> &p,
-                                  const unsigned int /*component*/) const {
-    return 0.5;
-}
-
 
 class RobinSolver {
 public:
@@ -127,7 +110,7 @@ private:
     Vector<double> solution;
     Vector<double> system_rhs;
     const double kappa = .5;
-    const double c = -4.5;
+    const double c = -7.75;
     int cycle;
     ConvergenceTable convergence_table;
 };
@@ -169,11 +152,12 @@ void RobinSolver::setup_system() {
 
 void RobinSolver::assemble_system() {
     int integration_order = 2;
-    QGauss<2> quadrature_formula(integration_order);
-    QGauss<1> face_quadrature_formula(integration_order);
-    FEValues<2> fe_values(fe, quadrature_formula,
+    const int dim = 2;
+    QGauss<dim> quadrature_formula(integration_order);
+    QGauss<dim - 1> face_quadrature_formula(integration_order);
+    FEValues<dim> fe_values(fe, quadrature_formula,
                           update_values | update_quadrature_points | update_gradients | update_JxW_values);
-    FEFaceValues<2> fe_face_values(fe, face_quadrature_formula,
+    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
                                    update_values | update_normal_vectors | update_quadrature_points |
                                    update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
@@ -181,9 +165,9 @@ void RobinSolver::assemble_system() {
     const unsigned int n_q_face_points = face_quadrature_formula.size();
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
-    const RightHandSide<2> rhs;
+    const RightHandSide<dim> rhs;
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    for (const DoFHandler<2>::active_cell_iterator &cell:dof_handler.active_cell_iterators()) {
+    for (const DoFHandler<dim>::active_cell_iterator &cell:dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
         cell_rhs = 0;
@@ -215,11 +199,13 @@ void RobinSolver::assemble_system() {
             }
         }
         cell->get_dof_indices(local_dof_indices);
-        for (unsigned int i = 0; i < dofs_per_cell; ++i)
-            for (unsigned int j = 0; j < dofs_per_cell; ++j)
+        for (unsigned int i = 0; i < dofs_per_cell; ++i) {
+            for (unsigned int j = 0; j < dofs_per_cell; ++j) {
                 system_matrix.add(local_dof_indices[i],
                                   local_dof_indices[j],
                                   cell_matrix(i, j));
+            }
+        }
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
         }
@@ -294,7 +280,7 @@ void RobinSolver::run() {
 int main() {
     deallog.depth_console(2);
     RobinSolver poisson_problem;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 4; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }
