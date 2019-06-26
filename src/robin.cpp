@@ -156,10 +156,10 @@ void RobinSolver::assemble_system() {
     QGauss<dim> quadrature_formula(integration_order);
     QGauss<dim - 1> face_quadrature_formula(integration_order);
     FEValues<dim> fe_values(fe, quadrature_formula,
-                          update_values | update_quadrature_points | update_gradients | update_JxW_values);
+                            update_values | update_quadrature_points | update_gradients | update_JxW_values);
     FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
-                                   update_values | update_normal_vectors | update_quadrature_points |
-                                   update_JxW_values);
+                                     update_values | update_normal_vectors | update_quadrature_points |
+                                     update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
     const unsigned int n_q_face_points = face_quadrature_formula.size();
@@ -280,7 +280,7 @@ void RobinSolver::run() {
 int main() {
     deallog.depth_console(2);
     RobinSolver poisson_problem;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }
