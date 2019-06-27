@@ -189,7 +189,7 @@ private:
     const double R = 2;
     const double kappa = 1;
     const double p_F = 1;
-    const double scheme_theta = .5; // Fixme: I think because of an integration error in rho_solver.cpp:194 I'm stuck here with 1
+    const double scheme_theta = 0.5; // Fixme: I think because of an integration error in rho_solver.cpp:194 I'm stuck here with 1
     int integration_order = 2;
     Vector<double> intermediate_vector;
 };

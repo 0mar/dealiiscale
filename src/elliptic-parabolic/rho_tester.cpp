@@ -17,7 +17,7 @@ public:
     RhoSolver<MICRO_DIMENSIONS> rho_solver;
     double time = 0;
     double time_step = 0.1;
-    double final_time = 4;
+    double final_time = 8;
 
     /**
      * Class that facilitates the interaction between the microscopic and macroscopic solvers.

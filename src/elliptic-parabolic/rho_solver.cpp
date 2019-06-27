@@ -51,8 +51,8 @@ void RhoSolver<dim>::make_grid() {
     // If we ever use refinement, we have to remark every time we refine the grid.
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-            if (std::fabs(cell->face(face_number)->center()(0) < 0)) {
-                cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
+            if (cell->face(face_number)->at_boundary() and std::fabs(cell->face(face_number)->center()(0) < 0)) {
+                cell->face(face_number)->set_boundary_id(ROBIN_BOUNDARY);
             } // Else: Robin by default.
         }
     }
@@ -187,16 +187,19 @@ void RhoSolver<dim>::assemble_system() {
 
         for (unsigned int k = 0; k < num_grids; k++) {
             for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-                if (cell->face(face_number)->at_boundary()) { // Todo: Switch between Neumann and Robin
+                if (cell->face(face_number)->at_boundary() and
+                    cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
                     fe_face_values.reinit(cell, face_number);
                     cell->get_dof_indices(local_dof_indices);
                     cell_rhs = 0;
+                    std::vector<double> old_interpolated_solution(n_q_face_points);
+                    fe_face_values.get_function_values(old_solutions.at(k), old_interpolated_solution);
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                             cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * kappa *
                                            (scheme_theta * (*macro_solution)(k) +
                                             (1 - scheme_theta) * (*old_macro_solution)(k) + p_F -
-                                            R * (1 - scheme_theta) * old_solutions.at(k)(i)) *
+                                            R * (1 - scheme_theta) * old_interpolated_solution[q_index]) *
                                            fe_face_values.JxW(q_index); // Todo: Is this a consistent approximation?
                         }
                     }
