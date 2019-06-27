@@ -37,11 +37,32 @@ void MicroBoundary<dim>::set_macro_cell_index(const unsigned int index) {
 }
 
 template<int dim>
+double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int component) const {
+    double val = 0; // Todo: Not dependent on the macroscopic solution.
+    for (int i = 0; i < dim; i++) {
+        val += (1 - p[i]) * (1 - p[i]);
+    }
+    return val;
+}
+
+template<int dim>
+void MicroInitCondition<dim>::set_macro_solution(const Vector<double> &macro_solution) {
+    this->macro_sol = macro_solution;
+}
+
+template<int dim>
+void MicroInitCondition<dim>::set_macro_cell_index(unsigned int index) {
+    macro_cell_index = index;
+}
+
+
+template<int dim>
 RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), boundary(), fe(1), macro_solution(nullptr),
-                                  macro_dof_handler(nullptr) {
+                              macro_dof_handler(nullptr) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
     refine_level = 1;
     num_grids = 1;
+    integration_order = fe.degree + 1;
 }
 
 template<int dim>
@@ -73,6 +94,10 @@ void RhoSolver<dim>::setup_system() {
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
+    mass_matrix.reinit(sparsity_pattern);
+    laplace_matrix.reinit(sparsity_pattern);
+    MatrixCreator::create_mass_matrix(dof_handler, QGauss<dim>(integration_order), mass_matrix);
+    MatrixCreator::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
 }
 
 template<int dim>
@@ -99,6 +124,7 @@ void RhoSolver<dim>::setup_scatter() {
         Vector<double> solution(n_dofs);
         solutions.push_back(solution);
         Vector<double> old_solution(n_dofs);
+        VectorTools::interpolate(dof_handler, MicroInitCondition<dim>(), old_solution);
         old_solutions.push_back(old_solution);
 
         Vector<double> rhs(n_dofs);
@@ -129,14 +155,18 @@ void RhoSolver<dim>::compute_macroscopic_contribution() {
 
 template<int dim>
 void RhoSolver<dim>::assemble_system() {
-    QGauss<dim> quadrature_formula(2);
+    QGauss<dim> quadrature_formula(integration_order);
+    QGauss<dim - 1> face_quadrature_formula(integration_order);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
-
+    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
+                                     update_values | update_normal_vectors | update_quadrature_points |
+                                     update_JxW_values);
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
+    const unsigned int n_q_face_points = face_quadrature_formula.size();
 
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
@@ -146,53 +176,68 @@ void RhoSolver<dim>::assemble_system() {
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
+        mass_matrix.vmult(righthandsides.at(k), old_solutions.at(k));
+        laplace_matrix.vmult(intermediate_vector, old_solutions.at(k));
+        righthandsides.at(k).add(-dt * (1 - scheme_theta),
+                                 intermediate_vector); // First element is a multiplication factor
 
+        system_matrices.at(k).copy_from(mass_matrix);
+        system_matrices.at(k).add(dt * scheme_theta * D, laplace_matrix);
     }
     for (const auto &cell: dof_handler.active_cell_iterators()) {
-        fe_values.reinit(cell);
-        cell_matrix = 0;
+        for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+            if (cell->face(face_number)->at_boundary()) { // Todo: Switch between Neumann and Robin
+                fe_face_values.reinit(cell, face_number);
+                cell_matrix = 0;
+                cell->get_dof_indices(local_dof_indices);
+                for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                    for (unsigned int j = 0; j < dofs_per_cell; j++) {
+                        for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
+                            cell_matrix(i, j) +=
+                                    kappa * dt * scheme_theta * R * fe_face_values.shape_value(i, q_index) *
+                                    fe_face_values.shape_value(j, q_index) * fe_face_values.JxW(q_index);
+                        }
+                    }
+                }
+                for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                    for (unsigned int j = 0; j < dofs_per_cell; j++) {
+                        for (unsigned int k = 0; k < num_grids; k++) {
+                            system_matrices.at(k).add(local_dof_indices[i],
+                                                      local_dof_indices[j],
+                                                      cell_matrix(i, j));
+                        }
+                    }
+                }
+            }
+        }
 
-        cell->get_dof_indices(local_dof_indices);
-        for (unsigned int i = 0; i < dofs_per_cell; i++) {
-            for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
-                for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                    cell_matrix(i, j) += fe_values.shape_grad(i, q_index)
-                                         * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index);
-                }
-            }
-        }
-        for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-            for (unsigned int j = 0; j < dofs_per_cell; ++j) {
-                for (unsigned int k = 0; k < num_grids; k++) {
-                    system_matrices.at(k).add(local_dof_indices[i],
-                                              local_dof_indices[j],
-                                              cell_matrix(i, j));
-                }
-            }
-        }
         for (unsigned int k = 0; k < num_grids; k++) {
-            cell_rhs = 0;
-            for (unsigned int i = 0; i < dofs_per_cell; i++) {
-                for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-                    cell_rhs(i) += -laplacian * (*macro_solution)(k) * fe_values.shape_value(i, q_index) *
-                                   fe_values.JxW(q_index);
+            for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+                if (cell->face(face_number)->at_boundary()) { // Todo: Switch between Neumann and Robin
+                    fe_face_values.reinit(cell, face_number);
+                    cell->get_dof_indices(local_dof_indices);
+                    cell_rhs = 0;
+                    for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                        for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+                            cell_rhs(i) += (fe_values.shape_value(i, q_index)) * dt * kappa *
+                                           (scheme_theta * (*macro_solution)(k) +
+                                            (1 - scheme_theta) * (*old_macro_solution)(k) + p_F +
+                                            R * old_solutions.at(k)(i)) *
+                                           fe_values.JxW(q_index); // Todo: Is this a consistent approximation?
+                        }
+                    }
+                    for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                        righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
+                    }
                 }
-                righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
             }
         }
-    }
-    for (unsigned int k = 0; k < num_grids; k++) {
-        this->boundary.set_macro_cell_index(k);
-        std::map<types::global_dof_index, double> boundary_values;
-        VectorTools::interpolate_boundary_values(dof_handler, 0, boundary, boundary_values);
-        MatrixTools::apply_boundary_values(boundary_values, system_matrices.at(k), solutions.at(k),
-                                           righthandsides.at(k));
     }
 }
 
 
 template<int dim>
-void RhoSolver<dim>::solve() {
+void RhoSolver<dim>::solve_time_step() {
     SolverControl solver_control(1000, 1e-12);
     SolverCG<> solver(solver_control);
     for (unsigned int k = 0; k < num_grids; k++) {
@@ -209,13 +254,15 @@ void RhoSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> macro_domain_l2_error(num_grids);
     Vector<double> macro_domain_h1_error(num_grids);
     for (unsigned int k = 0; k < num_grids; k++) {
-        boundary.set_macro_cell_index(k); // Todo: Change when we separate boundary and exact solution.
+        boundary.set_macro_cell_index(k);
         const unsigned int n_active = triangulation.n_active_cells();
         Vector<double> difference_per_cell(n_active);
-        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
+        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell,
+                                          QGauss<dim>(3),
                                           VectorTools::L2_norm);
         double micro_l2_error = difference_per_cell.l2_norm();
-        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
+        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell,
+                                          QGauss<dim>(3),
                                           VectorTools::H1_seminorm);
         double micro_h1_error = difference_per_cell.l2_norm();
         macro_domain_l2_error(k) = micro_l2_error;
@@ -225,13 +272,13 @@ void RhoSolver<dim>::compute_error(double &l2_error, double &h1_error) {
 //    VectorTools::integrate_difference(*macro_dof_handler,macro_domain_l2_error,Functions::ZeroFunction<dim>(),macro_integral,QGauss<dim>(3),VectorTools::L2_norm);
     l2_error = macro_domain_l2_error.l2_norm() / macro_domain_l2_error.size(); // Is this the most correct norm?
     h1_error = macro_domain_h1_error.l2_norm() / macro_domain_h1_error.size();
-    std::swap(solutions, old_solutions); // Todo: does this work as expected?
+    solutions = old_solutions; // todo: Does this work as expected? Consider swap
 }
 
 template<int dim>
 void RhoSolver<dim>::run() {
     assemble_system();
-    solve();
+    solve_time_step();
 }
 
 template<int dim>

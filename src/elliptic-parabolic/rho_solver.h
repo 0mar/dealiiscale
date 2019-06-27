@@ -92,6 +92,43 @@ private:
     unsigned int macro_cell_index = 0;
 };
 
+
+template<int dim>
+class MicroInitCondition : public Function<dim> {
+public:
+    MicroInitCondition() : Function<dim>() {
+
+    }
+
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+
+    /**
+     * Set a precomputed macroscopic solution for the boundary.
+     * After this value is set, individual microboundaries can be imposed by simply setting the macroscopic cell index.
+     * @param macro_solution Value of the macroscopic solution for the corresponding microscopic system.
+     */
+    void set_macro_solution(const Vector<double> &macro_solution);
+
+    /**
+     *
+     * Set the macroscopic cell index so that the microboundary has the appropriate macroscopic value.
+     * @param index
+     */
+    void set_macro_cell_index(unsigned int index);
+
+private:
+
+    /**
+     * Contains the macroscopic exact solution
+     */
+    Vector<double> macro_sol;
+
+    /**
+     * The macroscopic cell this boundary needs to work on.
+     */
+    unsigned int macro_cell_index = 0; // Todo: Create a MicroFunction base class to derive this from
+
+};
 template<int dim>
 class RhoSolver {
 public:
@@ -153,6 +190,7 @@ public:
     std::vector<Vector<double>> solutions;
     std::vector<Vector<double>> old_solutions;
     MicroBoundary<dim> boundary;
+    double dt = 0.1;
 private:
 
     /**
@@ -182,14 +220,13 @@ private:
     /**
      * Solve the system we obtained in `assemble_system`.
      */
-    void solve();
+    void solve_time_step();
 
     /**
      * Use the (probably updated) macroscopic data to compute new elements of the microscopic system.
      */
     void compute_macroscopic_contribution();
 
-    const double laplacian = 4.;
     /**
      * The level of refinement (every +1 means a bisection)
      */
@@ -198,10 +235,20 @@ private:
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
     Vector<double> *macro_solution;
+    Vector<double> *old_macro_solution; // Todo: Add old macro solution
     Vector<double> macro_contribution;
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
     std::vector<Vector<double>> righthandsides;
+    SparseMatrix<double> mass_matrix;
+    SparseMatrix<double> laplace_matrix;
+    const double D = 1;
+    const double R = 1;
+    const double kappa = 1;
+    const double p_F = 1;
+    const double scheme_theta = 1;
+    int integration_order = 2;
+    Vector<double> intermediate_vector;
 };
 
 #endif //RHO_SOLVER_H
