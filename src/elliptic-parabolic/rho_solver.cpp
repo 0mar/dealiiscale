@@ -11,7 +11,7 @@ template<int dim>
 double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int component) const {
     double val = 0; // Todo: This is not dependent on the macroscopic solution.
     for (int i = 0; i < dim; i++) {
-        val += (1 - p[i]) * (1 - p[i]);
+        val += 1 - p[i] * p[i];
     }
     return val;
 }
@@ -93,6 +93,7 @@ void RhoSolver<dim>::setup_scatter() {
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int i = 0; i < num_grids; i++) {
         Vector<double> solution(n_dofs);
+        VectorTools::interpolate(dof_handler, MicroInitCondition<dim>(), solution);
         solutions.push_back(solution);
         Vector<double> old_solution(n_dofs);
         VectorTools::interpolate(dof_handler, MicroInitCondition<dim>(), old_solution);
