@@ -20,6 +20,5 @@ int main() {
     manager.set_ct_file_name(file_name);
     manager.setup();
     manager.run();
-    manager.write_plot();
     return 0;
 }

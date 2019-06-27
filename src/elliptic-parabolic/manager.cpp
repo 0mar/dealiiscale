@@ -45,6 +45,7 @@ void Manager::run() {
 void Manager::iterate() {
     pi_solver.iterate();
     rho_solver.iterate(time_step);
+    write_plot();
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
