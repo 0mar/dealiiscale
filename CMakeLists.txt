@@ -41,6 +41,11 @@ add_executable(solve_two_scale ${PARABOLIC_DIR}/two_scale.cpp)
 deal_II_setup_target(solve_two_scale)
 target_link_libraries(solve_two_scale parabolic)
 
+add_executable(test_rho ${PARABOLIC_DIR}/rho_tester.cpp)
+deal_II_setup_target(test_rho)
+target_link_libraries(test_rho parabolic)
+
+
 add_executable(separate ${ELLIPTIC_DIR}/separate_scales.cpp)
 deal_II_setup_target(separate)
 target_link_libraries(separate single_scale)

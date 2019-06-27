@@ -8,37 +8,8 @@
 using namespace dealii;
 
 template<int dim>
-double MicroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = 0;
-    for (unsigned int i = 0; i < dim; i++) {
-        val += p(i) * p(i) * macro_sol[macro_cell_index];
-    }
-    return val;
-}
-
-template<int dim>
-Tensor<1, dim> MicroBoundary<dim>::gradient(const Point<dim> &p, const unsigned int) const {
-    Tensor<1, dim> return_val;
-
-    return_val[0] = 2 * p(0) * macro_sol[macro_cell_index];
-    return_val[1] = 2 * p(1) * macro_sol[macro_cell_index];
-    return return_val;
-}
-
-template<int dim>
-void MicroBoundary<dim>::set_macro_solution(const Vector<double> &macro_solution) {
-    this->macro_sol = macro_solution;
-}
-
-
-template<int dim>
-void MicroBoundary<dim>::set_macro_cell_index(const unsigned int index) {
-    macro_cell_index = index;
-}
-
-template<int dim>
 double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int component) const {
-    double val = 0; // Todo: Not dependent on the macroscopic solution.
+    double val = 0; // Todo: This is not dependent on the macroscopic solution.
     for (int i = 0; i < dim; i++) {
         val += (1 - p[i]) * (1 - p[i]);
     }
@@ -57,8 +28,8 @@ void MicroInitCondition<dim>::set_macro_cell_index(unsigned int index) {
 
 
 template<int dim>
-RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), boundary(), fe(1), macro_solution(nullptr),
-                              macro_dof_handler(nullptr) {
+RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), fe(1), macro_solution(nullptr),
+                              macro_dof_handler(nullptr), old_macro_solution(nullptr) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
     refine_level = 1;
     num_grids = 1;
@@ -132,19 +103,17 @@ void RhoSolver<dim>::setup_scatter() {
 
         SparseMatrix<double> system_matrix;
         system_matrices.push_back(system_matrix);
+        intermediate_vector.reinit(dof_handler.n_dofs());
     }
 }
 
 
 template<int dim>
-void RhoSolver<dim>::set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler) {
+void RhoSolver<dim>::set_macro_solutions(Vector<double> *_solution, Vector<double> *_old_solution,
+                                         DoFHandler<dim> *_dof_handler) {
     this->macro_solution = _solution;
+    this->old_macro_solution = _old_solution;
     this->macro_dof_handler = _dof_handler;
-}
-
-template<int dim>
-void RhoSolver<dim>::set_macro_boundary_condition(const Vector<double> &macro_condition) {
-    this->boundary.set_macro_solution(macro_condition);
 }
 
 template<int dim>
@@ -165,7 +134,6 @@ void RhoSolver<dim>::assemble_system() {
                                      update_JxW_values);
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points = quadrature_formula.size();
     const unsigned int n_q_face_points = face_quadrature_formula.size();
 
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
@@ -178,8 +146,7 @@ void RhoSolver<dim>::assemble_system() {
         system_matrices.at(k).reinit(sparsity_pattern);
         mass_matrix.vmult(righthandsides.at(k), old_solutions.at(k));
         laplace_matrix.vmult(intermediate_vector, old_solutions.at(k));
-        righthandsides.at(k).add(-dt * (1 - scheme_theta),
-                                 intermediate_vector); // First element is a multiplication factor
+        righthandsides.at(k).add(-dt * (1 - scheme_theta), intermediate_vector); // scalar factor, matrix
 
         system_matrices.at(k).copy_from(mass_matrix);
         system_matrices.at(k).add(dt * scheme_theta * D, laplace_matrix);
@@ -218,12 +185,12 @@ void RhoSolver<dim>::assemble_system() {
                     cell->get_dof_indices(local_dof_indices);
                     cell_rhs = 0;
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
-                        for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-                            cell_rhs(i) += (fe_values.shape_value(i, q_index)) * dt * kappa *
+                        for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
+                            cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * kappa *
                                            (scheme_theta * (*macro_solution)(k) +
-                                            (1 - scheme_theta) * (*old_macro_solution)(k) + p_F +
-                                            R * old_solutions.at(k)(i)) *
-                                           fe_values.JxW(q_index); // Todo: Is this a consistent approximation?
+                                            (1 - scheme_theta) * (*old_macro_solution)(k) + p_F -
+                                            R * (1 - scheme_theta) * old_solutions.at(k)(i)) *
+                                           fe_face_values.JxW(q_index); // Todo: Is this a consistent approximation?
                         }
                     }
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
@@ -246,37 +213,37 @@ void RhoSolver<dim>::solve_time_step() {
     std::cout << "   " << solver_control.last_step()
               << " CG iterations needed to obtain convergence."
               << std::endl;
+    compute_residual();
+    old_solutions = solutions; // todo: Does this work as expected? Consider swap
 }
 
 
 template<int dim>
-void RhoSolver<dim>::compute_error(double &l2_error, double &h1_error) {
+void RhoSolver<dim>::compute_residual() {
     Vector<double> macro_domain_l2_error(num_grids);
-    Vector<double> macro_domain_h1_error(num_grids);
-    for (unsigned int k = 0; k < num_grids; k++) {
-        boundary.set_macro_cell_index(k);
-        const unsigned int n_active = triangulation.n_active_cells();
-        Vector<double> difference_per_cell(n_active);
-        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell,
-                                          QGauss<dim>(3),
-                                          VectorTools::L2_norm);
-        double micro_l2_error = difference_per_cell.l2_norm();
-        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell,
-                                          QGauss<dim>(3),
-                                          VectorTools::H1_seminorm);
-        double micro_h1_error = difference_per_cell.l2_norm();
-        macro_domain_l2_error(k) = micro_l2_error;
-        macro_domain_h1_error(k) = micro_h1_error;
-    }
-//    Vector<double> macro_integral(num_grids);
-//    VectorTools::integrate_difference(*macro_dof_handler,macro_domain_l2_error,Functions::ZeroFunction<dim>(),macro_integral,QGauss<dim>(3),VectorTools::L2_norm);
-    l2_error = macro_domain_l2_error.l2_norm() / macro_domain_l2_error.size(); // Is this the most correct norm?
-    h1_error = macro_domain_h1_error.l2_norm() / macro_domain_h1_error.size();
-    solutions = old_solutions; // todo: Does this work as expected? Consider swap
+//    for (unsigned int k = 0; k < num_grids; k++) { // Todo: Update with residual
+//        boundary.set_macro_cell_index(k);
+//        const unsigned int n_active = triangulation.n_active_cells();
+//        Vector<double> difference_per_cell(n_active);
+//        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell,
+//                                          QGauss<dim>(3),
+//                                          VectorTools::L2_norm);
+//        double micro_l2_error = difference_per_cell.l2_norm();
+//        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell,
+//                                          QGauss<dim>(3),
+//                                          VectorTools::H1_seminorm);
+//        double micro_h1_error = difference_per_cell.l2_norm();
+//        macro_domain_l2_error(k) = micro_l2_error;
+//        macro_domain_h1_error(k) = micro_h1_error;
+//    }
+//    l2_error = macro_domain_l2_error.l2_norm() / macro_domain_l2_error.size(); // Is this the most correct norm?
+//    h1_error = macro_domain_h1_error.l2_norm() / macro_domain_h1_error.size();
+
 }
 
 template<int dim>
-void RhoSolver<dim>::run() {
+void RhoSolver<dim>::iterate(const double &time_step) {
+    dt = time_step;
     assemble_system();
     solve_time_step();
 }
@@ -292,15 +259,6 @@ void RhoSolver<dim>::set_num_grids(unsigned int _num_grids) {
 }
 
 // Explicit instantiation
-
-template
-class MicroBoundary<1>;
-
-template
-class MicroBoundary<2>;
-
-template
-class MicroBoundary<3>;
 
 template
 class RhoSolver<1>;

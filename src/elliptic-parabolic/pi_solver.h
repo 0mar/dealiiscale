@@ -125,6 +125,7 @@ public:
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     Vector<double> interpolated_solution;
+    double residual = 1;
 
 private:
     /**

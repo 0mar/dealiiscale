@@ -14,9 +14,9 @@ void Manager::setup() {
     pi_solver.setup();
     rho_solver.set_num_grids(pi_solver.triangulation.n_active_cells());
     rho_solver.setup();
-    rho_solver.set_macro_boundary_condition(pi_solver.get_exact_solution());
     // Couple the macro structures with the micro structures.
-    rho_solver.set_macro_solution(&pi_solver.interpolated_solution, &pi_solver.dof_handler);
+    rho_solver.set_macro_solutions(&pi_solver.interpolated_solution, &pi_solver.old_solution,
+                                   &pi_solver.dof_handler); // Fixme: Old solution has wrong size.
     // Now the dofhandler is not necessary of course
     pi_solver.set_micro_solutions(&rho_solver.solutions, &rho_solver.dof_handler);
 //    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
@@ -48,23 +48,17 @@ void Manager::run() {
 
 void Manager::fixed_point_iterate() {
     pi_solver.run();
-    rho_solver.run();
+    rho_solver.iterate(time_step);
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
-    double macro_l2 = 0;
-    double macro_h1 = 0;
-    double micro_l2 = 0;
-    double micro_h1 = 0;
-    pi_solver.compute_error(macro_l2, macro_h1);
-    rho_solver.compute_error(micro_l2, micro_h1);
+    double macro_l2 = pi_solver.residual;
+    double micro_l2 = rho_solver.residual;
     convergence_table.add_value("cycle", cycle);
     convergence_table.add_value("cells", pi_solver.triangulation.n_active_cells());
     convergence_table.add_value("dofs", pi_solver.dof_handler.n_dofs());
     convergence_table.add_value("mL2", micro_l2);
-    convergence_table.add_value("mH1", micro_h1);
     convergence_table.add_value("ML2", macro_l2);
-    convergence_table.add_value("MH1", macro_h1);
     old_residual = residual;
     residual = micro_l2 + macro_l2;
 }

@@ -41,57 +41,6 @@
 
 using namespace dealii;
 
-template<int dim>
-class MicroBoundary : public Function<dim> {
-public:
-    MicroBoundary() : Function<dim>() {
-
-    }
-
-    /**
-     * Compute the value of the microscopic boundary at a given point
-     * @param p The nD point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return Value of the microscopic boundary at p
-     */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-    /**
-     * Compute the analytic gradient of the boundary at point p. Necessary for Robin/Neumann boundary conditions and
-     * exact evaluation of the error.
-     * @param p The nD point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return gradient of the microscopic boundary condition at p
-    */
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
-
-    /**
-     * Set a precomputed macroscopic solution for the boundary.
-     * After this value is set, individual microboundaries can be imposed by simply setting the macroscopic cell index.
-     * @param macro_solution Value of the macroscopic solution for the corresponding microscopic system.
-     */
-    void set_macro_solution(const Vector<double> &macro_solution);
-
-    /**
-     *
-     * Set the macroscopic cell index so that the microboundary has the appropriate macroscopic value.
-     * @param index
-     */
-    void set_macro_cell_index(unsigned int index);
-
-private:
-
-    /**
-     * Contains the macroscopic exact solution
-     */
-    Vector<double> macro_sol;
-
-    /**
-     * The macroscopic cell this boundary needs to work on.
-     */
-    unsigned int macro_cell_index = 0;
-};
-
 
 template<int dim>
 class MicroInitCondition : public Function<dim> {
@@ -129,6 +78,7 @@ private:
     unsigned int macro_cell_index = 0; // Todo: Create a MicroFunction base class to derive this from
 
 };
+
 template<int dim>
 class RhoSolver {
 public:
@@ -146,7 +96,7 @@ public:
     /**
      * Collection method for solving the micro systems
      */
-    void run();
+    void iterate(const double &time_step);
 
     /**
      * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
@@ -164,18 +114,12 @@ public:
      * @param _solution Pointer to the macroscopic solution (so that the content is always up to date).
      * @param _dof_handler pointer to the DoF handler.
      */
-    void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler);
-
-    /**
-     * Set the x-variable component of the boundary condition.
-     * @param macro_condition Interpolated vector, one entry for every micro-grid.
-     */
-    void set_macro_boundary_condition(const Vector<double> &macro_condition);
+    void set_macro_solutions(Vector<double> *_solution, Vector<double> *_old_solution, DoFHandler<dim> *_dof_handler);
 
     /**
      * Post-process the solution (write convergence estimates and other stuff)
      */
-    void compute_error(double &l2_error, double &h1_error);
+    void compute_residual();
 
     /**
      * Getter for the number of microgrids.
@@ -189,8 +133,8 @@ public:
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
     std::vector<Vector<double>> old_solutions;
-    MicroBoundary<dim> boundary;
     double dt = 0.1;
+    double residual = 1;
 private:
 
     /**
@@ -243,7 +187,7 @@ private:
     SparseMatrix<double> mass_matrix;
     SparseMatrix<double> laplace_matrix;
     const double D = 1;
-    const double R = 1;
+    const double R = 2;
     const double kappa = 1;
     const double p_F = 1;
     const double scheme_theta = 1;

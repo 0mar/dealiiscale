@@ -50,7 +50,7 @@ public:
 
     double eps = 1E-4;
     double max_iterations = 1E4;
-
+    double time_step = 0.1;
 
 
 private:

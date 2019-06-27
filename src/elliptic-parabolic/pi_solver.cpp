@@ -26,7 +26,7 @@ Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned 
 
 template<int dim>
 PiSolver<dim>::PiSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
-                                boundary() {
+                          boundary() {
     refine_level = 1;
 }
 
@@ -186,7 +186,7 @@ void PiSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::H1_seminorm);
     h1_error = difference_per_cell.l2_norm();
-    std::swap(old_solution, solution);
+    old_solution = solution; // Consider swap
 }
 
 template<int dim>
