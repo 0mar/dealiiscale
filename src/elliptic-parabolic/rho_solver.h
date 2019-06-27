@@ -138,7 +138,9 @@ public:
 private:
 
     /**
-     * Create a domain and make a triangulation
+     * Create a domain and make a triangulation.
+     * Mark half of the boundary (the left half) as a Neumann boundary condition.
+     * Mark the other half as Robin.
      */
     void make_grid();
 
@@ -174,6 +176,9 @@ private:
     /**
      * The level of refinement (every +1 means a bisection)
      */
+
+    const unsigned int ROBIN_BOUNDARY = 0;
+    const unsigned int NEUMANN_BOUNDARY = 1;
     unsigned int refine_level;
     FE_Q<dim> fe;
     unsigned int num_grids;
@@ -190,7 +195,7 @@ private:
     const double R = 2;
     const double kappa = 1;
     const double p_F = 1;
-    const double scheme_theta = 1;
+    const double scheme_theta = .5; // Fixme: I think because of an integration error in rho_solver.cpp:194 I'm stuck here with 1
     int integration_order = 2;
     Vector<double> intermediate_vector;
 };

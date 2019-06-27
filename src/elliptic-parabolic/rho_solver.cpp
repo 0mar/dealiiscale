@@ -48,10 +48,15 @@ void RhoSolver<dim>::make_grid() {
     std::cout << "Setting up micro grid" << std::endl;
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
+    for (const auto &cell: triangulation.active_cell_iterators()) {
+        for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+            if (std::fabs(cell->face(face_number)->center()(0) < 0)) {
+                cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
+            } // Else: Robin by default.
+        }
+    }
 
-    std::cout << "   Number of active cells: " // toto: Make sense of the output messages
-              << triangulation.n_active_cells()
-              << std::endl;
+    std::cout << " Number of active cells: " << triangulation.n_active_cells() << std::endl;
 }
 
 template<int dim>
@@ -154,7 +159,7 @@ void RhoSolver<dim>::assemble_system() {
     }
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-            if (cell->face(face_number)->at_boundary()) { // Todo: Switch between Neumann and Robin
+            if (cell->face(face_number)->at_boundary() and cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
                 fe_face_values.reinit(cell, face_number);
                 cell_matrix = 0;
                 cell->get_dof_indices(local_dof_indices);
