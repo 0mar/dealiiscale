@@ -25,6 +25,7 @@ template<int dim>
 PiSolver<dim>::PiSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
                           boundary() {
     refine_level = 1;
+    integration_order = fe.degree + 1;
 }
 
 template<int dim>
@@ -66,35 +67,26 @@ void PiSolver<dim>::setup_system() {
     solution.reinit(dof_handler.n_dofs());
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
+    intermediate_vector.reinit(triangulation.n_active_cells());
     interpolated_solution.reinit(triangulation.n_active_cells());
+    old_interpolated_solution.reinit(triangulation.n_active_cells());
+    old_interpolated_solution = 1.; // Todo: How to choose the initial value?
     micro_contribution.reinit(triangulation.n_active_cells());
+    laplace_matrix.reinit(sparsity_pattern);
+    MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
 }
 
 template<int dim>
-Vector<double> PiSolver<dim>::get_exact_solution() {
-    Vector<double> exact_values(triangulation.n_active_cells());
-    FEValues<dim> fe_value(fe, QMidpoint<dim>(), update_quadrature_points);
-    for (const auto &cell: dof_handler.active_cell_iterators()) {
-        fe_value.reinit(cell);
-        std::vector<Point<dim>> quad_points = fe_value.get_quadrature_points();
-        exact_values[cell->active_cell_index()] = boundary.value(quad_points[0]);
+void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) {
+    Assert(pi.size() == out_vector.size(), ExcDimensionMismatch(pi.size(), out_vector.size()))
+    for (unsigned int i = 0; i < pi.size(); i++) {
+        out_vector(i) = std::fmax(1. - 2. * pi(i) / theta, 0);
     }
-    return exact_values;
-}
-
-template<int dim>
-double PiSolver<dim>::get_pi_contribution_rhs(double s) {
-    const double g_s = std::fmax(1. - 2. * s / theta, 0);
-    return g_s;
 }
 
 template<int dim>
 void PiSolver<dim>::assemble_system() {
-    QGauss<dim> quadrature_formula(2);
-
-
-//    const RightHandSide<dim> right_hand_side;
-
+    QGauss<dim> quadrature_formula(integration_order);
 
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
@@ -110,7 +102,9 @@ void PiSolver<dim>::assemble_system() {
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     system_matrix = 0;
     system_rhs = 0;
+    system_matrix.add(A, laplace_matrix); // Todo: This can be moved out, it only happens once.
 
+    get_pi_contribution_rhs(old_interpolated_solution, intermediate_vector);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
@@ -119,24 +113,16 @@ void PiSolver<dim>::assemble_system() {
         cell->get_dof_indices(local_dof_indices);
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index)
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-                for (unsigned int j = 0; j < dofs_per_cell; ++j)
-                    cell_matrix(i, j) += (A * fe_values.shape_grad(i, q_index) *
-                                          fe_values.shape_grad(j, q_index)) *
-                                         fe_values.JxW(q_index);
-
 
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                micro_contribution[cell->active_cell_index()] * // Interpolate solution data
+                                micro_contribution[cell->active_cell_index()] *
+                                // Interpolate solution data when possible.
+                                intermediate_vector[cell->active_cell_index()] *
+                                // We can improve accuracy here as well.
                                 fe_values.JxW(q_index));
             }
 
-
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-            for (unsigned int j = 0; j < dofs_per_cell; ++j)
-                system_matrix.add(local_dof_indices[i],
-                                  local_dof_indices[j],
-                                  cell_matrix(i, j));
-
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
         }
     }
@@ -173,6 +159,7 @@ void PiSolver<dim>::solve() {
     interpolate_function(solution, interpolated_solution);
     compute_residual();
     old_solution = solution; // Consider swap
+    old_interpolated_solution = interpolated_solution;
 }
 
 template<int dim>
@@ -188,10 +175,10 @@ void PiSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions,
 }
 
 template<int dim>
-double PiSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
+double PiSolver<dim>::integrate_micro_grid(unsigned int micro_index) {
     // computed as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
-    QGauss<dim> quadrature_formula(2);
+    QGauss<dim> quadrature_formula(integration_order);
     FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
@@ -200,7 +187,7 @@ double PiSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
         fe_values.reinit(cell);
         cell->get_dof_indices(local_dof_indices);
         std::vector<double> interp_solution(n_q_points);
-        fe_values.get_function_values(micro_solutions->at(cell_index), interp_solution);
+        fe_values.get_function_values(micro_solutions->at(micro_index), interp_solution);
         for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
             integral += interp_solution[q_index] * fe_values.JxW(q_index);
         }
@@ -216,7 +203,7 @@ void PiSolver<dim>::compute_microscopic_contribution() {
 }
 
 template<int dim>
-void PiSolver<dim>::run() {
+void PiSolver<dim>::iterate() {
     assemble_system();
     solve();
 }

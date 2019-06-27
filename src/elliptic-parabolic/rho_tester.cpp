@@ -51,7 +51,7 @@ public:
     double eps = 1E-4;
     double max_iterations = 1E4;
     Vector<double> virtual_pi;
-    int it = 0;
+    int it = 0; // Todo: Put all in intializer list
 
 
 private:

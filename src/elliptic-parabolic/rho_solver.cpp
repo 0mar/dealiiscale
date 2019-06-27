@@ -52,7 +52,7 @@ void RhoSolver<dim>::make_grid() {
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary() and std::fabs(cell->face(face_number)->center()(0) < 0)) {
-                cell->face(face_number)->set_boundary_id(ROBIN_BOUNDARY);
+                cell->face(face_number)->set_boundary_id(ROBIN_BOUNDARY); // debug
             } // Else: Robin by default.
         }
     }

@@ -94,7 +94,7 @@ public:
      * 5. Solve the system
      * 6. Process the solution (numerically)
      */
-    void run();
+    void iterate();
 
     /**
      * Compute residual/convergence estimates.
@@ -109,12 +109,6 @@ public:
     void set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler);
 
     /**
-     * Compute the exact solution value based on the analytic solution present in the boundary condition
-     * @param exact_values Output vector
-     */
-    Vector<double> get_exact_solution();
-
-    /**
      * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
      * @param refine_level number of bisections of the grid.
      */
@@ -125,6 +119,7 @@ public:
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     Vector<double> interpolated_solution;
+    Vector<double> old_interpolated_solution;
     double residual = 1;
 
 private:
@@ -162,14 +157,14 @@ private:
     * @param dof_index Degree of freedom corresponding to the microscopic grid.
     * @return double with the value of the integral/other RHS function
     */
-    double integrate_micro_grid(unsigned int cell_index);
+    double integrate_micro_grid(unsigned int micro_index);
 
     /**
      * Compute the pi-dependent factor of the right hand side of the elliptic equation
      * f(s) = g(s)*\int_Y \rho(x,y)dy.
      * This method computes g(s): a hat function with support from 0 to some theta
      */
-    double get_pi_contribution_rhs(double s);
+    void get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector);
 
     /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
@@ -177,9 +172,11 @@ private:
     void solve();
 
     FE_Q<dim> fe;
-
+    int integration_order = 2;
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
+    SparseMatrix<double> laplace_matrix;
+    Vector<double> intermediate_vector;
     DoFHandler<dim> *micro_dof_handler;
     Vector<double> system_rhs;
     Vector<double> micro_contribution;

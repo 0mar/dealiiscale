@@ -75,7 +75,7 @@ private:
     /**
      * The macroscopic cell this boundary needs to work on.
      */
-    unsigned int macro_cell_index = 0; // Todo: Create a MicroFunction base class to derive this from
+    unsigned int macro_cell_index = 0;
 
 };
 
@@ -178,7 +178,7 @@ private:
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
     Vector<double> *macro_solution;
-    Vector<double> *old_macro_solution; // Todo: Add old macro solution
+    Vector<double> *old_macro_solution;
     Vector<double> macro_contribution;
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;

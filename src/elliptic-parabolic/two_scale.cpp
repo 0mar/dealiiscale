@@ -12,16 +12,14 @@
  */
 int main() {
     dealii::deallog.depth_console(0);
-    std::cout << "Warning: Not yet correctly implemented!" << std::endl;
     std::string file_name = "two-scale-convergence.txt";
     std::ofstream ofs;
     ofs.open("results/" + file_name, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    for (unsigned int i = 2; i < 8; i++) {
-        Manager manager(i, i);
-        manager.set_ct_file_name(file_name);
-        manager.setup();
-        manager.run();
-    }
+    Manager manager(4, 4);
+    manager.set_ct_file_name(file_name);
+    manager.setup();
+    manager.run();
+    manager.write_plot();
     return 0;
 }
