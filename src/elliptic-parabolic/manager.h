@@ -42,6 +42,7 @@ public:
      */
     void output_results();
 
+    void write_plot();
     /**
      * Set a custom name for the file containing the convergence table.
      * @param file_name Name of the convergence table file.
@@ -51,15 +52,16 @@ public:
     double eps = 1E-4;
     double max_iterations = 1E4;
     double time_step = 0.1;
-
+    double time = 0; // Todo: Put all in initializer list
+    double final_time = 5;
 
 private:
-    int cycle;
+    int it;
 
     /**
      * One (Banach-like) fixed point iteration. The multiscale system is operator-splitted into two single-scale problems.
      */
-    void fixed_point_iterate();
+    void iterate();
 
     /**
      * Compute the multiscale residual by adding the macroscopic and the microscopic error.
