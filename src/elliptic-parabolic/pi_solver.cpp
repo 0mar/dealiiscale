@@ -9,17 +9,14 @@ using namespace dealii;
 
 template<int dim>
 double MacroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = 0; // todo: remove
-    val = std::sin(lambda * p(0)) + std::cos(lambda * p(1));
+    double val = 0;
     return val;
 }
 
 template<int dim>
 Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned int) const {
     Tensor<1, dim> return_val;
-
-    return_val[0] = lambda * std::cos(lambda * p(0));
-    return_val[1] = -lambda * std::sin(lambda * p(1));
+    return_val = 0;
     return return_val;
 }
 
@@ -174,19 +171,13 @@ void PiSolver<dim>::solve() {
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
     printf("Convergence after %d CG iterations\n", solver_control.last_step());
     interpolate_function(solution, interpolated_solution);
+    compute_residual();
+    old_solution = solution; // Consider swap
 }
 
 template<int dim>
-void PiSolver<dim>::compute_error(double &l2_error, double &h1_error) {
+void PiSolver<dim>::compute_residual() {
     const unsigned int n_active = triangulation.n_active_cells();
-    Vector<double> difference_per_cell(n_active);
-    VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
-                                      VectorTools::L2_norm);
-    l2_error = difference_per_cell.l2_norm();
-    VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
-                                      VectorTools::H1_seminorm);
-    h1_error = difference_per_cell.l2_norm();
-    old_solution = solution; // Consider swap
 }
 
 template<int dim>

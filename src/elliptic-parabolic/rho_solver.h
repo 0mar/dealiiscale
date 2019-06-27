@@ -121,12 +121,6 @@ public:
      */
     void compute_residual();
 
-    /**
-     * Getter for the number of microgrids.
-     * @return number of microgrids based on the number of macroscopic cells.
-     */
-    unsigned int get_num_grids() const;
-
     void set_num_grids(unsigned int _num_grids);
 
     Triangulation<dim> triangulation;

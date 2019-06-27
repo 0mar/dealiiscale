@@ -48,6 +48,7 @@ void RhoSolver<dim>::make_grid() {
     std::cout << "Setting up micro grid" << std::endl;
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
+    // If we ever use refinement, we have to remark every time we refine the grid.
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (std::fabs(cell->face(face_number)->center()(0) < 0)) {
@@ -252,11 +253,6 @@ void RhoSolver<dim>::iterate(const double &time_step) {
     dt = time_step;
     assemble_system();
     solve_time_step();
-}
-
-template<int dim>
-unsigned int RhoSolver<dim>::get_num_grids() const {
-    return num_grids;
 }
 
 template<int dim>
