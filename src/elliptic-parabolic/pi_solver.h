@@ -186,6 +186,7 @@ private:
     MacroBoundary<dim> boundary;
     int refine_level;
     const double theta = 10;
+    const double A = 1; // Move all parameters to initializer
 
 };
 

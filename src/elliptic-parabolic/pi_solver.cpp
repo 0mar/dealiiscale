@@ -123,7 +123,7 @@ void PiSolver<dim>::assemble_system() {
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index)
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j)
-                    cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
+                    cell_matrix(i, j) += (A * fe_values.shape_grad(i, q_index) *
                                           fe_values.shape_grad(j, q_index)) *
                                          fe_values.JxW(q_index);
 
@@ -144,7 +144,7 @@ void PiSolver<dim>::assemble_system() {
         }
     }
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, boundary, boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<dim>(), boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
