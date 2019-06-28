@@ -9,9 +9,11 @@ using namespace dealii;
 
 template<int dim>
 double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int component) const {
-    double val = 0; // Todo: This is not dependent on the macroscopic solution yet.
+    double a = 2;
+    double val = a; // Todo: This is not dependent on the macroscopic solution yet.
+    double pi = 3.141592;
     for (int i = 0; i < dim; i++) {
-        val += 1 - p[i] * p[i];
+        val *= std::cos(pi * p[i]);
     }
     return val;
 }
@@ -206,7 +208,7 @@ void RhoSolver<dim>::assemble_system() {
                                            (theta * (*macro_solution)(k) +
                                             (1 - theta) * (*old_macro_solution)(k) + p_F -
                                             R * (1 - theta) * old_interpolated_solution[q_index]) *
-                                           fe_face_values.JxW(q_index); // Todo: Is this a consistent approximation?
+                                           fe_face_values.JxW(q_index);
                         }
                     }
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
