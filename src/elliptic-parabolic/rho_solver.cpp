@@ -9,7 +9,7 @@ using namespace dealii;
 
 template<int dim>
 double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int component) const {
-    double val = 0; // Todo: This is not dependent on the macroscopic solution.
+    double val = 0; // Todo: This is not dependent on the macroscopic solution yet.
     for (int i = 0; i < dim; i++) {
         val += 1 - p[i] * p[i];
     }
@@ -29,7 +29,13 @@ void MicroInitCondition<dim>::set_macro_cell_index(unsigned int index) {
 
 template<int dim>
 RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), fe(1), macro_solution(nullptr),
-                              macro_dof_handler(nullptr), old_macro_solution(nullptr) {
+                              old_macro_solution(nullptr), macro_dof_handler(nullptr),
+                              diffusion_coefficient(1.),
+                              R(2.),
+                              kappa(1.),
+                              p_F(1.),
+                              theta(0.5),
+                              integration_order(2) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
     refine_level = 1;
     num_grids = 1;
@@ -153,10 +159,10 @@ void RhoSolver<dim>::assemble_system() {
         system_matrices.at(k).reinit(sparsity_pattern);
         mass_matrix.vmult(righthandsides.at(k), old_solutions.at(k));
         laplace_matrix.vmult(intermediate_vector, old_solutions.at(k));
-        righthandsides.at(k).add(-dt * (1 - scheme_theta), intermediate_vector); // scalar factor, matrix
+        righthandsides.at(k).add(-dt * (1 - theta), intermediate_vector); // scalar factor, matrix
 
         system_matrices.at(k).copy_from(mass_matrix);
-        system_matrices.at(k).add(dt * scheme_theta * D, laplace_matrix);
+        system_matrices.at(k).add(dt * theta * diffusion_coefficient, laplace_matrix);
     }
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
@@ -168,7 +174,7 @@ void RhoSolver<dim>::assemble_system() {
                     for (unsigned int j = 0; j < dofs_per_cell; j++) {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                             cell_matrix(i, j) +=
-                                    kappa * dt * scheme_theta * R * fe_face_values.shape_value(i, q_index) *
+                                    kappa * dt * theta * R * fe_face_values.shape_value(i, q_index) *
                                     fe_face_values.shape_value(j, q_index) * fe_face_values.JxW(q_index);
                         }
                     }
@@ -197,9 +203,9 @@ void RhoSolver<dim>::assemble_system() {
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                             cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * kappa *
-                                           (scheme_theta * (*macro_solution)(k) +
-                                            (1 - scheme_theta) * (*old_macro_solution)(k) + p_F -
-                                            R * (1 - scheme_theta) * old_interpolated_solution[q_index]) *
+                                           (theta * (*macro_solution)(k) +
+                                            (1 - theta) * (*old_macro_solution)(k) + p_F -
+                                            R * (1 - theta) * old_interpolated_solution[q_index]) *
                                            fe_face_values.JxW(q_index); // Todo: Is this a consistent approximation?
                         }
                     }
@@ -224,7 +230,7 @@ void RhoSolver<dim>::solve_time_step() {
               << " CG iterations needed to obtain convergence."
               << std::endl;
     compute_residual();
-    old_solutions = solutions; // todo: Does this work as expected? Consider swap
+    old_solutions = solutions;
 }
 
 

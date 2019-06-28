@@ -120,7 +120,7 @@ public:
     DoFHandler<dim> dof_handler;
     Vector<double> interpolated_solution;
     Vector<double> old_interpolated_solution;
-    double residual = 1;
+    double residual;
 
 private:
     /**
@@ -157,7 +157,9 @@ private:
     * @param dof_index Degree of freedom corresponding to the microscopic grid.
     * @return double with the value of the integral/other RHS function
     */
-    double integrate_micro_grid(unsigned int micro_index);
+    double get_micro_mass(unsigned int micro_index);
+
+    double get_micro_flux(unsigned int_micro_index);
 
     /**
      * Compute the pi-dependent factor of the right hand side of the elliptic equation
@@ -172,7 +174,6 @@ private:
     void solve();
 
     FE_Q<dim> fe;
-    int integration_order = 2;
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
     SparseMatrix<double> laplace_matrix;
@@ -182,9 +183,10 @@ private:
     Vector<double> micro_contribution;
     std::vector<Vector<double>> *micro_solutions;
     MacroBoundary<dim> boundary;
+    int integration_order;
     int refine_level;
-    const double theta = 10;
-    const double A = 1; // Move all parameters to initializer
+    double diffusion_coefficient;
+    double max_support;
 
 };
 

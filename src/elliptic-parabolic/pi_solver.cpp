@@ -23,8 +23,9 @@ Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned 
 
 template<int dim>
 PiSolver<dim>::PiSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
-                          boundary() {
+                          boundary(), integration_order(2), diffusion_coefficient(1), max_support(10) {
     refine_level = 1;
+    residual = 1;
     integration_order = fe.degree + 1;
 }
 
@@ -47,9 +48,6 @@ void PiSolver<dim>::make_grid() {
 //    std::cout << "   Number of active cells: "
 //              << triangulation.n_active_cells()
 //              << std::endl
-//              << "   Total number of cells: "
-//              << triangulation.n_cells()
-//              << std::endl;
 }
 
 template<int dim>
@@ -80,7 +78,7 @@ template<int dim>
 void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) {
     Assert(pi.size() == out_vector.size(), ExcDimensionMismatch(pi.size(), out_vector.size()))
     for (unsigned int i = 0; i < pi.size(); i++) {
-        out_vector(i) = std::fmax(1. - 2. * pi(i) / theta, 0);
+        out_vector(i) = std::fmax(1. - 2. * pi(i) / max_support, 0);
     }
 }
 
@@ -102,7 +100,7 @@ void PiSolver<dim>::assemble_system() {
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     system_matrix = 0;
     system_rhs = 0;
-    system_matrix.add(A, laplace_matrix); // Todo: This can be moved out, it only happens once.
+    system_matrix.add(diffusion_coefficient, laplace_matrix); // Todo: This can be moved out, it only happens once.
 
     get_pi_contribution_rhs(old_interpolated_solution, intermediate_vector);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
@@ -158,13 +156,14 @@ void PiSolver<dim>::solve() {
     printf("Convergence after %d CG iterations\n", solver_control.last_step());
     interpolate_function(solution, interpolated_solution);
     compute_residual();
-    old_solution = solution; // Consider swap
+    old_solution = solution;
     old_interpolated_solution = interpolated_solution;
 }
 
 template<int dim>
 void PiSolver<dim>::compute_residual() {
     const unsigned int n_active = triangulation.n_active_cells();
+    // Todo: Compute the residual
 }
 
 template<int dim>
@@ -175,7 +174,7 @@ void PiSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions,
 }
 
 template<int dim>
-double PiSolver<dim>::integrate_micro_grid(unsigned int micro_index) {
+double PiSolver<dim>::get_micro_mass(unsigned int micro_index) {
     // computed as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
     QGauss<dim> quadrature_formula(integration_order);
@@ -196,9 +195,14 @@ double PiSolver<dim>::integrate_micro_grid(unsigned int micro_index) {
 }
 
 template<int dim>
+double PiSolver<dim>::get_micro_flux(unsigned int_micro_index) {
+    return 0;
+}
+
+template<int dim>
 void PiSolver<dim>::compute_microscopic_contribution() {
     for (const auto &cell: triangulation.active_cell_iterators()) {
-        micro_contribution[cell->active_cell_index()] = integrate_micro_grid(cell->active_cell_index()); // optimize
+        micro_contribution[cell->active_cell_index()] = get_micro_mass(cell->active_cell_index());
     }
 }
 

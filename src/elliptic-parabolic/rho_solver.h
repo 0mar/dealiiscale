@@ -185,12 +185,12 @@ private:
     std::vector<Vector<double>> righthandsides;
     SparseMatrix<double> mass_matrix;
     SparseMatrix<double> laplace_matrix;
-    const double D = 1;
-    const double R = 2;
-    const double kappa = 1;
-    const double p_F = 1;
-    const double scheme_theta = 0.5; // Fixme: I think because of an integration error in rho_solver.cpp:194 I'm stuck here with 1
-    int integration_order = 2;
+    double diffusion_coefficient = 1;
+    double R;
+    double kappa;
+    double p_F;
+    double theta; // Fixme: I think because of an integration error in rho_solver.cpp:194 I'm stuck here with 1
+    int integration_order;
     Vector<double> intermediate_vector;
 };
 
