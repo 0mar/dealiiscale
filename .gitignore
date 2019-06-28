@@ -13,4 +13,7 @@ step-*
 *.gpl
 *.log
 *.aux
-
+*fdb_latexmk
+*.fls
+plot_convergence.py
+.ipynb_checkpoints
