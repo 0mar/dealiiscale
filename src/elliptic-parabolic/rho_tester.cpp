@@ -15,9 +15,9 @@ public:
     const static int MICRO_DIMENSIONS = 2;
     const int macro_num = 3;
     RhoSolver<MICRO_DIMENSIONS> rho_solver;
-    double time = 0;
-    double time_step = 0.1;
-    double final_time = 8;
+    double time;
+    double time_step;
+    double final_time;
 
     /**
      * Class that facilitates the interaction between the microscopic and macroscopic solvers.
@@ -48,11 +48,8 @@ public:
      */
     void set_ct_file_name(std::string &file_name);
 
-    double eps = 1E-4;
-    double max_iterations = 1E4;
     Vector<double> virtual_pi;
-    int it = 0; // Todo: Put all in intializer list
-
+    int it;
 
 private:
     int cycle;
@@ -76,12 +73,14 @@ private:
 };
 
 
-RhoTester::RhoTester(int macro_refinement, int micro_refinement) : rho_solver() {
+RhoTester::RhoTester(int macro_refinement, int micro_refinement) : rho_solver(), time_step(0.1), final_time(8) {
     rho_solver.set_refine_level(micro_refinement);
     virtual_pi.reinit(macro_num);
     for (int i = 0; i < macro_num; i++) {
         virtual_pi(i) = i;
     }
+    it = 0;
+    time = 0;
 }
 
 void RhoTester::setup() {
