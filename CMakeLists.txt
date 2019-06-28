@@ -35,7 +35,7 @@ deal_II_setup_target(parabolic)
 
 add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)
-target_link_libraries(solve_elliptic multiscale)
+target_link_libraries(solve_elliptic elliptic)
 
 add_executable(test_elliptic_separate ${ELLIPTIC_DIR}/separate_scales.cpp)
 deal_II_setup_target(test_elliptic_separate)
