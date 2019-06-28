@@ -37,6 +37,22 @@ add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)
 target_link_libraries(solve_elliptic multiscale)
 
+add_executable(test_elliptic_separate ${ELLIPTIC_DIR}/separate_scales.cpp)
+deal_II_setup_target(test_elliptic_separate)
+target_link_libraries(test_elliptic_separate single_scale)
+
+set(PLOT_NOTEBOOK plot_convergence.ipynb)
+
+# Create result directory
+add_custom_command(TARGET test_elliptic_separate solve_elliptic POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${CMAKE_CURRENT_BINARY_DIR}/results)
+# Run everytime we make
+add_custom_command(TARGET test_elliptic_separate solve_elliptic POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/results
+        ${CMAKE_CURRENT_BINARY_DIR}/results)
+
 add_executable(solve_parabolic ${PARABOLIC_DIR}/two_scale.cpp)
 deal_II_setup_target(solve_parabolic)
 target_link_libraries(solve_parabolic parabolic)
@@ -44,11 +60,6 @@ target_link_libraries(solve_parabolic parabolic)
 add_executable(test_rho_separate ${PARABOLIC_DIR}/rho_tester.cpp)
 deal_II_setup_target(test_rho_separate)
 target_link_libraries(test_rho_separate parabolic)
-
-
-add_executable(test_elliptic_separate ${ELLIPTIC_DIR}/separate_scales.cpp)
-deal_II_setup_target(test_elliptic_separate)
-target_link_libraries(test_elliptic_separate single_scale)
 
 add_executable(simple ${DEMO_DIR}/simple.cpp)
 deal_II_setup_target(simple)
@@ -58,15 +69,3 @@ deal_II_setup_target(robin)
 
 add_executable(demo ${DEMO_DIR}/demo.cpp)
 deal_II_setup_target(demo)
-
-set(PLOT_NOTEBOOK plot_convergence.ipynb)
-
-# Create result directory
-add_custom_command(TARGET manufactured POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-        ${CMAKE_CURRENT_BINARY_DIR}/results)
-# Run everytime we make
-add_custom_command(TARGET manufactured POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/results
-        ${CMAKE_CURRENT_BINARY_DIR}/results)
