@@ -173,8 +173,9 @@ In this section, we propose a mix of explicit and implicit first order time inte
 Let $\Delta t>0$ be fixed, and let $\alpha_i^n := \alpha_i(n\Delta t)$ and $\beta_{ij}^n := \beta_{ik}(n\Delta t)$ for any $i\in N_1$, $j \in N_2$ and $n\geq0$. Then, given some $\alpha_i^0$ and $\beta_{ik}^0$ we obtain the following scheme:
 \begin{align}
     \sum_{j\in N_1} P_{ij} \alpha_j^n &= F_i(\alpha^{n-1},\beta^{n-1})\label{eq:discr_alpha} \mbox{ for }i\in N_1,\\
-    \beta_{ik}^{n} + \Delta t\sum_{j\in N_1,l\in N_2} Q_{ijkl} \beta_{jl}^{n} &= \beta_{ik}^{n-1} + \Delta tc_{ik} + \Delta t\sum_{j\in N_1} E_{ijk}\alpha_j^{n-1}\label{eq:discr_beta}\mbox{ for }i\in N_1\mbox{ and }k \in N_2,
+    M_{ijkl}\beta_{ik}^{n} + \Delta t\sum_{j\in N_1,l\in N_2} Q_{ijkl} \beta_{jl}^{n} &= M_{ijkl}\beta_{ik}^{n-1} + \Delta tc_{ik} + \Delta t\sum_{j\in N_1} E_{ijk}\alpha_j^{n}\label{eq:discr_beta}\mbox{ for }i\in N_1\mbox{ and }k \in N_2,
 \end{align}
+where $P$ and $Q$ are Laplace matrices (discretisations of laplace operators) and $M$ is a mass matrix.
 
 This time discretization is explicit in the macroscopic equation and implicit in the microscopic equation. This avoids approximating the nonlinear term $f$, and ensures (hopefully) more stability in the microscopic equation without much of a cost, since this equation is linear.
 
@@ -183,7 +184,7 @@ Convergence of this scheme is as of now still an open problem.
 \section{deal.II}
 \label{sec:dealii}
 
-Finite element library deal.ii is a C++ library that is able to solve finite element problems. It is an open source library that is under active development. Selling points are its dimension independent implementation formulation, its support for many different kinds of finite elements and the possibility for grid refinement. Possible issues are its restriction to quadrilaterals and the fact that some routines are implemented in a black-box-like manner.
+deal.ii is a C++ library that is able to solve finite element problems. It is an open source library that is under active development. Selling points are its dimension independent implementation formulation, its support for many different kinds of finite elements and the possibility for grid refinement. Possible issues are its restriction to quadrilaterals and the fact that some routines are implemented in a black-box-like manner.
 
 \subsection{Implementation structure}
 Implementations in deal.II follow the object-oriented paradigm. This means that mathematical concepts like functions, solution approximations, boundary conditions, matrices, grids and triangulations are represented with instances of deal.II objects.
