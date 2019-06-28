@@ -73,9 +73,29 @@ cd bin
 ./manufactured
 ``` 
 
+## Solver gallery
+
+deal.II comes with many examples, located in `/Applications/deal.II-9.0.0.app/Contents/Resources/examples`, also found in a more legible format on the [tutorial page][5].
+
+This repo has a number of working implementations, most of which are used to test the performance of certain deal.II characteristics.
+Currently, the working implementations are:
+
+- `elliptic-elliptic`
+    * `solve_elliptic`, a multiscale elliptic-elliptic solver with convergence testing.
+    * `test_elliptic_separate` decoupled elliptic-elliptic solver used to test individual convergence properties of the coupled elliptic-elliptic implementation.
+- `elliptic-parabolic`
+    * `solve_parabolic`, a multiscale elliptic-parabolic solver (work in progress, main target of this exercise).
+    * `test_rho_separate`, a decoupled microscopic-only solver testing the properties of the `rho` equation solver.
+- `playground` (collection of separate tests and implementations)
+- `demo`, a verbatim copy of a tutorial (step 3) to check if the installation works.
+- `dirichlet`, a Poisson problem in a circular domain. 
+- `robin`, a Poisson problem with Robin boundary conditions.
+- `simple`, a (deprecated) working start for the target system.
+
+
 ## Report
 
-To test the implementations (currently `manufactured` and `separated`), one can do the following:
+To test and create a report for the `elliptic-elliptic` implementations (currently `manufactured` and `separated`), one can do the following:
 ```bash
 ./manufactured
 ./separated
@@ -84,18 +104,6 @@ make
 ``` 
 
 This will post-process the output of the binaries into the latex report and compile it (requires `pdftex`)
-
-## Implementations present
-
-deal.II comes with many examples, located in `/Applications/deal.II-9.0.0.app/Contents/Resources/examples`, also found in a more legible format on the [tutorial page][5].
-
-This repo has currently three 'roughly working' implementations:
-
-- `demo.cpp`, a verbatim copy of a tutorial (step 3) to check if the installation works
-- `separated.cpp`, a decoupled elliptic-elliptic solver used to test individual properties of the multiscale implementation
-- `manufactured.cpp`, a multiscale elliptic-elliptic solver with convergence testing.
-- `simple.cpp`, a working start for the target system.
-
 
 ## Disclaimer
 
