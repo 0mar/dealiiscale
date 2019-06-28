@@ -87,10 +87,11 @@ Currently, the working implementations are:
     * `solve_parabolic`, a multiscale elliptic-parabolic solver (work in progress, main target of this exercise).
     * `test_rho_separate`, a decoupled microscopic-only solver testing the properties of the `rho` equation solver.
 - `playground` (collection of separate tests and implementations)
-- `demo`, a verbatim copy of a tutorial (step 3) to check if the installation works.
-- `dirichlet`, a Poisson problem in a circular domain. 
-- `robin`, a Poisson problem with Robin boundary conditions.
-- `simple`, a (deprecated) working start for the target system.
+    * `demo`, a verbatim copy of a tutorial (step 3) to check if the installation works.
+    * `dirichlet`, a Poisson problem in a circular domain. 
+    * `robin`, a Poisson problem with Robin boundary conditions.
+    * `simple`, a (deprecated) working start for the target system.
+    * `integration`, an example/convergence test on how to compute bulk and flux integrals.
 
 
 ## Report

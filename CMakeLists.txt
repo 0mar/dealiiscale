@@ -69,3 +69,6 @@ deal_II_setup_target(robin)
 
 add_executable(demo ${DEMO_DIR}/demo.cpp)
 deal_II_setup_target(demo)
+
+add_executable(integration ${DEMO_DIR}/integration.cpp)
+deal_II_setup_target(integration)
