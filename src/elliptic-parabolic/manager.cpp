@@ -4,7 +4,13 @@
 
 #include "manager.h"
 
-Manager::Manager(int macro_refinement, int micro_refinement) : pi_solver(), rho_solver() {
+Manager::Manager(int macro_refinement, int micro_refinement) :
+        pi_solver(),
+        rho_solver(),
+        eps(1E-4),
+        max_iterations(1E4),
+        time_step(0.1),
+        final_time(5) {
     pi_solver.set_refine_level(macro_refinement);
     rho_solver.set_refine_level(micro_refinement);
 }

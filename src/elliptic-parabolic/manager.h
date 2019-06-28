@@ -17,7 +17,6 @@ public:
     const static int MICRO_DIMENSIONS = 2;
     PiSolver<MACRO_DIMENSIONS> pi_solver;
     RhoSolver<MICRO_DIMENSIONS> rho_solver;
-    int repetitions;
 
     /**
      * Class that facilitates the interaction between the microscopic and macroscopic solvers.
@@ -52,11 +51,11 @@ public:
     double eps = 1E-4;
     double max_iterations = 1E4;
     double time_step = 0.1;
-    double time = 0; // Todo: Put all in initializer list
+    double time = 0;
     double final_time = 5;
 
 private:
-    int it;
+    int it = 0;
 
     /**
      * One (Banach-like) fixed point iteration. The multiscale system is operator-splitted into two single-scale problems.
@@ -75,9 +74,5 @@ private:
     ConvergenceTable convergence_table;
 
 };
-
-
-
-
 
 #endif //DEALIISCALE_MANAGER_H
