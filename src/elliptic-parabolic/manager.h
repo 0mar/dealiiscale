@@ -26,13 +26,15 @@ public:
     Manager(int macro_refinement, int micro_refinement);
 
     /**
-     * Run all the methods that setup the solvers of the two scales.
+     * Run all the methods that setup the solvers of the two scales and couple the data structures.
      */
     void setup();
 
     /**
-     * Run iterations of the microscopic solvers until the result (of a single time step) is sufficiently close
-     * to the solution.
+     * Run iterations of the macro and micro problems until we reached the final time.
+     * Currently, we use explicit (Picard) iterations for the macroscopic (elliptic) problem and
+     * an implicit time stepping scheme (Backward Euler) for the microscopic (parabolic) problem.
+     * Plots are written on each time step.
      */
     void run();
 
@@ -41,24 +43,31 @@ public:
      */
     void output_results();
 
+    /**
+     * Write plots to VTK format so they can be opened with Paraview.
+     */
     void write_plot();
+
     /**
      * Set a custom name for the file containing the convergence table.
      * @param file_name Name of the convergence table file.
      */
     void set_ct_file_name(std::string &file_name);
 
-    double eps = 1E-4;
-    double max_iterations = 1E4;
+    // Time step size
     double time_step = 0.1;
+
+    // Time variable
     double time = 0;
+
+    // Time until done
     double final_time = 5;
 
 private:
     int it = 0;
 
     /**
-     * One (Banach-like) fixed point iteration. The multiscale system is operator-splitted into two single-scale problems.
+     * One forward iteration in time. The multiscale system is operator-splitted into two single-scale problems.
      */
     void iterate();
 

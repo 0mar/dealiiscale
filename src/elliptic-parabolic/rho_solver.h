@@ -52,15 +52,15 @@ public:
     virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
     /**
-     * Set a precomputed macroscopic solution for the boundary.
-     * After this value is set, individual microboundaries can be imposed by simply setting the macroscopic cell index.
-     * @param macro_solution Value of the macroscopic solution for the corresponding microscopic system.
+     * Set a precomputed macroscopic scalar field for the boundary.
+     * After this value is set, individual micro boundaries can be imposed by simply setting the macroscopic cell index.
+     * @param macro_solution Value of the macroscopic field for the corresponding microscopic system.
      */
-    void set_macro_solution(const Vector<double> &macro_solution);
+    void set_macro_field(const Vector<double> &field);
 
     /**
      *
-     * Set the macroscopic cell index so that the microboundary has the appropriate macroscopic value.
+     * Set the macroscopic cell index so that the micro boundary has the appropriate macroscopic value.
      * @param index
      */
     void set_macro_cell_index(unsigned int index);
@@ -68,9 +68,9 @@ public:
 private:
 
     /**
-     * Contains the macroscopic exact solution
+     * Contains the macroscopic field
      */
-    Vector<double> macro_sol;
+    Vector<double> macro_field;
 
     /**
      * The macroscopic cell this boundary needs to work on.
@@ -94,7 +94,8 @@ public:
     void setup();
 
     /**
-     * Collection method for solving the micro systems
+     * Collection method for solving the micro systems for one time step
+     * @param time_step Time step size.
      */
     void iterate(const double &time_step);
 
@@ -102,7 +103,7 @@ public:
      * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
      * @param refine_level number of bisections of the grid.
      */
-    void set_refine_level(int refinement_level);
+    void set_refine_level(const int &refinement_level);
 
     /**
      * Refine the grid by splitting each cell in 2^d new cells.
@@ -112,6 +113,7 @@ public:
     /**
      * Set the macroscopic solution so that the solver can compute its contribution from it.
      * @param _solution Pointer to the macroscopic solution (so that the content is always up to date).
+     * @param _old_solution Pointer to the old macroscopic solution (so that the content is always up to date).
      * @param _dof_handler pointer to the DoF handler.
      */
     void set_macro_solutions(Vector<double> *_solution, Vector<double> *_old_solution, DoFHandler<dim> *_dof_handler);
@@ -121,7 +123,11 @@ public:
      */
     void compute_residual();
 
-    void set_num_grids(unsigned int _num_grids);
+    /**
+     * Prescribe the number of microscopic systems.
+     * @param _num_grids int with the number of microscopic systems.
+     */
+    void set_num_grids(const unsigned int _num_grids);
 
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
@@ -166,10 +172,6 @@ private:
      * Use the (probably updated) macroscopic data to compute new elements of the microscopic system.
      */
     void compute_macroscopic_contribution();
-
-    /**
-     * The level of refinement (every +1 means a bisection)
-     */
 
     const unsigned int ROBIN_BOUNDARY = 0;
     const unsigned int NEUMANN_BOUNDARY = 1;

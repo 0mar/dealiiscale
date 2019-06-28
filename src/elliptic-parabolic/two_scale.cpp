@@ -7,7 +7,7 @@
 #include <cmath>
 
 /**
- * Run that solver
+ * Run a multiscale elliptic-parabolic solver
  * @return 0
  */
 int main() {

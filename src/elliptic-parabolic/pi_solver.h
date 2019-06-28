@@ -154,11 +154,19 @@ private:
     /**
     * Compute the right hand side of the Macroscopic function;
     * a contribution from the microscopic solution.
+     * In this case, the contribution is an integral over the mass of the microscopic grids.
     * @param dof_index Degree of freedom corresponding to the microscopic grid.
     * @return double with the value of the integral/other RHS function
     */
     double get_micro_mass(unsigned int micro_index);
 
+    /**
+    * Compute the right hand side of the Macroscopic function;
+    * a contribution from the microscopic solution.
+     * In this case, the contribution is a boundary integral over the normal derivative: the total outflux of the microscopic grids.
+    * @param dof_index Degree of freedom corresponding to the microscopic grid.
+    * @return double with the value of the integral/other RHS function
+    */
     double get_micro_flux(unsigned int_micro_index);
 
     /**

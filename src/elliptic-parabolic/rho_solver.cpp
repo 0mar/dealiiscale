@@ -17,8 +17,8 @@ double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int co
 }
 
 template<int dim>
-void MicroInitCondition<dim>::set_macro_solution(const Vector<double> &macro_solution) {
-    this->macro_sol = macro_solution;
+void MicroInitCondition<dim>::set_macro_field(const Vector<double> &field) {
+    this->macro_field = macro_field;
 }
 
 template<int dim>
@@ -84,7 +84,7 @@ void RhoSolver<dim>::setup_system() {
 }
 
 template<int dim>
-void RhoSolver<dim>::set_refine_level(int refinement_level) {
+void RhoSolver<dim>::set_refine_level(const int &refinement_level) {
     this->refine_level = refinement_level;
 }
 
