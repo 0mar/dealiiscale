@@ -72,3 +72,6 @@ deal_II_setup_target(demo)
 
 add_executable(integration ${DEMO_DIR}/integration.cpp)
 deal_II_setup_target(integration)
+
+add_executable(dof_mapper ${DEMO_DIR}/dof_mapper.cpp)
+deal_II_setup_target(dof_mapper)
