@@ -91,6 +91,7 @@ public:
 
     void refine();
 
+    void process_solution();
 private:
     void make_grid();
 
@@ -99,8 +100,6 @@ private:
     void assemble_system();
 
     void solve();
-
-    void process_solution();
 
 
     Triangulation<2> triangulation;
@@ -125,7 +124,7 @@ DoFMapper::DoFMapper() :
 
 void DoFMapper::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(1);
+    triangulation.refine_global(3);
     std::cout << "Number of active cells: "
               << triangulation.n_active_cells()
               << std::endl;
@@ -168,12 +167,38 @@ void DoFMapper::assemble_system() {
     Vector<double> cell_rhs(dofs_per_cell);
     const RightHandSide<dim> rhs;
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    MappingQ1<dim> mapping;
-    std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
-    DoFTools::map_dofs_to_support_points(mapping, dof_handler, dof_locations);
-    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
-        std::cout << dof_locations[i] << std::endl;
+    for (const DoFHandler<dim>::active_cell_iterator &cell:dof_handler.active_cell_iterators()) {
+        fe_values.reinit(cell);
+        cell_matrix = 0;
+        cell_rhs = 0;
+        for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
+            for (unsigned int i = 0; i < dofs_per_cell; ++i) {
+                for (unsigned int j = 0; j < dofs_per_cell; ++j) {
+                    cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
+                                          fe_values.shape_grad(j, q_index) *
+                                          fe_values.JxW(q_index));
+                }
+                cell_rhs(i) += (fe_values.shape_value(i, q_index) *
+                                rhs.value(fe_values.quadrature_point(q_index)) *
+                                fe_values.JxW(q_index));
+            }
+        }
+        cell->get_dof_indices(local_dof_indices);
+        for (unsigned int i = 0; i < dofs_per_cell; ++i) {
+            for (unsigned int j = 0; j < dofs_per_cell; ++j) {
+                system_matrix.add(local_dof_indices[i],
+                                  local_dof_indices[j],
+                                  cell_matrix(i, j));
+            }
+        }
+        for (unsigned int i = 0; i < dofs_per_cell; ++i) {
+            system_rhs(local_dof_indices[i]) += cell_rhs(i);
+        }
+
     }
+    std::map<types::global_dof_index, double> boundary_values;
+    VectorTools::interpolate_boundary_values(dof_handler, 0, Solution<2>(), boundary_values);
+    MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
 void DoFMapper::solve() {
@@ -185,6 +210,14 @@ void DoFMapper::solve() {
 
 void DoFMapper::process_solution() {
     const int dim = 2;
+    MappingQ1<dim> mapping;
+    std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
+    DoFTools::map_dofs_to_support_points(mapping, dof_handler, dof_locations);
+    Solution<dim> exact;
+    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
+        double diff = exact.value(dof_locations[i]) - solution[i];
+        std::cout << diff << std::endl;
+    }
     Vector<float> difference_per_cell(triangulation.n_active_cells());
     VectorTools::integrate_difference(dof_handler,
                                       solution,
@@ -235,6 +268,7 @@ void DoFMapper::output_results() {
 void DoFMapper::run() {
     setup_system();
     assemble_system();
+    solve();
 }
 
 int main() {
@@ -242,5 +276,6 @@ int main() {
     DoFMapper poisson_problem;
     poisson_problem.refine();
     poisson_problem.run();
+    poisson_problem.process_solution();
     return 0;
 }
