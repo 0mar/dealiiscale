@@ -16,12 +16,11 @@ Manager::Manager(int macro_refinement, int micro_refinement) :
 void Manager::setup() {
     // Create the grids and solution data structures for each grid
     pi_solver.setup();
-    rho_solver.set_num_grids(pi_solver.triangulation.n_active_cells());
+    rho_solver.set_num_grids(pi_solver.dof_handler.n_dofs());
     rho_solver.setup();
     // Couple the macro structures with the micro structures.
-    rho_solver.set_macro_solutions(&pi_solver.interpolated_solution, &pi_solver.old_interpolated_solution,
+    rho_solver.set_macro_solutions(&pi_solver.solution, &pi_solver.solution,
                                    &pi_solver.dof_handler);
-    // Now the dofhandler is not necessary of course
     pi_solver.set_micro_solutions(&rho_solver.solutions, &rho_solver.dof_handler);
 //    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
 //                                               "micro_convergence.txt"};

@@ -65,11 +65,11 @@ void PiSolver<dim>::setup_system() {
     solution.reinit(dof_handler.n_dofs());
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
-    intermediate_vector.reinit(triangulation.n_active_cells());
+    intermediate_vector.reinit(dof_handler.n_dofs());
     interpolated_solution.reinit(triangulation.n_active_cells());
     old_interpolated_solution.reinit(triangulation.n_active_cells());
     old_interpolated_solution = 1.; // Todo: How to choose the initial value?
-    micro_contribution.reinit(triangulation.n_active_cells());
+    micro_contribution.reinit(dof_handler.n_dofs());
     laplace_matrix.reinit(sparsity_pattern);
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
 }
@@ -102,21 +102,21 @@ void PiSolver<dim>::assemble_system() {
     system_rhs = 0;
     system_matrix.add(diffusion_coefficient, laplace_matrix); // Todo: This can be moved out, it only happens once.
 
-    get_pi_contribution_rhs(old_interpolated_solution, intermediate_vector);
+    get_pi_contribution_rhs(old_solution, intermediate_vector); // Todo: Change name
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
         cell_rhs = 0;
-
+        std::vector<double> rho_rhs_points(n_q_points);
+        std::vector<double> pi_rhs_points(n_q_points);
+        fe_values.get_function_values(intermediate_vector, pi_rhs_points);
+        fe_values.get_function_values(micro_contribution, rho_rhs_points);
         cell->get_dof_indices(local_dof_indices);
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index)
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                micro_contribution[cell->active_cell_index()] *
-                                // Interpolate solution data when possible.
-                                intermediate_vector[cell->active_cell_index()] *
-                                // We can improve accuracy here as well.
+                                rho_rhs_points[q_index] *
+                                pi_rhs_points[q_index] *
                                 fe_values.JxW(q_index));
             }
 
@@ -224,8 +224,8 @@ double PiSolver<dim>::get_micro_flux(unsigned int micro_index) {
 
 template<int dim>
 void PiSolver<dim>::compute_microscopic_contribution() {
-    for (const auto &cell: triangulation.active_cell_iterators()) {
-        micro_contribution[cell->active_cell_index()] = get_micro_mass(cell->active_cell_index());
+    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
+        micro_contribution[i] = get_micro_mass(i);
     }
 }
 
