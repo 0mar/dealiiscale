@@ -123,7 +123,6 @@ public:
     Vector<double> solution;
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
-    Vector<double> interpolated_solution;
 
 private:
     /**

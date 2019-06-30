@@ -9,8 +9,7 @@ using namespace dealii;
 
 template<int dim>
 double MacroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = 0; // todo: remove
-    val = std::sin(lambda * p(0)) + std::cos(lambda * p(1));
+    double val = std::sin(lambda * p(0)) + std::cos(lambda * p(1));
     return val;
 }
 
@@ -68,18 +67,17 @@ void MacroSolver<dim>::setup_system() {
 
     solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
-    interpolated_solution.reinit(triangulation.n_active_cells());
-    micro_contribution.reinit(triangulation.n_active_cells());
+    micro_contribution.reinit(dof_handler.n_dofs());
 }
 
 template<int dim>
 Vector<double> MacroSolver<dim>::get_exact_solution() {
-    Vector<double> exact_values(triangulation.n_active_cells());
-    FEValues<dim> fe_value(fe, QMidpoint<dim>(), update_quadrature_points);
-    for (const auto &cell: dof_handler.active_cell_iterators()) {
-        fe_value.reinit(cell);
-        std::vector<Point<dim>> quad_points = fe_value.get_quadrature_points();
-        exact_values[cell->active_cell_index()] = boundary.value(quad_points[0]);
+    Vector<double> exact_values(dof_handler.n_dofs());
+    MappingQ1<dim> mapping;
+    std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
+    DoFTools::map_dofs_to_support_points(mapping, dof_handler, dof_locations);
+    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
+        exact_values[i] = boundary.value(dof_locations[i]);
     }
     return exact_values;
 }
@@ -106,12 +104,12 @@ void MacroSolver<dim>::assemble_system() {
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     system_matrix = 0;
     system_rhs = 0;
-
+    std::vector<double> local_micro_cont(n_q_points);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
         cell_rhs = 0;
-
+        fe_values.get_function_values(micro_contribution, local_micro_cont);
         cell->get_dof_indices(local_dof_indices);
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index)
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
@@ -122,7 +120,7 @@ void MacroSolver<dim>::assemble_system() {
 
 
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                micro_contribution[cell->active_cell_index()] *
+                                local_micro_cont[q_index] *
                                 fe_values.JxW(q_index));
             }
 
@@ -166,7 +164,6 @@ void MacroSolver<dim>::solve() {
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
     printf("Convergence after %d CG iterations\n", solver_control.last_step());
-    interpolate_function(solution, interpolated_solution);
 }
 
 template<int dim>
@@ -193,8 +190,9 @@ double MacroSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
     // manufactured as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
     QGauss<dim> quadrature_formula(2);
-    FEValues<dim> fe_values(fe, quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
+    FEValues<dim> fe_values(micro_dof_handler->get_fe(), quadrature_formula,
+                            update_values | update_quadrature_points | update_JxW_values);
+    const unsigned int dofs_per_cell = micro_dof_handler->get_fe().dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     for (const auto &cell: micro_dof_handler->active_cell_iterators()) {
@@ -211,8 +209,8 @@ double MacroSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
 
 template<int dim>
 void MacroSolver<dim>::compute_microscopic_contribution() {
-    for (const auto &cell: triangulation.active_cell_iterators()) {
-        micro_contribution[cell->active_cell_index()] = integrate_micro_grid(cell->active_cell_index()); // optimize
+    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
+        micro_contribution[i] = integrate_micro_grid(i);
     }
 }
 

@@ -16,7 +16,7 @@ int main() {
     std::ofstream ofs;
     ofs.open("results/" + file_name, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    for (unsigned int i = 2; i < 8; i++) {
+    for (unsigned int i = 2; i < 5; i++) {
         Manager manager(i, i);
         manager.set_ct_file_name(file_name);
         manager.setup();
