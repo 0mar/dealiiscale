@@ -3,8 +3,8 @@
  */
 
 
-#ifndef ORACLE_H
-#define ORACLE_H
+#ifndef BASE_H
+#define BASE_H
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/dofs/dof_handler.h>
@@ -114,16 +114,11 @@ public:
 };
 
 template<int dim>
-class MultiScaleData {
+class MicroObject {
 public:
-    MultiScaleData();
+    MicroObject();
 
-    RightHandSide<dim> macro_rhs;
-    BoundaryCondition<dim> macro_boundary;
-    RightHandSide<dim> micro_rhs;
-    BoundaryCondition<dim> micro_boundary;
-
-    void set_macro_index(unsigned int index);
+    void set_macro_index(const unsigned int &index);
 
     void set_macro_values(const Vector<double> &values);
 
@@ -135,14 +130,25 @@ protected:
 };
 
 template<int dim>
-class MultiScaleOracle : public MultiScaleData<dim> {
-public:
-    MultiScaleOracle();
+class BaseData {
+public :
+    BaseData();
 
-    Solution<dim> macro_solution;
-    Solution<dim> micro_solution;
+    RightHandSide<dim> rhs;
+    BoundaryCondition<dim> bc;
+    const static int ROBIN_BOUNDARY = 0;
+    const static int NEUMANN_BOUNDARY = 1;
+    const static int DIRICHLET_BOUNDARY = 2;
 
-
+    int boundary_indicator = -1;
 };
 
-#endif //ORACLE_H
+template<int dim>
+class Oracle : public BaseData<dim> {
+public:
+    Oracle();
+
+    Solution<dim> solution;
+};
+
+#endif //BASE_H

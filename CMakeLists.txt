@@ -34,8 +34,8 @@ deal_II_setup_target(single_scale)
 add_library(parabolic ${PARABOLIC_DIR}/manager.h ${PARABOLIC_DIR}/manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp)
 deal_II_setup_target(parabolic)
 
-add_library(oracle ${KERNEL_DIR}/oracle.h ${KERNEL_DIR}/oracle.cpp ${KERNEL_DIR}/elliptic_examples.cpp)
-deal_II_setup_target(oracle)
+add_library(base ${KERNEL_DIR}/base.h ${KERNEL_DIR}/base.cpp ${KERNEL_DIR}/elliptic_examples.h ${KERNEL_DIR}/elliptic_examples.cpp)
+deal_II_setup_target(base)
 
 add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)
