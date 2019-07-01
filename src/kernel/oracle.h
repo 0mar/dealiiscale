@@ -41,28 +41,10 @@
 
 using namespace dealii;
 
-
 template<int dim>
-class RightHandSide : public Function<dim> {
+class BoundaryCondition : public Function<dim> {
 public:
-    RightHandSide() : Function<dim>() {
-
-    }
-
-    /**
-     * Creates a macroscopic boundary (only Dirichlet at this point)
-     * @param p The point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return Value of the microscopic boundary condition at p
-     */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-};
-
-template<int dim>
-class Oracle : public Function<dim> {
-public:
-    Oracle() : Function<dim>() {
+    BoundaryCondition() : Function<dim>() {
 
     }
 
@@ -84,28 +66,83 @@ public:
     */
     virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
 
-    RightHandSide<dim> right_hand_side;
+};
+
+
+template<int dim>
+class RightHandSide : public Function<dim> {
+public:
+    RightHandSide() : Function<dim>() {
+
+    }
+
+    /**
+     * Creates a macroscopic boundary (only Dirichlet at this point)
+     * @param p The point where the boundary condition is evaluated
+     * @param component Component of the vector: not used in this case
+     * @return Value of the microscopic boundary condition at p
+     */
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+};
+
+
+template<int dim>
+class Solution : public Function<dim> {
+public:
+    Solution() : Function<dim>() {
+
+    }
+
+    /**
+     * Creates a macroscopic boundary (only Dirichlet at this point)
+     * @param p The point where the boundary condition is evaluated
+     * @param component Component of the vector: not used in this case
+     * @return Value of the microscopic boundary condition at p
+     */
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+
+
+    /**
+     * Compute the analytic gradient of the boundary at point p. Necessary for Robin/Neumann boundary conditions and
+     * exact evaluation of the error.
+     * @param p The nD point where the boundary condition is evaluated
+     * @param component Component of the vector: not used in this case
+     * @return gradient of the microscopic boundary condition at p
+    */
+    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
 
 };
 
 template<int dim>
-class MicroOracle : public Oracle<dim> {
+class MultiScaleData {
 public:
+    MultiScaleData();
 
-    MicroOracle() : Oracle<dim>() {
-
-    }
+    RightHandSide<dim> macro_rhs;
+    BoundaryCondition<dim> macro_boundary;
+    RightHandSide<dim> micro_rhs;
+    BoundaryCondition<dim> micro_boundary;
 
     void set_macro_index(unsigned int index);
 
     void set_macro_values(const Vector<double> &values);
 
-private:
+protected:
 
     unsigned int macro_index;
 
     Vector<double> macro_values;
 };
 
+template<int dim>
+class MultiScaleOracle : public MultiScaleData<dim> {
+public:
+    MultiScaleOracle();
+
+    Solution<dim> macro_solution;
+    Solution<dim> micro_solution;
+
+
+};
 
 #endif //ORACLE_H

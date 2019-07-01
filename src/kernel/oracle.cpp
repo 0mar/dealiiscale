@@ -7,13 +7,23 @@
 
 using namespace dealii;
 
+
 template<int dim>
-void MicroOracle<dim>::set_macro_index(const unsigned int index) {
+MultiScaleOracle<dim>::MultiScaleOracle() = default;
+
+template<int dim>
+void MultiScaleData<dim>::set_macro_index(const unsigned int index) {
     macro_index = index;
 
 }
 
 template<int dim>
-void MicroOracle<dim>::set_macro_values(const Vector<double> &values) {
+void MultiScaleData<dim>::set_macro_values(const Vector<double> &values) {
     macro_values = values;
+}
+
+
+template<int dim>
+MultiScaleData<dim>::MultiScaleData() : macro_index(0) {
+
 }

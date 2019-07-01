@@ -34,7 +34,7 @@ deal_II_setup_target(single_scale)
 add_library(parabolic ${PARABOLIC_DIR}/manager.h ${PARABOLIC_DIR}/manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp)
 deal_II_setup_target(parabolic)
 
-add_library(oracle ${KERNEL_DIR}/oracle.h ${KERNEL_DIR}/oracle.cpp)
+add_library(oracle ${KERNEL_DIR}/oracle.h ${KERNEL_DIR}/oracle.cpp ${KERNEL_DIR}/elliptic_examples.cpp)
 deal_II_setup_target(oracle)
 
 add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
@@ -63,7 +63,7 @@ target_link_libraries(solve_parabolic parabolic)
 
 add_executable(test_rho_separate ${PARABOLIC_DIR}/rho_tester.cpp)
 deal_II_setup_target(test_rho_separate)
-target_link_libraries(test_rho_separate parabolic)
+target_link_libraries(test_rho_separate parabolic) # Todo: How can we make shared libraries instead of static ones?
 
 add_executable(simple ${DEMO_DIR}/simple.cpp)
 deal_II_setup_target(simple)
