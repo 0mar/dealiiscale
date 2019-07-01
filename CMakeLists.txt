@@ -24,6 +24,7 @@ deal_II_initialize_cached_variables()
 set(ELLIPTIC_DIR src/elliptic-elliptic) # Todo: Make a CMakeLists for each subdirectory
 set(PARABOLIC_DIR src/elliptic-parabolic)
 set(DEMO_DIR src/playground)
+set(KERNEL_DIR src/kernel)
 add_library(elliptic ${ELLIPTIC_DIR}/manager.h ${ELLIPTIC_DIR}/manager.cpp ${ELLIPTIC_DIR}/micro.h ${ELLIPTIC_DIR}/micro.cpp ${ELLIPTIC_DIR}/macro.h ${ELLIPTIC_DIR}/macro.cpp)
 deal_II_setup_target(elliptic)
 
@@ -32,6 +33,9 @@ deal_II_setup_target(single_scale)
 
 add_library(parabolic ${PARABOLIC_DIR}/manager.h ${PARABOLIC_DIR}/manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp)
 deal_II_setup_target(parabolic)
+
+add_library(oracle ${KERNEL_DIR}/oracle.h ${KERNEL_DIR}/oracle.cpp)
+deal_II_setup_target(oracle)
 
 add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)
