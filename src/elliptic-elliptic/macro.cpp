@@ -8,25 +8,12 @@
 using namespace dealii;
 
 template<int dim>
-double MacroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = std::sin(lambda * p(0)) + std::cos(lambda * p(1));
-    return val;
-}
-
-template<int dim>
-Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned int) const {
-    Tensor<1, dim> return_val;
-
-    return_val[0] = lambda * std::cos(lambda * p(0));
-    return_val[1] = -lambda * std::sin(lambda * p(1));
-    return return_val;
-}
-
-
-template<int dim>
-MacroSolver<dim>::MacroSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
-                                boundary() {
-    refine_level = 1;
+MacroSolver<dim>::MacroSolver(const BaseData<dim> &data, const unsigned int &refine_level):dof_handler(triangulation),
+                                                                                           fe(1),
+                                                                                           micro_dof_handler(nullptr),
+                                                                                           micro_solutions(nullptr),
+                                                                                           data(data),
+                                                                                           refine_level(refine_level) {
 }
 
 template<int dim>
@@ -71,13 +58,13 @@ void MacroSolver<dim>::setup_system() {
 }
 
 template<int dim>
-Vector<double> MacroSolver<dim>::get_exact_solution() {
+Vector<double> MacroSolver<dim>::get_exact_solution() { // Todo: Only when we have an oracle, use type_info
     Vector<double> exact_values(dof_handler.n_dofs());
     MappingQ1<dim> mapping;
     std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(mapping, dof_handler, dof_locations);
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
-        exact_values[i] = boundary.value(dof_locations[i]);
+        exact_values[i] = data.solution.value(dof_locations[i]);
     }
     return exact_values;
 }
@@ -121,6 +108,7 @@ void MacroSolver<dim>::assemble_system() {
 
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
                                 local_micro_cont[q_index] *
+                                data.rhs.value(fe_values.quadrature_point(q_index)) *
                                 fe_values.JxW(q_index));
             }
 
@@ -135,7 +123,7 @@ void MacroSolver<dim>::assemble_system() {
         }
     }
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, boundary, boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, data.bc, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
@@ -170,10 +158,10 @@ template<int dim>
 void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     const unsigned int n_active = triangulation.n_active_cells();
     Vector<double> difference_per_cell(n_active);
-    VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
+    VectorTools::integrate_difference(dof_handler, solution, data.bc, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::L2_norm);
     l2_error = difference_per_cell.l2_norm();
-    VectorTools::integrate_difference(dof_handler, solution, boundary, difference_per_cell, QGauss<dim>(3),
+    VectorTools::integrate_difference(dof_handler, solution, data.bc, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::H1_seminorm);
     h1_error = difference_per_cell.l2_norm();
 }
@@ -221,15 +209,6 @@ void MacroSolver<dim>::run() {
 }
 
 // Explicit instantiation
-
-template
-class MacroBoundary<1>;
-
-template
-class MacroBoundary<2>;
-
-template
-class MacroBoundary<3>;
 
 template
 class MacroSolver<1>;

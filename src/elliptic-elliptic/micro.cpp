@@ -8,39 +8,13 @@
 using namespace dealii;
 
 template<int dim>
-double MicroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = 0;
-    for (unsigned int i = 0; i < dim; i++) {
-        val += p(i) * p(i) * macro_sol[macro_cell_index];
-    }
-    return val;
-}
-
-template<int dim>
-Tensor<1, dim> MicroBoundary<dim>::gradient(const Point<dim> &p, const unsigned int) const {
-    Tensor<1, dim> return_val;
-
-    return_val[0] = 2 * p(0) * macro_sol[macro_cell_index];
-    return_val[1] = 2 * p(1) * macro_sol[macro_cell_index];
-    return return_val;
-}
-
-template<int dim>
-void MicroBoundary<dim>::set_macro_solution(const Vector<double> &macro_solution) {
-    this->macro_sol = macro_solution;
-}
-
-
-template<int dim>
-void MicroBoundary<dim>::set_macro_cell_index(const unsigned int index) {
-    macro_cell_index = index;
-}
-
-template<int dim>
-MicroSolver<dim>::MicroSolver():  dof_handler(triangulation), boundary(), fe(1), macro_solution(nullptr),
-                                  macro_dof_handler(nullptr) {
+MicroSolver<dim>::MicroSolver(const BaseData<dim> &data, const unsigned int refine_level):  dof_handler(triangulation),
+                                                                                            fe(1),
+                                                                                            macro_solution(nullptr),
+                                                                                            macro_dof_handler(nullptr),
+                                                                                            data(data),
+                                                                                            refine_level(refine_level) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
-    refine_level = 1;
     num_grids = 1;
 }
 
@@ -115,7 +89,7 @@ void MicroSolver<dim>::set_macro_solution(Vector<double> *_solution, DoFHandler<
 
 template<int dim>
 void MicroSolver<dim>::set_macro_boundary_condition(const Vector<double> &macro_condition) {
-    this->boundary.set_macro_solution(macro_condition);
+    data.bc.set_macro_value(macro_condition);
 }
 
 template<int dim>

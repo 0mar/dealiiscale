@@ -98,7 +98,7 @@ public:
     Tensor<1, 2> gradient(const Point<2> &p, unsigned int) const override;
 };
 
-class Poly : public Oracle<2> {
+class Poly : public Oracle<2>, MicroData<2> {
 public:
     Poly();
 

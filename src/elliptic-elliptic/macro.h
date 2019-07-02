@@ -38,38 +38,8 @@
 #include <cmath>
 #include <stdlib.h>
 #include <deal.II/base/logstream.h>
-
+#include "../kernel/elliptic_examples.h"
 using namespace dealii;
-
-template<int dim>
-class MacroBoundary : public Function<dim> {
-public:
-    MacroBoundary() : Function<dim>() {
-
-    }
-
-    /**
-     * Creates a macroscopic boundary (only Dirichlet at this point)
-     * @param p The point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return Value of the microscopic boundary condition at p
-     */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-
-    /**
-     * Compute the analytic gradient of the boundary at point p. Necessary for Robin/Neumann boundary conditions and
-     * exact evaluation of the error.
-     * @param p The nD point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return gradient of the microscopic boundary condition at p
-    */
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
-
-private:
-    const double lambda = std::sqrt(8. / 3.); // Coming from manufactured problem
-};
-
 
 template<int dim>
 class MacroSolver {
@@ -78,7 +48,7 @@ public:
      * Create and run a macroscopic solver with the given resolution (number of unit square bisections)
      * @param refine_level Number of macroscopic and microscopic bisections.
      */
-    MacroSolver();
+    MacroSolver(const BaseData<dim> &data, const unsigned int &refine_level);
 
     /**
      * All the methods that setup the system.
@@ -174,8 +144,8 @@ private:
     Vector<double> system_rhs;
     Vector<double> micro_contribution;
     std::vector<Vector<double>> *micro_solutions;
-    MacroBoundary<dim> boundary;
-    int refine_level;
+    BaseData<dim> data;
+    unsigned int refine_level;
 
 };
 

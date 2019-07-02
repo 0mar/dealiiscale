@@ -38,59 +38,9 @@
 #include <cmath>
 #include <stdlib.h>
 #include <deal.II/base/logstream.h>
-
+#include "../kernel/elliptic_examples.h"
 using namespace dealii;
 
-template<int dim>
-class MicroBoundary : public Function<dim> {
-public:
-    MicroBoundary() : Function<dim>() {
-
-    }
-
-    /**
-     * Compute the value of the microscopic boundary at a given point
-     * @param p The nD point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return Value of the microscopic boundary at p
-     */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-    /**
-     * Compute the analytic gradient of the boundary at point p. Necessary for Robin/Neumann boundary conditions and
-     * exact evaluation of the error.
-     * @param p The nD point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return gradient of the microscopic boundary condition at p
-    */
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
-
-    /**
-     * Set a precomputed macroscopic solution for the boundary.
-     * After this value is set, individual microboundaries can be imposed by simply setting the macroscopic cell index.
-     * @param macro_solution Value of the macroscopic solution for the corresponding microscopic system.
-     */
-    void set_macro_solution(const Vector<double> &macro_solution);
-
-    /**
-     *
-     * Set the macroscopic cell index so that the microboundary has the appropriate macroscopic value.
-     * @param index
-     */
-    void set_macro_cell_index(unsigned int index);
-
-private:
-
-    /**
-     * Contains the macroscopic exact solution
-     */
-    Vector<double> macro_sol;
-
-    /**
-     * The macroscopic cell this boundary needs to work on.
-     */
-    unsigned int macro_cell_index = 0;
-};
 
 template<int dim>
 class MicroSolver {
@@ -99,7 +49,7 @@ public:
     /**
      * Create a Microsolver that resolves the microscopic systems.
      */
-    MicroSolver();
+    MicroSolver(const BaseData<dim> &data, const unsigned int &refine_level);
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -151,7 +101,6 @@ public:
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
-    MicroBoundary<dim> boundary;
 private:
 
     /**
@@ -188,11 +137,10 @@ private:
      */
     void compute_macroscopic_contribution();
 
-    const double laplacian = 4.;
     /**
      * The level of refinement (every +1 means a bisection)
      */
-    unsigned int refine_level;
+
     FE_Q<dim> fe;
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
@@ -201,6 +149,8 @@ private:
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
     std::vector<Vector<double>> righthandsides;
+    MicroData<dim> data;
+    unsigned int refine_level;
 };
 
 #endif //MICRO_H

@@ -116,7 +116,9 @@ public:
 template<int dim>
 class MicroObject {
 public:
-    MicroObject();
+    MicroObject() : macro_index(0) {
+
+    };
 
     void set_macro_index(const unsigned int &index);
 
@@ -132,7 +134,9 @@ protected:
 template<int dim>
 class BaseData {
 public :
-    BaseData();
+    BaseData() {
+
+    };
 
     RightHandSide<dim> rhs;
     BoundaryCondition<dim> bc;
@@ -141,6 +145,19 @@ public :
     const static int DIRICHLET_BOUNDARY = 2;
 
     int boundary_indicator = -1;
+};
+
+template<int dim>
+class MicroData : public BaseData<dim> {
+public:
+
+    MicroData() : BaseData<dim>() {
+
+    }
+
+    MicroRightHandSide <dim> rhs;
+    MicroBoundaryCondition <dim> bc;
+
 };
 
 template<int dim>
