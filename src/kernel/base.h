@@ -66,9 +66,9 @@ protected:
 template<int dim>
 class BoundaryCondition : public Function<dim>, public MicroObject<dim> {
 public:
-    BoundaryCondition() : Function<dim>() {
+    BoundaryCondition() : Function<dim>(), MicroObject<dim>() {
 
-    }
+    };
 
     /**
      * Creates a macroscopic boundary (only Dirichlet at this point)
@@ -76,7 +76,7 @@ public:
      * @param component Component of the vector: not used in this case
      * @return Value of the microscopic boundary condition at p
      */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const = 0;
 
 
     /**
@@ -86,7 +86,7 @@ public:
      * @param component Component of the vector: not used in this case
      * @return gradient of the microscopic boundary condition at p
     */
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
+    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const = 0;
 
 };
 
@@ -94,9 +94,9 @@ public:
 template<int dim>
 class RightHandSide : public Function<dim>, public MicroObject<dim> {
 public:
-    RightHandSide() : Function<dim>() {
+    RightHandSide() : Function<dim>(), MicroObject<dim>() {
 
-    }
+    };
 
     /**
      * Creates a macroscopic boundary (only Dirichlet at this point)
@@ -104,16 +104,16 @@ public:
      * @param component Component of the vector: not used in this case
      * @return Value of the microscopic boundary condition at p
      */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const = 0;
 };
 
 
 template<int dim>
 class Solution : public Function<dim>, public MicroObject<dim> {
 public:
-    Solution() : Function<dim>() {
+    Solution() : Function<dim>(), MicroObject<dim>() {
 
-    }
+    };
 
     /**
      * Creates a macroscopic boundary (only Dirichlet at this point)
@@ -121,7 +121,7 @@ public:
      * @param component Component of the vector: not used in this case
      * @return Value of the microscopic boundary condition at p
      */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const = 0;
 
 
     /**
@@ -131,7 +131,7 @@ public:
      * @param component Component of the vector: not used in this case
      * @return gradient of the microscopic boundary condition at p
     */
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
+    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const = 0;
 
 };
 
@@ -160,5 +160,7 @@ public:
 
     Solution<dim> solution;
 };
+
+#include "base.tpp"
 
 #endif //BASE_H

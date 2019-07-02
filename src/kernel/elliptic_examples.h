@@ -17,7 +17,7 @@ class TrigoSolution : public Solution<2> {
 public:
     TrigoSolution() : Solution<2>() {
 
-    }
+    };
 
     const double lambda = std::sqrt(8. / 3.);
 
@@ -31,7 +31,7 @@ class TrigoRHS : public RightHandSide<2> {
 public:
     TrigoRHS() : RightHandSide<2>() {
 
-    }
+    };
 
     const double lambda = std::sqrt(8. / 3.);
 
@@ -42,7 +42,7 @@ class TrigoBoundary : public BoundaryCondition<2> {
 public:
     TrigoBoundary() : BoundaryCondition<2>() {
 
-    }
+    };
 
     const double lambda = std::sqrt(8. / 3.);
 
@@ -55,9 +55,11 @@ public:
 class TrigoData : public Oracle<2> {
 public:
 
-    TrigoData();
+    TrigoData() : Oracle<2>() {
 
-    TrigoSolution boundary;
+    };
+
+    TrigoSolution solution;
     TrigoRHS rhs;
     TrigoBoundary bc;
 
@@ -68,7 +70,7 @@ public:
 
     PolySolution() : Solution<2>() {
 
-    }
+    };
 
     double value(const Point<2> &p, unsigned int) const override;
 
@@ -80,7 +82,7 @@ class PolyRHS : public RightHandSide<2> {
 public:
     PolyRHS() : RightHandSide<2>() {
 
-    }
+    };
 
     double value(const Point<2> &p, unsigned int) const override;
 };
@@ -100,7 +102,9 @@ public:
 
 class PolyData : public Oracle<2> {
 public:
-    PolyData();
+    PolyData() : Oracle<2>() {
+
+    };
 
     PolySolution solution;
     PolyRHS rhs;

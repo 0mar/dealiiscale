@@ -3,10 +3,6 @@
 using namespace dealii;
 
 
-TrigoData::TrigoData() {
-
-}
-
 double TrigoSolution::value(const Point<2> &p, const unsigned int) const {
     double val = std::sin(lambda * p(0)) + std::cos(lambda * p(1));
     return val;
@@ -35,9 +31,6 @@ Tensor<1, 2> TrigoBoundary::gradient(const Point<2> &p, unsigned int) const {
     return return_val;
 }
 
-PolyData::PolyData() {
-}
-
 double PolySolution::value(const Point<2> &p, unsigned int) const {
     double val = 0;
     for (unsigned int i = 0; i < 2; i++) {
@@ -45,7 +38,6 @@ double PolySolution::value(const Point<2> &p, unsigned int) const {
     }
     return val;
 }
-
 
 Tensor<1, 2> PolySolution::gradient(const Point<2> &p, unsigned int) const {
     Tensor<1, 2> return_val;
