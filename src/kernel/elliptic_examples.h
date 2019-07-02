@@ -63,10 +63,10 @@ public:
 
 };
 
-class PolySolution : public Solution<2>, public MicroObject<2> {
+class PolySolution : public Solution<2> {
 public:
 
-    PolySolution() : Solution<2>(), MicroObject<2>() {
+    PolySolution() : Solution<2>() {
 
     }
 
@@ -76,9 +76,9 @@ public:
 
 };
 
-class PolyRHS : public RightHandSide<2>, public MicroObject<2> {
+class PolyRHS : public RightHandSide<2> {
 public:
-    PolyRHS() : RightHandSide<2>(), MicroObject<2>() {
+    PolyRHS() : RightHandSide<2>() {
 
     }
 
@@ -86,10 +86,10 @@ public:
 };
 
 
-class PolyBoundary : public BoundaryCondition<2>, public MicroObject<2> {
+class PolyBoundary : public BoundaryCondition<2> {
 public:
 
-    PolyBoundary() : BoundaryCondition<2>(), MicroObject<2>() {
+    PolyBoundary() : BoundaryCondition<2>() {
 
     }
 
@@ -98,7 +98,7 @@ public:
     Tensor<1, 2> gradient(const Point<2> &p, unsigned int) const override;
 };
 
-class Poly : public Oracle<2>, MicroData<2> {
+class Poly : public Oracle<2> {
 public:
     Poly();
 

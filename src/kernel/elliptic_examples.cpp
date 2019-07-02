@@ -19,7 +19,7 @@ Tensor<1, 2> TrigoSolution::gradient(const Point<2> &p, const unsigned int) cons
     return return_val;
 }
 
-double TrigoRHS::value(const Point<2> &p, unsigned int) const {
+double TrigoRHS::value(const Point<2> &, unsigned int) const {
     return 1;
 }
 
@@ -69,6 +69,6 @@ Tensor<1, 2> PolyBoundary::gradient(const Point<2> &p, unsigned int) const {
     return return_val;
 }
 
-double PolyRHS::value(const Point<2> &p, unsigned int) const {
+double PolyRHS::value(const Point<2> &, unsigned int) const {
     return -4.;
 }

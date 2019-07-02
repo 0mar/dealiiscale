@@ -41,8 +41,30 @@
 
 using namespace dealii;
 
+
 template<int dim>
-class BoundaryCondition : public Function<dim> {
+class MicroObject {
+public:
+    MicroObject() : macro_index(0) {
+        macro_values.reinit(1);
+        macro_values = 1;
+
+    };
+
+    void set_macro_index(const unsigned int &index);
+
+    void set_macro_values(const Vector<double> &values);
+
+protected:
+
+    unsigned int macro_index;
+
+    Vector<double> macro_values;
+};
+
+
+template<int dim>
+class BoundaryCondition : public Function<dim>, public MicroObject<dim> {
 public:
     BoundaryCondition() : Function<dim>() {
 
@@ -70,7 +92,7 @@ public:
 
 
 template<int dim>
-class RightHandSide : public Function<dim> {
+class RightHandSide : public Function<dim>, public MicroObject<dim> {
 public:
     RightHandSide() : Function<dim>() {
 
@@ -87,7 +109,7 @@ public:
 
 
 template<int dim>
-class Solution : public Function<dim> {
+class Solution : public Function<dim>, public MicroObject<dim> {
 public:
     Solution() : Function<dim>() {
 
@@ -114,24 +136,6 @@ public:
 };
 
 template<int dim>
-class MicroObject {
-public:
-    MicroObject() : macro_index(0) {
-
-    };
-
-    void set_macro_index(const unsigned int &index);
-
-    void set_macro_values(const Vector<double> &values);
-
-protected:
-
-    unsigned int macro_index;
-
-    Vector<double> macro_values;
-};
-
-template<int dim>
 class BaseData {
 public :
     BaseData() {
@@ -148,22 +152,11 @@ public :
 };
 
 template<int dim>
-class MicroData : public BaseData<dim> {
-public:
-
-    MicroData() : BaseData<dim>() {
-
-    }
-
-    MicroRightHandSide <dim> rhs;
-    MicroBoundaryCondition <dim> bc;
-
-};
-
-template<int dim>
 class Oracle : public BaseData<dim> {
 public:
-    Oracle();
+    Oracle() : BaseData<dim>() {
+
+    };
 
     Solution<dim> solution;
 };
