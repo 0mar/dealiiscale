@@ -4,9 +4,10 @@
 
 #include "manager.h"
 
-Manager::Manager(int macro_refinement, int micro_refinement) : pi_solver(), rho_solver() {
-    pi_solver.set_refine_level(macro_refinement);
-    rho_solver.set_refine_level(micro_refinement);
+Manager::Manager(const BaseData<MACRO_DIMENSIONS> &macro_data, const BaseData<MICRO_DIMENSIONS> &micro_data,
+                 int macro_refinement, int micro_refinement) : pi_solver(macro_data, macro_refinement),
+                                                               rho_solver(micro_data, micro_refinement),
+                                                               macro_data(macro_data), micro_data(micro_data) {
 }
 
 void Manager::setup() {
@@ -14,7 +15,9 @@ void Manager::setup() {
     pi_solver.setup();
     rho_solver.set_num_grids(pi_solver.dof_handler.n_dofs());
     rho_solver.setup();
-    rho_solver.set_macro_boundary_condition(pi_solver.get_exact_solution());
+    Vector<double> macro_boundary_values(pi_solver.dof_handler.n_dofs());
+    pi_solver.compute_exact_solution(macro_data.bc, macro_boundary_values);
+    rho_solver.set_macro_boundary_condition(macro_boundary_values);
     // Couple the macro structures with the micro structures.
     rho_solver.set_macro_solution(&pi_solver.solution, &pi_solver.dof_handler);
     pi_solver.set_micro_solutions(&rho_solver.solutions, &rho_solver.dof_handler);
@@ -32,7 +35,6 @@ void Manager::run() {
     double old_residual = 1;
     double residual = 0;
     while (std::fabs(old_residual - residual) > eps) {
-        // Todo: Interpolate from midpoint to Gaussian
         fixed_point_iterate();
         compute_residuals(old_residual, residual);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);

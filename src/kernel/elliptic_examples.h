@@ -52,10 +52,10 @@ public:
 
 };
 
-class Trigo : public Oracle<2> {
+class TrigoData : public Oracle<2> {
 public:
 
-    Trigo();
+    TrigoData();
 
     TrigoSolution boundary;
     TrigoRHS rhs;
@@ -98,9 +98,9 @@ public:
     Tensor<1, 2> gradient(const Point<2> &p, unsigned int) const override;
 };
 
-class Poly : public Oracle<2> {
+class PolyData : public Oracle<2> {
 public:
-    Poly();
+    PolyData();
 
     PolySolution solution;
     PolyRHS rhs;

@@ -3,7 +3,7 @@
 using namespace dealii;
 
 
-Trigo::Trigo() {
+TrigoData::TrigoData() {
 
 }
 
@@ -35,7 +35,7 @@ Tensor<1, 2> TrigoBoundary::gradient(const Point<2> &p, unsigned int) const {
     return return_val;
 }
 
-Poly::Poly() {
+PolyData::PolyData() {
 }
 
 double PolySolution::value(const Point<2> &p, unsigned int) const {

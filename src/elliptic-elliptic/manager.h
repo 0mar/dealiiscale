@@ -24,8 +24,8 @@ public:
      * @param macro_refinement Resolution of the macro solver.
      * @param micro_refinement Resolution of the micro solver.
      */
-    Manager(int macro_refinement, int micro_refinement);
-
+    Manager(const BaseData<MACRO_DIMENSIONS> &macro_data, const BaseData<MICRO_DIMENSIONS> &micro_data,
+            int macro_refinement, int micro_refinement);
     /**
      * Run all the methods that setup the solvers of the two scales.
      */
@@ -71,7 +71,8 @@ private:
 
     std::string ct_file_name = "convergence.txt";
     ConvergenceTable convergence_table;
-
+    BaseData<MACRO_DIMENSIONS> macro_data;
+    BaseData<MICRO_DIMENSIONS> micro_data;
 };
 
 

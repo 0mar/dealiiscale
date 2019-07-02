@@ -58,15 +58,16 @@ void MacroSolver<dim>::setup_system() {
 }
 
 template<int dim>
-Vector<double> MacroSolver<dim>::get_exact_solution() { // Todo: Only when we have an oracle, use type_info
-    Vector<double> exact_values(dof_handler.n_dofs());
+// Todo: Can be static
+void MacroSolver<dim>::compute_exact_solution(const Function<dim> &sol_function,
+                                              Vector<double> &sol_vector) { // Todo: Only when we have an oracle, use type_info
+    AssertDimension(sol_vector.size(), dof_handler.n_dofs()) // Super nice!
     MappingQ1<dim> mapping;
     std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(mapping, dof_handler, dof_locations);
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
-        exact_values[i] = data.solution.value(dof_locations[i]);
+        sol_vector[i] = sol_function.value(dof_locations[i]);
     }
-    return exact_values;
 }
 
 template<int dim>
@@ -155,7 +156,7 @@ void MacroSolver<dim>::solve() {
 }
 
 template<int dim>
-void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
+void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) { // Todo: Fix solution with oracles
     const unsigned int n_active = triangulation.n_active_cells();
     Vector<double> difference_per_cell(n_active);
     VectorTools::integrate_difference(dof_handler, solution, data.bc, difference_per_cell, QGauss<dim>(3),
@@ -174,6 +175,7 @@ void MacroSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutio
 }
 
 template<int dim>
+//  Todo: Can also be static
 double MacroSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
     // manufactured as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;

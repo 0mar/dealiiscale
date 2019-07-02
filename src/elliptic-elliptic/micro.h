@@ -49,7 +49,7 @@ public:
     /**
      * Create a Microsolver that resolves the microscopic systems.
      */
-    MicroSolver(const BaseData<dim> &data, const unsigned int &refine_level);
+    MicroSolver(const BaseData<dim> &data, const unsigned int refine_level);
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -149,7 +149,7 @@ private:
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
     std::vector<Vector<double>> righthandsides;
-    MicroData<dim> data;
+    BaseData<dim> data;
     unsigned int refine_level;
 };
 

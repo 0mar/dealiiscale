@@ -16,8 +16,10 @@ int main() {
     std::ofstream ofs;
     ofs.open("results/" + file_name, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
+    TrigoData macro_data;
+    PolyData micro_data;
     for (unsigned int i = 2; i < 5; i++) {
-        Manager manager(i, i);
+        Manager manager(macro_data, micro_data, i, i);
         manager.set_ct_file_name(file_name);
         manager.setup();
         manager.run();

@@ -82,7 +82,7 @@ public:
      * Compute the exact solution value based on the analytic solution present in the boundary condition
      * @param exact_values Output vector
      */
-    Vector<double> get_exact_solution();
+    void compute_exact_solution(const Function<dim> &sol_function, Vector<double> &sol_vector);
 
     /**
      * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)

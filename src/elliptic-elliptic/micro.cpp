@@ -89,7 +89,7 @@ void MicroSolver<dim>::set_macro_solution(Vector<double> *_solution, DoFHandler<
 
 template<int dim>
 void MicroSolver<dim>::set_macro_boundary_condition(const Vector<double> &macro_condition) {
-    data.bc.set_macro_value(macro_condition);
+    data.bc.set_macro_values(macro_condition);
 }
 
 template<int dim>
@@ -144,7 +144,8 @@ void MicroSolver<dim>::assemble_system() {
             cell_rhs = 0;
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-                    cell_rhs(i) += -laplacian * (*macro_solution)(k) * fe_values.shape_value(i, q_index) *
+                    cell_rhs(i) += -data.rhs.value(fe_values.quadrature_point(q_index)) * (*macro_solution)(k) *
+                                   fe_values.shape_value(i, q_index) *
                                    fe_values.JxW(q_index);
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
@@ -152,9 +153,9 @@ void MicroSolver<dim>::assemble_system() {
         }
     }
     for (unsigned int k = 0; k < num_grids; k++) {
-        this->boundary.set_macro_cell_index(k);
+        data.bc.set_macro_index(k);
         std::map<types::global_dof_index, double> boundary_values;
-        VectorTools::interpolate_boundary_values(dof_handler, 0, boundary, boundary_values);
+        VectorTools::interpolate_boundary_values(dof_handler, 0, data.bc, boundary_values);
         MatrixTools::apply_boundary_values(boundary_values, system_matrices.at(k), solutions.at(k),
                                            righthandsides.at(k));
     }
@@ -179,13 +180,13 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> macro_domain_l2_error(num_grids);
     Vector<double> macro_domain_h1_error(num_grids);
     for (unsigned int k = 0; k < num_grids; k++) {
-        boundary.set_macro_cell_index(k); // Todo: Change when we separate boundary and exact solution.
+        data.bc.set_macro_index(k);
         const unsigned int n_active = triangulation.n_active_cells();
         Vector<double> difference_per_cell(n_active);
-        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
+        VectorTools::integrate_difference(dof_handler, solutions.at(k), data.bc, difference_per_cell, QGauss<dim>(3),
                                           VectorTools::L2_norm);
         double micro_l2_error = difference_per_cell.l2_norm();
-        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell, QGauss<dim>(3),
+        VectorTools::integrate_difference(dof_handler, solutions.at(k), data.bc, difference_per_cell, QGauss<dim>(3),
                                           VectorTools::H1_seminorm);
         double micro_h1_error = difference_per_cell.l2_norm();
         macro_domain_l2_error(k) = micro_l2_error;
@@ -214,15 +215,6 @@ void MicroSolver<dim>::set_num_grids(unsigned int _num_grids) {
 }
 
 // Explicit instantiation
-
-template
-class MicroBoundary<1>;
-
-template
-class MicroBoundary<2>;
-
-template
-class MicroBoundary<3>;
 
 template
 class MicroSolver<1>;
