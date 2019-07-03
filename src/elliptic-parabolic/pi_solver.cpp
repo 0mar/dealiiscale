@@ -76,7 +76,8 @@ template<int dim>
 void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) {
     Assert(pi.size() == out_vector.size(), ExcDimensionMismatch(pi.size(), out_vector.size()))
     for (unsigned int i = 0; i < pi.size(); i++) {
-        out_vector(i) = std::fmax(1. - 2. * pi(i) / max_support, 0);
+        const double abs_pi = std::fabs(pi(i));
+        out_vector(i) = 0.5 * std::fmin(abs_pi, std::sqrt(abs_pi));
     }
 }
 

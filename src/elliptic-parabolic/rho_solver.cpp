@@ -9,8 +9,7 @@ using namespace dealii;
 
 template<int dim>
 double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int component) const {
-    double a = macro_field[macro_cell_index];
-    double val = a; // Todo: This is not dependent on the macroscopic solution yet.
+    double val = macro_field[macro_cell_index];
     double pi = 3.141592;
     for (int i = 0; i < dim; i++) {
         val *= std::cos(pi * p[i]);
