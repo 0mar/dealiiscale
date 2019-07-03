@@ -17,11 +17,12 @@ void TimeManager::setup() {
     // Create the grids and solution data structures for each grid
     pi_solver.setup();
     rho_solver.set_num_grids(pi_solver.dof_handler.n_dofs());
-    rho_solver.setup();
-    // Couple the macro structures with the micro structures.
     Vector<double> init_condition;
     pi_solver.get_initial_condition(init_condition);
     rho_solver.set_initial_condition(init_condition);
+    rho_solver.setup();
+    // Couple the macro structures with the micro structures.
+
     rho_solver.set_macro_solutions(&pi_solver.solution, &pi_solver.solution,
                                    &pi_solver.dof_handler);
     pi_solver.set_micro_solutions(&rho_solver.solutions, &rho_solver.dof_handler);
