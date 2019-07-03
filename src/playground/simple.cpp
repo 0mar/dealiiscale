@@ -324,7 +324,6 @@ private:
 //template<int dim>
 //double RightHandSide<dim>::value(const Point<dim> &p,
 //                                 const unsigned int /*component*/) const {
-//    //Todo: For finding the gradient in all points, check step 15. For boundary integrals, step 7.
 //    double return_value = 0.0;
 //    for (unsigned int i = 0; i < dim; ++i)
 //        return_value += 4.0 * std::pow(p(i), 4.0);
@@ -621,8 +620,6 @@ void MicroSolver<dim>::assemble_system() {
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler,0,BoundaryValues<dim>(),boundary_values);
     MatrixTools::apply_boundary_values(boundary_values,system_matrix,solutions.at(0),righthandsides.at(0));
-    // This code assumes the sparsity pattern of the matrix doesn't change.
-    // That is what experiments seems to point out. // fixme, do with robin, then we have proof.
 }
 
 
