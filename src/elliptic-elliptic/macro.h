@@ -114,6 +114,8 @@ public:
      */
     Vector<double> get_exact_solution();
 
+    void get_dof_locations(std::vector<Point<dim>> &locations);
+
     /**
      * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
      * @param refine_level number of bisections of the grid.

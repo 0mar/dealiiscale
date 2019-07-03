@@ -218,6 +218,33 @@ double PiSolver<dim>::get_micro_flux(unsigned int micro_index) {
     return integral;
 }
 
+
+template<int dim>
+void PiSolver<dim>::get_initial_condition(Vector<double> &initial) {
+    initial.reinit(dof_handler.n_dofs());
+    std::vector<Point<dim>> locations;
+    get_dof_locations(locations);
+    for (unsigned int i = 0; i < initial.size(); i++) {
+        Point<dim> p = locations.at(i);
+        double val = 0;
+        for (unsigned int j = 0; j < dim; j++) {
+            val += (1 - p[j]) * (1 - p[j]);
+        }
+        initial[i] = val;
+    }
+}
+
+
+template<int dim>
+void PiSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
+    MappingQ1<dim> mapping;
+    locations.clear();
+    locations.resize(dof_handler.n_dofs());
+    DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
+
+}
+
+
 template<int dim>
 void PiSolver<dim>::compute_microscopic_contribution() {
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {

@@ -215,6 +215,15 @@ void MacroSolver<dim>::compute_microscopic_contribution() {
 }
 
 template<int dim>
+void MacroSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
+    MappingQ1<dim> mapping;
+    locations.clear();
+    locations.resize(dof_handler.n_dofs());
+    DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
+
+}
+
+template<int dim>
 void MacroSolver<dim>::run() {
     assemble_system();
     solve();

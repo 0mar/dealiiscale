@@ -114,6 +114,11 @@ public:
      */
     void set_refine_level(int num_bisections);
 
+    void get_dof_locations(std::vector<Point<dim>> &locations);
+
+    void get_initial_condition(Vector<double> &initial);
+
+
     Vector<double> solution;
     Vector<double> old_solution;
     Triangulation<dim> triangulation;
