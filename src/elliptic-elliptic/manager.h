@@ -15,8 +15,8 @@ class Manager {
 public:
     const static int MACRO_DIMENSIONS = 2;
     const static int MICRO_DIMENSIONS = 2;
-    MacroSolver<MACRO_DIMENSIONS> pi_solver;
-    MicroSolver<MICRO_DIMENSIONS> rho_solver;
+    MacroSolver<MACRO_DIMENSIONS> macro_solver;
+    MicroSolver<MICRO_DIMENSIONS> micro_solver;
     int repetitions;
 
     /**
