@@ -161,7 +161,7 @@ private:
     * @param dof_index Degree of freedom corresponding to the microscopic grid.
     * @return double with the value of the integral/other RHS function
     */
-    double get_micro_mass(unsigned int micro_index);
+    double get_micro_mass(unsigned int micro_index) const;
 
     /**
     * Compute the right hand side of the Macroscopic function;
@@ -170,14 +170,14 @@ private:
     * @param dof_index Degree of freedom corresponding to the microscopic grid.
     * @return double with the value of the integral/other RHS function
     */
-    double get_micro_flux(unsigned int_micro_index);
+    double get_micro_flux(unsigned int_micro_index) const;
 
     /**
      * Compute the pi-dependent factor of the right hand side of the elliptic equation
      * f(s) = g(s)*\int_Y \rho(x,y)dy.
      * This method computes g(s): a hat function with support from 0 to some theta
      */
-    void get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector);
+    void get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) const;
 
     /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution

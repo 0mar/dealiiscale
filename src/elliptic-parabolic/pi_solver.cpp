@@ -73,7 +73,7 @@ void PiSolver<dim>::setup_system() {
 }
 
 template<int dim>
-void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) {
+void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) const {
     Assert(pi.size() == out_vector.size(), ExcDimensionMismatch(pi.size(), out_vector.size()))
     for (unsigned int i = 0; i < pi.size(); i++) {
         const double abs_pi = std::fabs(pi(i));
@@ -101,7 +101,7 @@ void PiSolver<dim>::assemble_system() {
     system_rhs = 0;
     system_matrix.add(diffusion_coefficient, laplace_matrix); // Todo: This can be moved out, it only happens once.
 
-    get_pi_contribution_rhs(old_solution, macro_contribution); // Todo: Change name
+    get_pi_contribution_rhs(old_solution, macro_contribution);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
@@ -171,7 +171,7 @@ void PiSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions,
 }
 
 template<int dim>
-double PiSolver<dim>::get_micro_mass(unsigned int micro_index) { // todo: Make const
+double PiSolver<dim>::get_micro_mass(unsigned int micro_index) const {
     // computed as: f(x) = \int_Y \rho(x,y) dy
     double integral = 0;
     QGauss<dim> quadrature_formula(integration_order);
@@ -193,7 +193,7 @@ double PiSolver<dim>::get_micro_mass(unsigned int micro_index) { // todo: Make c
 }
 
 template<int dim>
-double PiSolver<dim>::get_micro_flux(unsigned int micro_index) {
+double PiSolver<dim>::get_micro_flux(unsigned int micro_index) const {
     const int ROBIN_BOUNDARY = 0; //Not linked, a bit ugly
     // Computed as: f(x) = \int_\Gamma_R \nabla_y \rho(x,y) \cdot n_y d_\sigma_y
     double integral = 0;

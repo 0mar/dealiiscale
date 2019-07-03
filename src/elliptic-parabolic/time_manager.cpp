@@ -108,6 +108,6 @@ void TimeManager::output_results() {
 
     data_out.build_patches();
 
-    std::ofstream output("results/macro-solution.gpl");
+    std::ofstream output("results/final-macro-solution.gpl");
     data_out.write_gnuplot(output);
 }
