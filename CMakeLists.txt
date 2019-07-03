@@ -30,7 +30,7 @@ deal_II_setup_target(elliptic)
 add_library(single_scale ${ELLIPTIC_DIR}/micro_manager.h ${ELLIPTIC_DIR}/micro_manager.cpp ${ELLIPTIC_DIR}/micro.h ${ELLIPTIC_DIR}/micro.cpp ${ELLIPTIC_DIR}/macro.h ${ELLIPTIC_DIR}/macro.cpp ${ELLIPTIC_DIR}/micro_manager.h ${ELLIPTIC_DIR}/macro_manager.cpp)
 deal_II_setup_target(single_scale)
 
-add_library(parabolic ${PARABOLIC_DIR}/manager.h ${PARABOLIC_DIR}/manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp)
+add_library(parabolic ${PARABOLIC_DIR}/time_manager.h ${PARABOLIC_DIR}/time_manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp)
 deal_II_setup_target(parabolic)
 
 add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)

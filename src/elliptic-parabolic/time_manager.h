@@ -2,15 +2,14 @@
  * Author: Omar Richardson, Karlstad University, 2019
  */
 
-#ifndef DEALIISCALE_MANAGER_H
-#define DEALIISCALE_MANAGER_H
+#ifndef DEALIISCALE_TIME_MANAGER_H
+#define DEALIISCALE_TIME_MANAGER_H
 
 #include "pi_solver.h"
 #include "rho_solver.h"
 
 
-
-class Manager {
+class TimeManager {
 
 public:
     const static int MACRO_DIMENSIONS = 2;
@@ -23,7 +22,7 @@ public:
      * @param macro_refinement Resolution of the macro solver.
      * @param micro_refinement Resolution of the micro solver.
      */
-    Manager(int macro_refinement, int micro_refinement);
+    TimeManager(int macro_refinement, int micro_refinement);
 
     /**
      * Run all the methods that setup the solvers of the two scales and couple the data structures.
@@ -84,4 +83,4 @@ private:
 
 };
 
-#endif //DEALIISCALE_MANAGER_H
+#endif //DEALIISCALE_TIME_MANAGER_H

@@ -2,9 +2,9 @@
  * Author: Omar Richardson, Karlstad University, 2019
  */
 
-#include "manager.h"
+#include "time_manager.h"
 
-Manager::Manager(int macro_refinement, int micro_refinement) :
+TimeManager::TimeManager(int macro_refinement, int micro_refinement) :
         pi_solver(),
         rho_solver(),
         time_step(0.1),
@@ -13,7 +13,7 @@ Manager::Manager(int macro_refinement, int micro_refinement) :
     rho_solver.set_refine_level(micro_refinement);
 }
 
-void Manager::setup() {
+void TimeManager::setup() {
     // Create the grids and solution data structures for each grid
     pi_solver.setup();
     rho_solver.set_num_grids(pi_solver.dof_handler.n_dofs());
@@ -35,7 +35,7 @@ void Manager::setup() {
     it = 0;
 }
 
-void Manager::run() {
+void TimeManager::run() {
     double old_residual = 1;
     double residual = 0;
     while (time < final_time) {
@@ -48,13 +48,13 @@ void Manager::run() {
     output_results();
 }
 
-void Manager::iterate() {
+void TimeManager::iterate() {
     pi_solver.iterate();
     rho_solver.iterate(time_step);
     write_plot();
 }
 
-void Manager::compute_residuals(double &old_residual, double &residual) {
+void TimeManager::compute_residuals(double &old_residual, double &residual) {
     double macro_l2 = pi_solver.residual;
     double micro_l2 = rho_solver.residual;
     convergence_table.add_value("iteration", it);
@@ -67,7 +67,7 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
     residual = micro_l2 + macro_l2;
 }
 
-void Manager::write_plot() {
+void TimeManager::write_plot() {
     {
         DataOut<MICRO_DIMENSIONS> data_out;
         data_out.attach_dof_handler(rho_solver.dof_handler);
@@ -86,12 +86,12 @@ void Manager::write_plot() {
     }
 }
 
-void Manager::set_ct_file_name(std::string &file_name) {
+void TimeManager::set_ct_file_name(std::string &file_name) {
     ct_file_name = file_name;
 
 }
 
-void Manager::output_results() {
+void TimeManager::output_results() {
     std::vector<std::string> error_classes = {"mL2", "ML2"};
     for (const std::string &error_class: error_classes) {
         convergence_table.set_precision(error_class, 3);

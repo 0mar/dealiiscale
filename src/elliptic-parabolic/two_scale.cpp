@@ -3,7 +3,7 @@
  */
 
 #include <deal.II/base/logstream.h>
-#include "manager.h"
+#include "time_manager.h"
 #include <cmath>
 
 /**
@@ -16,7 +16,7 @@ int main() {
     std::ofstream ofs;
     ofs.open("results/" + file_name, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    Manager manager(4, 4);
+    TimeManager manager(4, 4);
     manager.set_ct_file_name(file_name);
     manager.setup();
     manager.run();
