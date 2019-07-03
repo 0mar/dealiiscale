@@ -36,7 +36,7 @@ RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), fe(1), macro_solution(
                               R(2.),
                               kappa(1.),
                               p_F(1.),
-                              theta(0.5),
+                              theta(1),
                               integration_order(2) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
     refine_level = 1;
@@ -143,7 +143,7 @@ void RhoSolver<dim>::set_macro_solutions(Vector<double> *_solution, Vector<doubl
 
 template<int dim>
 void RhoSolver<dim>::compute_macroscopic_contribution() {
-    // Nothing needs to happen in this simple case
+    // Nothing needs to happen in this simple case because it is local in x
 }
 
 
