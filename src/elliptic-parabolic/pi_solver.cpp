@@ -78,7 +78,9 @@ void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<dou
     for (unsigned int i = 0; i < pi.size(); i++) {
         const double abs_pi = std::fabs(pi(i));
         out_vector(i) = 0.5 * std::fmin(abs_pi, std::sqrt(abs_pi));
+        printf("%.2f, ", out_vector(i));
     }
+    std::cout << std::endl;
 }
 
 template<int dim>
@@ -96,6 +98,7 @@ void PiSolver<dim>::assemble_system() {
     Vector<double> cell_rhs(dofs_per_cell);
 
     compute_microscopic_contribution();
+    std::cout << " Micro " << micro_contribution << std::endl;
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     system_matrix = 0;
     system_rhs = 0;

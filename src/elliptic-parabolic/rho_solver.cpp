@@ -12,7 +12,7 @@ double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int co
     double val = macro_field[macro_cell_index];
     double pi = 3.141592;
     for (int i = 0; i < dim; i++) {
-        val *= std::cos(pi * p[i]);
+        val *= 1 + std::cos(pi * p[i]);
     }
     return val;
 }
@@ -61,7 +61,7 @@ void RhoSolver<dim>::make_grid() {
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary() and std::fabs(cell->face(face_number)->center()(0) < 0)) {
-                cell->face(face_number)->set_boundary_id(ROBIN_BOUNDARY); // debug
+                cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY); // debug
             } // Else: Robin by default.
         }
     }
@@ -111,11 +111,13 @@ void RhoSolver<dim>::setup_scatter() {
     righthandsides.clear();
     system_matrices.clear();
     compute_macroscopic_contribution();
+    MicroInitCondition<dim> mic;
+    mic.set_macro_field(init_macro_field);
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int i = 0; i < num_grids; i++) {
+        mic.set_macro_cell_index(i);
         Vector<double> solution(n_dofs);
-        MicroInitCondition<dim> mic;
-        mic.set_macro_field(init_macro_field);
+
         VectorTools::interpolate(dof_handler, mic, solution);
         solutions.push_back(solution);
         Vector<double> old_solution(n_dofs);
