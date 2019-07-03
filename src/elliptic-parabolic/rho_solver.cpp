@@ -9,7 +9,7 @@ using namespace dealii;
 
 template<int dim>
 double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int component) const {
-    double a = 2;
+    double a = macro_field[macro_cell_index];
     double val = a; // Todo: This is not dependent on the macroscopic solution yet.
     double pi = 3.141592;
     for (int i = 0; i < dim; i++) {
@@ -20,7 +20,7 @@ double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int co
 
 template<int dim>
 void MicroInitCondition<dim>::set_macro_field(const Vector<double> &field) {
-    this->macro_field = macro_field;
+    this->macro_field = field;
 }
 
 template<int dim>
@@ -42,6 +42,8 @@ RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), fe(1), macro_solution(
     refine_level = 1;
     num_grids = 1;
     integration_order = fe.degree + 1;
+    init_macro_field.reinit(num_grids);
+    init_macro_field = 1;
 }
 
 template<int dim>
@@ -91,6 +93,12 @@ void RhoSolver<dim>::set_refine_level(const int &refinement_level) {
 }
 
 template<int dim>
+void RhoSolver<dim>::set_initial_condition(const Vector<double> &initial_condition) {
+    AssertDimension(initial_condition.size(), num_grids);
+    init_macro_field = initial_condition;
+}
+
+template<int dim>
 void RhoSolver<dim>::refine_grid() {
     triangulation.refine_global(1);
     setup_system();
@@ -107,10 +115,12 @@ void RhoSolver<dim>::setup_scatter() {
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int i = 0; i < num_grids; i++) {
         Vector<double> solution(n_dofs);
-        VectorTools::interpolate(dof_handler, MicroInitCondition<dim>(), solution);
+        MicroInitCondition<dim> mic;
+        mic.set_macro_field(init_macro_field);
+        VectorTools::interpolate(dof_handler, mic, solution);
         solutions.push_back(solution);
         Vector<double> old_solution(n_dofs);
-        VectorTools::interpolate(dof_handler, MicroInitCondition<dim>(), old_solution);
+        VectorTools::interpolate(dof_handler, mic, old_solution);
         old_solutions.push_back(old_solution);
 
         Vector<double> rhs(n_dofs);
@@ -270,6 +280,8 @@ template<int dim>
 void RhoSolver<dim>::set_num_grids(unsigned int _num_grids) {
     this->num_grids = _num_grids;
 }
+
+
 
 // Explicit instantiation
 

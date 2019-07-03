@@ -105,6 +105,8 @@ public:
      */
     void set_refine_level(const int &refinement_level);
 
+    void set_initial_condition(const Vector<double> &initial_condition);
+
     /**
      * Refine the grid by splitting each cell in 2^d new cells.
      */
@@ -182,6 +184,7 @@ private:
     Vector<double> *macro_solution;
     Vector<double> *old_macro_solution;
     Vector<double> macro_contribution;
+    Vector<double> init_macro_field;
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
     std::vector<Vector<double>> righthandsides;
@@ -191,7 +194,7 @@ private:
     double R;
     double kappa;
     double p_F;
-    double theta; // Fixme: I think because of an integration error in rho_solver.cpp:194 I'm stuck here with 1
+    double theta; // Todo: Test thorougly if theta<1 works as well
     int integration_order;
     Vector<double> intermediate_vector;
 };
