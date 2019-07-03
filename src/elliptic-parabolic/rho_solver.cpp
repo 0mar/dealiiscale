@@ -34,7 +34,7 @@ RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), fe(1), macro_solution(
                               diffusion_coefficient(1.),
                               R(2.),
                               kappa(1.),
-                              p_F(1.),
+                              p_F(4.),
                               theta(1),
                               integration_order(2) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
@@ -60,8 +60,9 @@ void RhoSolver<dim>::make_grid() {
     // If we ever use refinement, we have to remark every time we refine the grid.
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-            if (cell->face(face_number)->at_boundary() and std::fabs(cell->face(face_number)->center()(0) < 0)) {
-                cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY); // debug
+            if (cell->face(face_number)->at_boundary() and
+                std::fabs(cell->face(face_number)->center()(0) < 0)) { // Todo: Play with this
+                cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
             } // Else: Robin by default.
         }
     }
