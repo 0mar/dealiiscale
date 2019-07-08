@@ -108,11 +108,6 @@ public:
     void set_initial_condition(const Vector<double> &initial_condition);
 
     /**
-     * Refine the grid by splitting each cell in 2^d new cells.
-     */
-    void refine_grid();
-
-    /**
      * Set the macroscopic solution so that the solver can compute its contribution from it.
      * @param _solution Pointer to the macroscopic solution (so that the content is always up to date).
      * @param _old_solution Pointer to the old macroscopic solution (so that the content is always up to date).
@@ -130,6 +125,8 @@ public:
      * @param _num_grids int with the number of microscopic systems.
      */
     void set_num_grids(const unsigned int _num_grids);
+
+    void patch_micro_solutions(const std::vector<Point<dim>> &locations) const;
 
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
@@ -174,6 +171,8 @@ private:
      * Use the (probably updated) macroscopic data to compute new elements of the microscopic system.
      */
     void compute_macroscopic_contribution();
+
+    Point<dim> get_micro_grid_size(const std::vector<Point<dim>> &locations) const;
 
     const unsigned int ROBIN_BOUNDARY = 0;
     const unsigned int NEUMANN_BOUNDARY = 1;

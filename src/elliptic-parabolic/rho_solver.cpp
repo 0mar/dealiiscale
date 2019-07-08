@@ -8,7 +8,7 @@
 using namespace dealii;
 
 template<int dim>
-double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int component) const {
+double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int) const {
     double val = macro_field[macro_cell_index];
     double pi = 3.141592;
     for (int i = 0; i < dim; i++) {
@@ -96,13 +96,6 @@ template<int dim>
 void RhoSolver<dim>::set_initial_condition(const Vector<double> &initial_condition) {
     AssertDimension(initial_condition.size(), num_grids);
     init_macro_field = initial_condition;
-}
-
-template<int dim>
-void RhoSolver<dim>::refine_grid() {
-    triangulation.refine_global(1);
-    setup_system();
-    setup_scatter();
 }
 
 template<int dim>
@@ -279,8 +272,48 @@ void RhoSolver<dim>::iterate(const double &time_step) {
 }
 
 template<int dim>
+void RhoSolver<dim>::patch_micro_solutions(const std::vector<Point<dim>> &locations) const {
+    std::ofstream output("results/patched-micro-solution.gpl");
+    Point<dim> micro_size = 2 * get_micro_grid_size(locations);
+    Point<dim> down_left;
+    Point<dim> up_right;
+    for (unsigned int i = 0; i < dim; i++) {
+        down_left(i) = -0.5 * micro_size(i);
+        up_right(i) = 0.5 * micro_size(i);
+    }
+    for (unsigned int i = 0; i < locations.size(); i++) {
+        Triangulation<dim> mapped_tria;
+        GridGenerator::hyper_rectangle(mapped_tria, down_left + locations.at(i), up_right + locations.at(i));
+        mapped_tria.refine_global(refine_level);
+        DoFHandler<dim> mapped_dof_handler(mapped_tria);
+        mapped_dof_handler.distribute_dofs(fe);
+        DataOut<dim> data_out;
+
+        data_out.attach_dof_handler(mapped_dof_handler);
+        data_out.add_data_vector(solutions.at(i), "solution");
+        data_out.build_patches();
+        data_out.write_gnuplot(output);
+    }
+    output.close();
+}
+
+template<int dim>
 void RhoSolver<dim>::set_num_grids(unsigned int _num_grids) {
     this->num_grids = _num_grids;
+}
+
+template<int dim>
+Point<dim> RhoSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &locations) const {
+    // Only implemented for rectangular non-refined grids!
+    // For more complex meshes we will have to think of something smart
+    double side_length = std::pow(locations.size(), 1.0 / dim);
+    double eps = 1E-5;
+    Assert(std::fmod(side_length, 1) < eps, ExcNotMultiple(side_length, 1))
+    Point<dim> size;
+    for (unsigned int i = 0; i < dim; i++) {
+        size(i) = 1. / (int(side_length) - 1);
+    }
+    return size;
 }
 
 
