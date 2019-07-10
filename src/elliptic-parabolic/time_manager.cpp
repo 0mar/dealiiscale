@@ -45,6 +45,13 @@ void TimeManager::run() {
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
         time += time_step;
         it++;
+        if (it==10) {
+            printf("Storing patched micro and corresponding macro solutions at time %.2f\n",time);
+            std::vector<Point<2>> locations;
+            pi_solver.get_dof_locations(locations);
+            rho_solver.patch_micro_solutions(locations);
+            output_results();
+        }
     }
     output_results();
 }
