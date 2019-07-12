@@ -317,6 +317,67 @@ Point<dim> RhoSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &lo
 }
 
 
+template<int dim>
+void RhoSolver<dim>::write_solution_to_file(const std::string &filename, const Vector<double> &sol,
+                                            const DoFHandler<dim> &corr_dof_handler) {
+    std::ofstream output(filename);
+    output << refine_level << std::endl;
+    std::vector<Point<dim>> locations;
+    locations.resize(dof_handler.n_dofs());
+    DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
+    AssertDimension(locations.size(), sol.size())
+    for (unsigned int i = 0; i < sol.size(); i++) {
+        output << sol(i);
+        for (unsigned int j = 0; j < dim; j++) {
+            output << " " << locations[i](j);
+        }
+        output << std::endl;
+    }
+    output.close();
+}
+
+template<int dim>
+void RhoSolver<dim>::read_solution_from_file(const std::string &filename, Vector<double> &sol,
+                                             DoFHandler<dim> &corr_dof_handler) {
+    std::ifstream input(filename);
+    int refine_lvl;
+    std::string line;
+    std::getline(input, line);
+    std::istringstream iss(line);
+    iss >> refine_lvl;
+    Triangulation<dim> tria;
+    DoFHandler<dim> new_dof_handler(tria);
+    GridGenerator::hyper_cube(tria, -1, 1);
+    tria.refine_global(refine_lvl);
+    new_dof_handler.distribute_dofs(fe);
+    std::vector<Point<dim>> locations(new_dof_handler.n_dofs());
+    DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
+    sol.reinit(locations.size());
+    std::vector<Point<dim>> check_locations(sol.size());
+    for (unsigned int i = 0; i < sol.size(); i++) {
+        std::getline(input, line);
+        double val;
+        std::istringstream iss1(line);
+        iss1 >> val;
+        Point<dim> point;
+        for (unsigned int j = 0; j < dim; j++) {
+            iss1 >> point(j);
+        }
+        check_locations.at(i) = point;
+    }
+    std::getline(input, line);
+    Assert(line.empty(), ExcInternalError("Too many locations in file"))
+    input.close();
+    // Check if the points match
+    bool is_correct = true;
+    double eps = 1E-4;
+    for (unsigned int i = 0; i < check_locations.size(); i++) {
+        for (unsigned int j = 0; j < dim; j++) {
+            is_correct &= std::fabs(check_locations.at(i)[j] - locations.at(i)[j]) < eps;
+        }
+    }
+}
+
 
 // Explicit instantiation
 

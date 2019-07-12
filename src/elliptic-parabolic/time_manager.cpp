@@ -54,6 +54,9 @@ void TimeManager::run() {
         }
     }
     output_results();
+    rho_solver.write_solution_to_file("results/test_rho.txt", rho_solver.solutions.at(0), rho_solver.dof_handler);
+    Vector<double> vec;
+    rho_solver.read_solution_from_file("results/test_rho.txt", vec, rho_solver.dof_handler);
 }
 
 void TimeManager::iterate() {

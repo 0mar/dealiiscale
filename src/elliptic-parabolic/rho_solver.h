@@ -128,6 +128,12 @@ public:
 
     void patch_micro_solutions(const std::vector<Point<dim>> &locations) const;
 
+    void write_solution_to_file(const std::string &filename, const Vector<double> &sol,
+                                const DoFHandler<dim> &corr_dof_handler);
+
+    void read_solution_from_file(const std::string &filename, Vector<double> &sol, DoFHandler<dim> &corr_dof_handler);
+
+
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
