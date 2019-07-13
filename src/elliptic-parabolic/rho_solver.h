@@ -128,7 +128,7 @@ public:
 
     void patch_micro_solutions(const std::vector<Point<dim>> &locations) const;
 
-    void write_solutions_to_file(const std::string &filename, const std::vector<Vector<double>> &sols,
+    void write_solutions_to_file(const std::vector<Vector<double>> &sols,
                                  const DoFHandler<dim> &corr_dof_handler);
 
     void read_solutions_from_file(const std::string &filename, std::vector<Vector<double>> &sols,

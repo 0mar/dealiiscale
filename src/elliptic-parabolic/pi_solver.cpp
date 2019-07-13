@@ -260,8 +260,10 @@ void PiSolver<dim>::iterate() {
 }
 
 template<int dim>
-void PiSolver<dim>::write_solution_to_file(const std::string &filename, const Vector<double> &sol,
+void PiSolver<dim>::write_solution_to_file(const Vector<double> &sol,
                                            const DoFHandler<dim> &corr_dof_handler) {
+    const std::string filename="results/test_pi_"+std::to_string(refine_level)+".txt";
+
     std::ofstream output(filename);
     output << refine_level << std::endl;
     std::vector<Point<dim>> locations;

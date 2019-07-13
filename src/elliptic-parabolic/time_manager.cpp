@@ -54,8 +54,8 @@ void TimeManager::run() {
         }
     }
     output_results();
-    pi_solver.write_solution_to_file("results/test_rho.txt", pi_solver.solution, pi_solver.dof_handler);
-    rho_solver.write_solutions_to_file("results/test_rho.txt", rho_solver.solutions, rho_solver.dof_handler);
+    pi_solver.write_solution_to_file(pi_solver.solution, pi_solver.dof_handler);
+    rho_solver.write_solutions_to_file(rho_solver.solutions, rho_solver.dof_handler);
 }
 
 

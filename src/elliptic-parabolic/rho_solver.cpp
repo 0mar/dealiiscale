@@ -311,8 +311,9 @@ Point<dim> RhoSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &lo
 
 
 template<int dim>
-void RhoSolver<dim>::write_solutions_to_file(const std::string &filename, const std::vector<Vector<double>> &sols,
+void RhoSolver<dim>::write_solutions_to_file(const std::vector<Vector<double>> &sols,
                                              const DoFHandler<dim> &corr_dof_handler) {
+    const std::string filename="results/test_rho_"+std::to_string(refine_level)+".txt";
     std::ofstream output(filename);
     output << refine_level << std::endl;
     std::vector<Point<dim>> locations;
