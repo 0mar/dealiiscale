@@ -37,7 +37,7 @@ RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), fe(1), macro_solution(
                               p_F(4.),
                               theta(1),
                               integration_order(2) {
-    std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
+    printf("Solving micro problem in %d space dimensions\n",dim);
     refine_level = 1;
     num_grids = 1;
     integration_order = fe.degree + 1;
@@ -54,7 +54,6 @@ void RhoSolver<dim>::setup() {
 
 template<int dim>
 void RhoSolver<dim>::make_grid() {
-    std::cout << "Setting up micro grid" << std::endl;
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
     // If we ever use refinement, we have to remark every time we refine the grid.
@@ -66,17 +65,13 @@ void RhoSolver<dim>::make_grid() {
             } // Else: Robin by default.
         }
     }
-
-    std::cout << " Number of active cells: " << triangulation.n_active_cells() << std::endl;
+    printf("%d active micro cells\n",triangulation.n_active_cells());
 }
 
 template<int dim>
 void RhoSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-
-    std::cout << "   Number of degrees of freedom: "
-              << dof_handler.n_dofs()
-              << std::endl;
+    printf("%d micro DoFs\n",dof_handler.n_dofs());
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
@@ -233,9 +228,7 @@ void RhoSolver<dim>::solve_time_step() {
     for (unsigned int k = 0; k < num_grids; k++) {
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
     }
-    std::cout << "   " << solver_control.last_step()
-              << " CG iterations needed to obtain convergence."
-              << std::endl;
+    printf("\t %d CG iterations to convergence (micro)\n",solver_control.last_step());
     compute_residual();
     old_solutions = solutions;
 }

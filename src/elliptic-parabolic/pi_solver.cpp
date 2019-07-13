@@ -27,7 +27,7 @@ PiSolver<dim>::PiSolver():dof_handler(triangulation), fe(1), micro_dof_handler(n
     refine_level = 1;
     residual = 1;
     integration_order = fe.degree + 1;
-}
+    printf("Solving macro problem in %d space dimensions\n",dim);}
 
 template<int dim>
 void PiSolver<dim>::setup() {
@@ -44,18 +44,15 @@ template<int dim>
 void PiSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
+    printf("%d active macro cells\n",triangulation.n_active_cells());
 
-//    std::cout << "   Number of active cells: "
-//              << triangulation.n_active_cells()
-//              << std::endl
 }
 
 template<int dim>
 void PiSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-//    std::cout << "   Number of degrees of freedom: "
-//              << dof_handler.n_dofs()
-//              << std::endl;
+    printf("%d macro DoFs\n",dof_handler.n_dofs());
+
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
@@ -155,7 +152,7 @@ void PiSolver<dim>::solve() {
     SolverControl solver_control(1000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
-    printf("Convergence after %d CG iterations\n", solver_control.last_step());
+    printf("\t %d CG iterations to convergence (macro)\n",solver_control.last_step());
     compute_residual();
     old_solution = solution;
 }
