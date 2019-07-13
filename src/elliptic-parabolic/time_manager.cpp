@@ -54,9 +54,8 @@ void TimeManager::run() {
         }
     }
     output_results();
+    pi_solver.write_solution_to_file("results/test_rho.txt", pi_solver.solution, pi_solver.dof_handler);
     rho_solver.write_solutions_to_file("results/test_rho.txt", rho_solver.solutions, rho_solver.dof_handler);
-    std::vector<Vector<double>> vecs;
-    rho_solver.read_solutions_from_file("results/test_rho.txt", vecs, rho_solver.dof_handler);
 }
 
 

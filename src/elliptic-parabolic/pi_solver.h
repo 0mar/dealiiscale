@@ -118,6 +118,10 @@ public:
 
     void get_initial_condition(Vector<double> &initial);
 
+    void write_solution_to_file(const std::string &filename, const Vector<double> &sol,
+                                const DoFHandler<dim> &corr_dof_handler);
+
+    void read_solution_from_file(const std::string &filename, Vector<double> &sol, DoFHandler<dim> &corr_dof_handler);
 
     Vector<double> solution;
     Vector<double> old_solution;
