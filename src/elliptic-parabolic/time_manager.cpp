@@ -54,10 +54,11 @@ void TimeManager::run() {
         }
     }
     output_results();
-    rho_solver.write_solution_to_file("results/test_rho.txt", rho_solver.solutions.at(0), rho_solver.dof_handler);
-    Vector<double> vec;
-    rho_solver.read_solution_from_file("results/test_rho.txt", vec, rho_solver.dof_handler);
+    rho_solver.write_solutions_to_file("results/test_rho.txt", rho_solver.solutions, rho_solver.dof_handler);
+    std::vector<Vector<double>> vecs;
+    rho_solver.read_solutions_from_file("results/test_rho.txt", vecs, rho_solver.dof_handler);
 }
+
 
 void TimeManager::iterate() {
     pi_solver.iterate();

@@ -318,16 +318,18 @@ Point<dim> RhoSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &lo
 
 
 template<int dim>
-void RhoSolver<dim>::write_solution_to_file(const std::string &filename, const Vector<double> &sol,
-                                            const DoFHandler<dim> &corr_dof_handler) {
+void RhoSolver<dim>::write_solutions_to_file(const std::string &filename, const std::vector<Vector<double>> &sols,
+                                             const DoFHandler<dim> &corr_dof_handler) {
     std::ofstream output(filename);
     output << refine_level << std::endl;
     std::vector<Point<dim>> locations;
     locations.resize(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
-    AssertDimension(locations.size(), sol.size())
-    for (unsigned int i = 0; i < sol.size(); i++) {
-        output << sol(i);
+    for (unsigned int i = 0; i < locations.size(); i++) {
+        for (const Vector<double> &sol: sols) {
+            AssertDimension(locations.size(), sol.size())
+            output << sol(i) << " ";
+        }
         for (unsigned int j = 0; j < dim; j++) {
             output << " " << locations[i](j);
         }
@@ -337,8 +339,8 @@ void RhoSolver<dim>::write_solution_to_file(const std::string &filename, const V
 }
 
 template<int dim>
-void RhoSolver<dim>::read_solution_from_file(const std::string &filename, Vector<double> &sol,
-                                             DoFHandler<dim> &corr_dof_handler) {
+void RhoSolver<dim>::read_solutions_from_file(const std::string &filename, std::vector<Vector<double>> &sols,
+                                              DoFHandler<dim> &corr_dof_handler) {
     std::ifstream input(filename);
     int refine_lvl;
     std::string line;
@@ -352,13 +354,17 @@ void RhoSolver<dim>::read_solution_from_file(const std::string &filename, Vector
     new_dof_handler.distribute_dofs(fe);
     std::vector<Point<dim>> locations(new_dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
-    sol.reinit(locations.size());
-    std::vector<Point<dim>> check_locations(sol.size());
-    for (unsigned int i = 0; i < sol.size(); i++) {
+    std::vector<Point<dim>> check_locations(locations.size());
+    sols.resize(num_grids);
+    for (unsigned int k = 0; k < num_grids; k++) {
+        sols.at(k) = Vector<double>(locations.size());
+    }
+    for (unsigned int i = 0; i < locations.size(); i++) {
         std::getline(input, line);
-        double val;
         std::istringstream iss1(line);
-        iss1 >> val;
+        for (unsigned int k = 0; k < num_grids; k++) {
+            iss1 >> sols.at(k)(i);
+        }
         Point<dim> point;
         for (unsigned int j = 0; j < dim; j++) {
             iss1 >> point(j);
