@@ -223,7 +223,7 @@ void RhoSolver<dim>::assemble_system() {
 
 template<int dim>
 void RhoSolver<dim>::solve_time_step() {
-    SolverControl solver_control(1000, 1e-12);
+    SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     for (unsigned int k = 0; k < num_grids; k++) {
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());

@@ -149,7 +149,7 @@ void PiSolver<dim>::interpolate_function(const Vector<double> &func, Vector<doub
 
 template<int dim>
 void PiSolver<dim>::solve() {
-    SolverControl solver_control(1000, 1e-12);
+    SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
     printf("\t %d CG iterations to convergence (macro)\n",solver_control.last_step());
