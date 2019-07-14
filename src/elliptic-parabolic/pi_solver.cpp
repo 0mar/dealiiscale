@@ -23,7 +23,7 @@ Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned 
 
 template<int dim>
 PiSolver<dim>::PiSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
-                          boundary(), integration_order(2), diffusion_coefficient(1), max_support(10) {
+                          boundary(), integration_order(2), diffusion_coefficient(0.8), max_support(10) {
     refine_level = 1;
     residual = 1;
     integration_order = fe.degree + 1;
