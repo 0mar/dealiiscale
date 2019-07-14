@@ -75,3 +75,6 @@ deal_II_setup_target(integration)
 
 add_executable(dof_mapper ${DEMO_DIR}/dof_mapper.cpp)
 deal_II_setup_target(dof_mapper)
+
+add_executable(compare_solutions ${DEMO_DIR}/compare_solutions.cpp)
+deal_II_setup_target(compare_solutions)
