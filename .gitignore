@@ -11,6 +11,7 @@ step-*
 *.txt
 *.pdf
 *.gpl
+*.vtk
 *.log
 *.aux
 *fdb_latexmk
