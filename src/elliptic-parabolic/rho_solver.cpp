@@ -89,7 +89,7 @@ void RhoSolver<dim>::set_refine_level(const int &refinement_level) {
 
 template<int dim>
 void RhoSolver<dim>::set_initial_condition(const Vector<double> &initial_condition) {
-    AssertDimension(initial_condition.size(), num_grids);
+    AssertDimension(initial_condition.size(), num_grids)
     init_macro_field = initial_condition;
 }
 

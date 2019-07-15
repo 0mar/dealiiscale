@@ -93,10 +93,21 @@ public:
 
     Vector<double> solution;
 
+    /**
+     * Compute an error estimate using the SolutionTransfer object.
+     * Requires a single triangulation that will be refined on return (so this is not a const method)
+     * @param _refine_level how fine the finest solution is
+     * @param finest_solution Vector with solution value
+     */
     void compare_with_finest(unsigned int _refine_level, const Vector<double> &finest_solution);
 
-    void compare_with_finest(unsigned int _refine_level, const Vector<double> &finest_solution,
-                             const DoFHandler<2> &finest_dof_handler);
+    /**
+     * Compute an error estimate using the interpolate_between_different_meshes method.
+     * Requires the fine DoFhandler of a similar triangulation. This method can be const
+     * @param finest_solution Vector with solution value
+     * @param finest_dof_handler Corresponding DoFHandler
+     */
+    void compare_with_finest(const Vector<double> &finest_solution, const DoFHandler<2> &finest_dof_handler);
 
 private:
     void make_grid();
@@ -281,11 +292,9 @@ void SolutionComparer::compare_with_finest(unsigned int _refine_level, const Vec
 
 }
 
-void SolutionComparer::compare_with_finest(unsigned int _refine_level, const Vector<double> &finest_solution,
+void SolutionComparer::compare_with_finest(const Vector<double> &finest_solution,
                                            const DoFHandler<2> &finest_dof_handler) {
     const int dim = 2;
-    int spare_refine = _refine_level - refine_level;
-    printf("Refining with %d extra levels\n", spare_refine);
     Vector<double> extrapolated_solution(finest_dof_handler.n_dofs());
     VectorTools::interpolate_to_different_mesh(dof_handler, solution, finest_dof_handler, extrapolated_solution);
     Vector<double> difference(finest_solution);
@@ -309,8 +318,6 @@ void SolutionComparer::compare_with_finest(unsigned int _refine_level, const Vec
     convergence_table.add_value("dofs", n_dofs);
     convergence_table.add_value("L2", L2_error);
     convergence_table.add_value("H1", H1_error);
-
-
 }
 
 void SolutionComparer::run() {
