@@ -109,7 +109,7 @@ RobinSolver::RobinSolver() :
         fe(1),
         dof_handler(triangulation),
         cycle(0),
-        sol_base("input/parsing.prm"){
+        sol_base("input/parsing_example.prm"){
     make_grid();
 }
 
