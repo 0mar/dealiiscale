@@ -43,16 +43,6 @@ target_link_libraries(test_elliptic_separate single_scale)
 
 set(PLOT_NOTEBOOK plot_convergence.ipynb)
 
-# Create result directory
-add_custom_command(TARGET test_elliptic_separate solve_elliptic POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-        ${CMAKE_CURRENT_BINARY_DIR}/results)
-# Run everytime we make
-add_custom_command(TARGET test_elliptic_separate solve_elliptic POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/results
-        ${CMAKE_CURRENT_BINARY_DIR}/results)
-
 add_executable(solve_parabolic ${PARABOLIC_DIR}/two_scale.cpp)
 deal_II_setup_target(solve_parabolic)
 target_link_libraries(solve_parabolic parabolic)
@@ -78,3 +68,26 @@ deal_II_setup_target(dof_mapper)
 
 add_executable(compare_solutions ${DEMO_DIR}/compare_solutions.cpp)
 deal_II_setup_target(compare_solutions)
+
+add_executable(parsing ${DEMO_DIR}/parsing.cpp)
+deal_II_setup_target(parsing)
+
+# Create result directory
+add_custom_command(TARGET test_elliptic_separate solve_elliptic POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${CMAKE_CURRENT_BINARY_DIR}/results)
+# Run everytime we make
+add_custom_command(TARGET test_elliptic_separate solve_elliptic POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/results
+        ${CMAKE_CURRENT_BINARY_DIR}/results)
+
+# Create input directory
+add_custom_command(TARGET test_elliptic_separate solve_elliptic parsing POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        ${CMAKE_CURRENT_BINARY_DIR}/input)
+# Run everytime we make
+add_custom_command(TARGET test_elliptic_separate solve_elliptic parsing POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/input
+        ${CMAKE_CURRENT_BINARY_DIR}/input)
