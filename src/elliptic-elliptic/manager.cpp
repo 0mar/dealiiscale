@@ -12,9 +12,10 @@ Manager::Manager(int macro_refinement, int micro_refinement) : macro_solver(), m
 void Manager::setup() {
     // Create the grids and solution data structures for each grid
     macro_solver.setup();
-    micro_solver.set_num_grids(macro_solver.dof_handler.n_dofs());
+    std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
+    macro_solver.get_dof_locations(dof_locations);
+    micro_solver.set_grid_locations(dof_locations);
     micro_solver.setup();
-    micro_solver.set_macro_boundary_condition(macro_solver.get_exact_solution());
     // Couple the macro structures with the micro structures.
     micro_solver.set_macro_solution(&macro_solver.solution, &macro_solver.dof_handler);
     macro_solver.set_micro_solutions(&micro_solver.solutions, &micro_solver.dof_handler);
