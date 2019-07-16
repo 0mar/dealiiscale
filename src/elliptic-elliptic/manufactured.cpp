@@ -17,7 +17,7 @@ int main() {
     ofs.open("results/" + file_name, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
     for (unsigned int i = 2; i < 5; i++) {
-        Manager manager(i, i);
+        Manager manager(i, i, "input/data.prm");
         manager.set_ct_file_name(file_name);
         manager.setup();
         manager.run();
