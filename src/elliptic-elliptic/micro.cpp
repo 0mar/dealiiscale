@@ -6,29 +6,15 @@
 #include "micro.h"
 #include "macro.h"
 
-using namespace dealii;
-
 
 template<int dim>
-MicroProblemData<dim>::MicroProblemData(const std::string &param_file) {
-    params.declare_entry("geometry", "[0,1]x[0,1]", Patterns::Anything());
-    params.declare_entry("rhs", "0", Patterns::Anything());
-    params.declare_entry("solution", "cos(x0)*cos(x1)*(y0*y0+y1*y1)", Patterns::Anything());
-    params.declare_entry("bc", "cos(x0)*cos(x1)*(y0*y0+y1*y1)", Patterns::Anything());
-    params.parse_input(param_file);
-    std::map<std::string, double> constants;
-    rhs.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("rhs"), constants);
-    bc.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("bc"), constants);
-    solution.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("solution"), constants);
-}
-
-
-template<int dim>
-MicroSolver<dim>::MicroSolver():  dof_handler(triangulation), pde_data("input/micro_data.prm"), fe(1),
-                                  macro_solution(nullptr),
-                                  macro_dof_handler(nullptr) {
+MicroSolver<dim>::MicroSolver(MicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
+                                                                                       refine_level(refine_level),
+                                                                                       fe(1),
+                                                                                       macro_solution(nullptr),
+                                                                                       macro_dof_handler(nullptr),
+                                                                                       pde_data(micro_data) {
     std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
-    refine_level = 1;
     num_grids = 1;
 }
 
@@ -61,11 +47,6 @@ void MicroSolver<dim>::setup_system() {
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
-}
-
-template<int dim>
-void MicroSolver<dim>::set_refine_level(int refinement_level) {
-    this->refine_level = refinement_level;
 }
 
 template<int dim>

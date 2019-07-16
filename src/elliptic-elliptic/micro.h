@@ -30,8 +30,6 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/numerics/error_estimator.h>
-#include <deal.II/base/function_parser.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <fstream>
 #include <iostream>
@@ -40,22 +38,9 @@
 #include <cmath>
 #include <stdlib.h>
 #include <deal.II/base/logstream.h>
-#include "../tools/multiscale_function_parser.h"
+#include "../tools/pde_data.h"
 using namespace dealii;
 
-
-template<int dim>
-class MicroProblemData {
-public:
-    MicroProblemData(const std::string &param_file);
-
-    MultiscaleFunctionParser<dim> solution;
-    MultiscaleFunctionParser<dim> rhs;
-    MultiscaleFunctionParser<dim> bc;
-    ParameterHandler params;
-private:
-
-};
 
 template<int dim>
 class MicroSolver {
@@ -64,7 +49,7 @@ public:
     /**
      * Create a Microsolver that resolves the microscopic systems.
      */
-    MicroSolver();
+    MicroSolver(MicroData<dim> &micro_data, unsigned int refine_level);
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -77,17 +62,11 @@ public:
     void run();
 
     /**
-     * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
-     * @param refine_level number of bisections of the grid.
-     */
-    void set_refine_level(int refinement_level);
-
-    /**
      * Set the macroscopic solution so that the solver can compute its contribution from it.
      * @param _solution Pointer to the macroscopic solution (so that the content is always up to date).
      * @param _dof_handler pointer to the DoF handler.
      */
-    void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler);
+    void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler); // todo: make reference here.
 
     /**
      * Post-process the solution (write convergence estimates and other stuff)
@@ -141,7 +120,6 @@ private:
      */
     void compute_macroscopic_contribution();
 
-    MicroProblemData<dim> pde_data;
     /**
      * The level of refinement (every +1 means a bisection)
      */
@@ -154,7 +132,8 @@ private:
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
     std::vector<Vector<double>> righthandsides;
-    std::vector<Point<dim>> grid_locations;
+    std::vector<Point<dim>> grid_locations; // Todo: Implement references
+    MicroData<dim> &pde_data;
 };
 
 #endif //MICRO_H

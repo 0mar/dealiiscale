@@ -9,35 +9,17 @@ using namespace dealii;
 
 
 template<int dim>
-ProblemData<dim>::ProblemData(const std::string &param_file) {
-    params.declare_entry("lambda", "1.633", Patterns::Double(), "Boundary constant");
-    params.declare_entry("geometry", "[0,1]x[0,1]", Patterns::Anything());
-    params.declare_entry("rhs", "0", Patterns::Anything());
-    params.declare_entry("solution", "sin(lambda*x) + cos(lambda*y)", Patterns::Anything());
-    params.declare_entry("bc", "sin(lambda*x) + cos(lambda*y)", Patterns::Anything());
-    params.parse_input(param_file);
-    std::map<std::string, double> constants;
-    constants["lambda"] = params.get_double("lambda");
-    rhs.initialize(FunctionParser<dim>::default_variable_names(), params.get("rhs"), constants);
-    bc.initialize(FunctionParser<dim>::default_variable_names(), params.get("bc"), constants);
-    solution.initialize(FunctionParser<dim>::default_variable_names(), params.get("solution"), constants);
-}
-
-template<int dim>
-MacroSolver<dim>::MacroSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
-                                pde_data("input/macro_data.prm") {
-    refine_level = 1;
+MacroSolver<dim>::MacroSolver(MacroData<dim> &macro_data, unsigned int refine_level):dof_handler(triangulation),
+                                                                                     pde_data(macro_data), fe(1),
+                                                                                     micro_dof_handler(nullptr),
+                                                                                     micro_solutions(nullptr),
+                                                                                     refine_level(refine_level) {
 }
 
 template<int dim>
 void MacroSolver<dim>::setup() {
     make_grid();
     setup_system();
-}
-
-template<int dim>
-void MacroSolver<dim>::set_refine_level(int num_bisections) {
-    this->refine_level = num_bisections;
 }
 
 template<int dim>

@@ -40,21 +40,9 @@
 #include <cmath>
 #include <stdlib.h>
 #include <deal.II/base/logstream.h>
+#include "../tools/pde_data.h"
 
 using namespace dealii;
-
-template<int dim>
-class ProblemData {
-public:
-    ProblemData(const std::string &param_file);
-
-    FunctionParser<dim> solution;
-    FunctionParser<dim> rhs;
-    FunctionParser<dim> bc;
-    ParameterHandler params;
-private:
-
-};
 
 
 template<int dim>
@@ -64,7 +52,7 @@ public:
      * Create and run a macroscopic solver with the given resolution (number of unit square bisections)
      * @param refine_level Number of macroscopic and microscopic bisections.
      */
-    MacroSolver();
+    MacroSolver(MacroData<dim> &macro_data, unsigned int refine_level);
 
     /**
      * All the methods that setup the system.
@@ -101,12 +89,6 @@ public:
     Vector<double> get_exact_solution();
 
     void get_dof_locations(std::vector<Point<dim>> &locations);
-
-    /**
-     * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
-     * @param refine_level number of bisections of the grid.
-     */
-    void set_refine_level(int num_bisections);
 
     Vector<double> solution;
     Triangulation<dim> triangulation;
@@ -154,6 +136,8 @@ private:
      */
     void solve();
 
+    MacroData<dim> pde_data;
+
     FE_Q<dim> fe;
 
     SparsityPattern sparsity_pattern;
@@ -162,7 +146,6 @@ private:
     Vector<double> system_rhs;
     Vector<double> micro_contribution;
     std::vector<Vector<double>> *micro_solutions;
-    ProblemData<dim> pde_data;
     int refine_level;
 
 };

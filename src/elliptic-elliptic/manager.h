@@ -7,6 +7,7 @@
 
 #include "micro.h"
 #include "macro.h"
+#include "../tools/pde_data.h"
 
 
 
@@ -15,6 +16,7 @@ class Manager {
 public:
     const static int MACRO_DIMENSIONS = 2;
     const static int MICRO_DIMENSIONS = 2;
+    MultiscaleData<MACRO_DIMENSIONS> data;
     MacroSolver<MACRO_DIMENSIONS> macro_solver;
     MicroSolver<MICRO_DIMENSIONS> micro_solver;
     int repetitions;
@@ -23,8 +25,9 @@ public:
      * Class that facilitates the interaction between the microscopic and macroscopic solvers.
      * @param macro_refinement Resolution of the macro solver.
      * @param micro_refinement Resolution of the micro solver.
+     * @param data_file String that contains the name of a data file.
      */
-    Manager(int macro_refinement, int micro_refinement);
+    Manager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file);
 
     /**
      * Run all the methods that setup the solvers of the two scales.
@@ -73,9 +76,5 @@ private:
     ConvergenceTable convergence_table;
 
 };
-
-
-
-
 
 #endif //DEALIISCALE_MANAGER_H

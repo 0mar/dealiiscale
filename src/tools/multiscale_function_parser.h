@@ -399,7 +399,6 @@ DEAL_II_NAMESPACE_OPEN
         return "";
     }
 
-
 DEAL_II_NAMESPACE_CLOSE
 
 #endif

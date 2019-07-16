@@ -4,9 +4,8 @@
 
 #include "manager.h"
 
-Manager::Manager(int macro_refinement, int micro_refinement) : macro_solver(), micro_solver() {
-    macro_solver.set_refine_level(macro_refinement);
-    micro_solver.set_refine_level(micro_refinement);
+Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file) : data(
+        data_file), macro_solver(data.macro, macro_refinement), micro_solver(data.micro, micro_refinement) {
 }
 
 void Manager::setup() {
@@ -33,7 +32,6 @@ void Manager::run() {
     double old_residual = 1;
     double residual = 0;
     while (std::fabs(old_residual - residual) > eps) {
-        // Todo: Interpolate from midpoint to Gaussian
         fixed_point_iterate();
         compute_residuals(old_residual, residual);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
