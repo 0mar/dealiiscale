@@ -30,6 +30,8 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/numerics/error_estimator.h>
+#include <deal.II/base/function_parser.h>
+#include <deal.II/base/parameter_handler.h>
 
 #include <fstream>
 #include <iostream>
@@ -42,32 +44,16 @@
 using namespace dealii;
 
 template<int dim>
-class MacroBoundary : public Function<dim> {
+class ProblemData {
 public:
-    MacroBoundary() : Function<dim>() {
+    ProblemData(const std::string &param_file);
 
-    }
-
-    /**
-     * Creates a macroscopic boundary (only Dirichlet at this point)
-     * @param p The point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return Value of the microscopic boundary condition at p
-     */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-
-    /**
-     * Compute the analytic gradient of the boundary at point p. Necessary for Robin/Neumann boundary conditions and
-     * exact evaluation of the error.
-     * @param p The nD point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return gradient of the microscopic boundary condition at p
-    */
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
-
+    FunctionParser<dim> solution;
+    FunctionParser<dim> rhs;
+    FunctionParser<dim> bc;
+    ParameterHandler params;
 private:
-    const double lambda = std::sqrt(8. / 3.); // Coming from manufactured problem
+
 };
 
 
@@ -176,7 +162,7 @@ private:
     Vector<double> system_rhs;
     Vector<double> micro_contribution;
     std::vector<Vector<double>> *micro_solutions;
-    MacroBoundary<dim> boundary;
+    ProblemData<dim> pde_data;
     int refine_level;
 
 };
