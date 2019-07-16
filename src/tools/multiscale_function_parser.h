@@ -5,7 +5,6 @@
 #ifndef DEALIISCALE_MULTISCALEFUNCTIONPARSER_H
 #define DEALIISCALE_MULTISCALEFUNCTIONPARSER_H
 
-
 #include <deal.II/base/config.h>
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/auto_derivative_function.h>
