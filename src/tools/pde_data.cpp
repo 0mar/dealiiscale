@@ -20,15 +20,16 @@ MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(param
 
     // Now I introduce a copy. Apart from pointers (this is a read only object), is there another way?
     std::map<std::string, double> constants;
-    macro.rhs.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("macro_rhs"), constants);
-    macro.bc.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("macro_bc"), constants);
-    macro.solution.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("macro_solution"),
+    macro.rhs.initialize(FunctionParser<dim>::default_variable_names(), params.get("macro_rhs"), constants);
+    macro.bc.initialize(FunctionParser<dim>::default_variable_names(), params.get("macro_bc"), constants);
+    macro.solution.initialize(FunctionParser<dim>::default_variable_names(), params.get("macro_solution"),
                               constants);
 
     constants["lambda"] = params.get_double("lambda");
-    micro.rhs.initialize(FunctionParser<dim>::default_variable_names(), params.get("micro_rhs"), constants);
-    micro.bc.initialize(FunctionParser<dim>::default_variable_names(), params.get("micro_bc"), constants);
-    micro.solution.initialize(FunctionParser<dim>::default_variable_names(), params.get("micro_solution"), constants);
+    micro.rhs.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("micro_rhs"), constants);
+    micro.bc.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("micro_bc"), constants);
+    micro.solution.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("micro_solution"),
+                              constants);
 }
 
 // Explicit instantiation
