@@ -133,7 +133,7 @@ private:
      */
     void solve();
 
-    MacroData<dim> pde_data;
+    MacroData<dim> &pde_data;
 
     FE_Q<dim> fe;
 
