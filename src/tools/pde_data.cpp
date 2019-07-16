@@ -7,14 +7,14 @@ template<int dim>
 MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(params), micro(params) {
     params.declare_entry("macro_geometry", "[0,1]x[0,1]", Patterns::Anything());
     params.declare_entry("macro_rhs", "0", Patterns::Anything());
-    params.declare_entry("macro_solution", "cos(x0)*cos(x1)*(y0*y0+y1*y1)", Patterns::Anything());
-    params.declare_entry("macro_bc", "cos(x0)*cos(x1)*(y0*y0+y1*y1)", Patterns::Anything());
+    params.declare_entry("macro_solution", "sin(lambda*x) + cos(lambda*y)", Patterns::Anything());
+    params.declare_entry("macro_bc", "sin(lambda*x) + cos(lambda*y)", Patterns::Anything());
 
     params.declare_entry("lambda", "1.633", Patterns::Double(), "Boundary constant");
     params.declare_entry("micro_geometry", "[0,1]x[0,1]", Patterns::Anything());
     params.declare_entry("micro_rhs", "0", Patterns::Anything());
-    params.declare_entry("micro_solution", "sin(lambda*x) + cos(lambda*y)", Patterns::Anything());
-    params.declare_entry("micro_bc", "sin(lambda*x) + cos(lambda*y)", Patterns::Anything());
+    params.declare_entry("micro_solution", "cos(x0)*cos(x1)*(y0*y0+y1*y1)", Patterns::Anything());
+    params.declare_entry("micro_bc", "cos(x0)*cos(x1)*(y0*y0+y1*y1)", Patterns::Anything());
 
     params.parse_input(param_file);
 
