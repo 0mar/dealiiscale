@@ -4,7 +4,7 @@ set macro_rhs = 0
 set macro_solution = sin(lambda*x) + cos(lambda*y)
 set macro_bc = sin(lambda*x) + cos(lambda*y)
 
-set lambda = 1.633
+set lambda = 1.63299316
 set micro_geometry = [-1,1]x[-1,1]
 set micro_solution = cos(x0)*cos(x1)*(y0*y0+y1*y1)
 set micro_bc = cos(x0)*cos(x1)*(y0*y0+y1*y1)
