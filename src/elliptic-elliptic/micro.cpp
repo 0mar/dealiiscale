@@ -4,8 +4,8 @@
 
 
 #include "micro.h"
-#include "macro.h"
 
+using namespace dealii;
 
 template<int dim>
 MicroSolver<dim>::MicroSolver(MicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),

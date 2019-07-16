@@ -30,13 +30,10 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/numerics/error_estimator.h>
-#include <deal.II/base/function_parser.h>
-#include <deal.II/base/parameter_handler.h>
 
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <memory>
 #include <cmath>
 #include <stdlib.h>
 #include <deal.II/base/logstream.h>

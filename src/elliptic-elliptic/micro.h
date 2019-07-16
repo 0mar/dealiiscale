@@ -34,10 +34,10 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <memory>
 #include <cmath>
 #include <stdlib.h>
 #include <deal.II/base/logstream.h>
+#include "../tools/multiscale_function_parser.h"
 #include "../tools/pde_data.h"
 using namespace dealii;
 
