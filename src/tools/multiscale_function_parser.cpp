@@ -49,6 +49,7 @@ DEAL_II_NAMESPACE_OPEN
             :
             AutoDerivativeFunction<dim>(h, n_components, initial_time),
             initialized(false),
+            macro_set(false),
             n_vars(0) {}
 
 
@@ -372,6 +373,17 @@ DEAL_II_NAMESPACE_OPEN
         }
     }
 
+    template<int dim>
+    double MultiscaleFunctionParser<dim>::value(const Point<dim> &py, const unsigned int component) const {
+        Assert(macro_set, ExcEmptyObject("Macro point not initialized yet. This most likely leads to erronous values"))
+        return this->mvalue(macro_point, py, component);
+    }
+
+    template<int dim>
+    void MultiscaleFunctionParser<dim>::set_macro_point(const Point<dim> &point) {
+        macro_point = point;
+        macro_set = true;
+    }
 
 #else
 

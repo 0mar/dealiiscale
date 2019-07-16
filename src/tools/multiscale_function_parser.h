@@ -181,7 +181,7 @@ DEAL_II_NAMESPACE_OPEN
  * @author Luca Heltai, Timo Heister 2005, 2014
  */
     template<int dim>
-    class MultiscaleFunctionParser : private AutoDerivativeFunction<dim> {
+    class MultiscaleFunctionParser : public AutoDerivativeFunction<dim> {
     public:
         /**
          * Constructor for Parsed functions. Its arguments are the same of
@@ -268,9 +268,14 @@ DEAL_II_NAMESPACE_OPEN
          * first argument of the initialize() functions: it returns "x" in 1d, "x,y"
          * in 2d, and "x,y,z" in 3d.
          */
-        static
-        std::string
-        default_variable_names();
+        static std::string default_variable_names();
+
+        /**
+         * Set the macroscopic grid point to use the microscopic evaluation.
+         * Required for (at least) the smooth evaluation of Dirichlet bcs.
+         * @param point Point on the macroscopic grid.
+         */
+        void set_macro_point(const Point <dim> &point);
 
         /**
          * Return the value of the function at the given point. Unless there is only
@@ -279,6 +284,14 @@ DEAL_II_NAMESPACE_OPEN
          * component.
          */
         double mvalue(const Point <dim> &px, const Point <dim> &py, const unsigned int component = 0) const;
+
+        /**
+         * Return the value of the function at the given point. Unless there is only
+         * one component (i.e. the function is scalar), you should state the
+         * component you want to have evaluated; it defaults to zero, i.e. the first
+         * component.
+         */
+        virtual double value(const Point <dim> &py, const unsigned int component = 0) const;
 
         /**
          * @addtogroup Exceptions
@@ -337,6 +350,10 @@ DEAL_II_NAMESPACE_OPEN
         std::vector<std::string> expressions;
 
         /**
+         * Macroscopic grid point.
+         */
+        Point <dim> macro_point;
+        /**
          * Initialize fp and vars on the current thread. This function may only be
          * called once per thread. A thread can test whether the function has
          * already been called by testing whether 'fp.get().size()==0' (not
@@ -351,6 +368,11 @@ DEAL_II_NAMESPACE_OPEN
          * called for evaluation. It's set to true in the initialize() methods.
          */
         bool initialized;
+
+        /**
+         * Assert that we touched the macro before using `value`. Not necessary for computations, just a security check.
+         */
+        bool macro_set;
 
         /**
          * Number of variables. If this is also a function of time, then the number
