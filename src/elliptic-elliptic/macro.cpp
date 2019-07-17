@@ -14,6 +14,7 @@ MacroSolver<dim>::MacroSolver(MacroData<dim> &macro_data, unsigned int refine_le
                                                                                      micro_dof_handler(nullptr),
                                                                                      micro_solutions(nullptr),
                                                                                      refine_level(refine_level) {
+    printf("Solving macro problem in %d space dimensions\n",dim);
 }
 
 template<int dim>
@@ -26,27 +27,17 @@ template<int dim>
 void MacroSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
-
-//    std::cout << "   Number of active cells: "
-//              << triangulation.n_active_cells()
-//              << std::endl
-//              << "   Total number of cells: "
-//              << triangulation.n_cells()
-//              << std::endl;
+    printf("%d active macro cells\n",triangulation.n_active_cells());
 }
 
 template<int dim>
 void MacroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-//    std::cout << "   Number of degrees of freedom: "
-//              << dof_handler.n_dofs()
-//              << std::endl;
+    printf("%d macro DoFs\n",dof_handler.n_dofs());
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
-
     system_matrix.reinit(sparsity_pattern);
-
     solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     micro_contribution.reinit(dof_handler.n_dofs());
@@ -67,11 +58,6 @@ Vector<double> MacroSolver<dim>::get_exact_solution() const {
 template<int dim>
 void MacroSolver<dim>::assemble_system() {
     QGauss<dim> quadrature_formula(2);
-
-
-//    const RightHandSide<dim> right_hand_side;
-
-
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
@@ -145,7 +131,7 @@ void MacroSolver<dim>::solve() {
     SolverControl solver_control(1000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
-    printf("Convergence after %d CG iterations\n", solver_control.last_step());
+    printf("\t %d CG iterations to convergence (macro)\n",solver_control.last_step());
 }
 
 template<int dim>

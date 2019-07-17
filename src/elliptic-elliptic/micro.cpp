@@ -14,7 +14,7 @@ MicroSolver<dim>::MicroSolver(MicroData<dim> &micro_data, unsigned int refine_le
                                                                                        macro_solution(nullptr),
                                                                                        macro_dof_handler(nullptr),
                                                                                        pde_data(micro_data) {
-    std::cout << "Solving problem in " << dim << " space dimensions." << std::endl;
+    printf("Solving micro problem in %d space dimensions\n",dim);
     num_grids = 1;
 }
 
@@ -27,23 +27,15 @@ void MicroSolver<dim>::setup() {
 
 template<int dim>
 void MicroSolver<dim>::make_grid() {
-    std::cout << "Setting up micro grid" << std::endl;
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
-
-    std::cout << "   Number of active cells: " // todo: Make sense of the output messages
-              << triangulation.n_active_cells()
-              << std::endl;
+    printf("%d active micro cells\n",triangulation.n_active_cells());
 }
 
 template<int dim>
 void MicroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-
-    std::cout << "   Number of degrees of freedom: "
-              << dof_handler.n_dofs()
-              << std::endl;
-
+    printf("%d micro DoFs\n",dof_handler.n_dofs());
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
@@ -152,9 +144,7 @@ void MicroSolver<dim>::solve() {
     for (unsigned int k = 0; k < num_grids; k++) {
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
     }
-    std::cout << "   " << solver_control.last_step()
-              << " CG iterations needed to obtain convergence."
-              << std::endl;
+    printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
 }
 
 
