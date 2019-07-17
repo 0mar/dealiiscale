@@ -40,11 +40,13 @@ def compute_solution_set(u, v, xvars, yvars):
 
 def write_param_file(filename, funcs):
     data = funcs.copy()
-    data['geometry'] = "[-1,1]x[-1,1]"
+    data['micro_geometry'] = "[-1,1]x[-1,1]"
+    data['macro_geometry'] = "[-1,1]x[-1,1]"
 
     with open('%s.prm' % filename, 'w') as param_file:
         for key, val in data.items():
-            param_file.write("set %s = %s\n" % (key, val))
+            formatted_val = str(val).replace('**', '^')
+            param_file.write("set %s = %s\n" % (key, formatted_val))
 
 
 def create_new_case(name, u_def, v_def):
