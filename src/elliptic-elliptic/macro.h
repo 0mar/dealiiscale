@@ -83,7 +83,7 @@ public:
      * Compute the exact solution value based on the analytic solution present in the boundary condition
      * @param exact_values Output vector
      */
-    Vector<double> get_exact_solution();
+    Vector<double> get_exact_solution() const;
 
     void get_dof_locations(std::vector<Point<dim>> &locations);
 
@@ -126,7 +126,7 @@ private:
     * @param dof_index Degree of freedom corresponding to the microscopic grid.
     * @return double with the value of the integral/other RHS function
     */
-    double integrate_micro_grid(unsigned int cell_index);
+    double integrate_micro_grid(unsigned int cell_index) const;
 
     /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
@@ -135,15 +135,15 @@ private:
 
     MacroData<dim> &pde_data;
 
-    FE_Q<dim> fe;
+    const FE_Q<dim> fe;
 
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
-    DoFHandler<dim> *micro_dof_handler;
+    const DoFHandler<dim> *micro_dof_handler;
     Vector<double> system_rhs;
     Vector<double> micro_contribution;
-    std::vector<Vector<double>> *micro_solutions;
-    int refine_level;
+    const std::vector<Vector<double>> *micro_solutions;
+    const int refine_level;
 
 };
 

@@ -123,16 +123,16 @@ private:
     /**
      * The level of refinement (every +1 means a bisection)
      */
-    unsigned int refine_level;
-    FE_Q<dim> fe;
+    const unsigned int refine_level;
+    const FE_Q<dim> fe;
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
-    Vector<double> *macro_solution;
+    const Vector<double> *macro_solution;
     Vector<double> macro_contribution;
-    DoFHandler<dim> *macro_dof_handler;
+    const DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
     std::vector<Vector<double>> righthandsides;
-    std::vector<Point<dim>> grid_locations; // Todo: Implement references
+    std::vector<Point<dim>> grid_locations;
     MicroData<dim> &pde_data;
 };
 

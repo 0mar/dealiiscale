@@ -53,7 +53,7 @@ void MacroSolver<dim>::setup_system() {
 }
 
 template<int dim>
-Vector<double> MacroSolver<dim>::get_exact_solution() {
+Vector<double> MacroSolver<dim>::get_exact_solution() const {
     Vector<double> exact_values(dof_handler.n_dofs());
     MappingQ1<dim> mapping;
     std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
@@ -168,7 +168,7 @@ void MacroSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutio
 }
 
 template<int dim>
-double MacroSolver<dim>::integrate_micro_grid(unsigned int cell_index) {
+double MacroSolver<dim>::integrate_micro_grid(unsigned int cell_index) const {
     // manufactured as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
     QGauss<dim> quadrature_formula(2);
