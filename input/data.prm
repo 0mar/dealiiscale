@@ -1,6 +1,5 @@
 set macro_geometry = [-1,1]x[-1,1]
 set macro_rhs = 0
-set macro_rhs = 0
 set macro_solution = sin(lambda*x) + cos(lambda*y)
 set macro_bc = sin(lambda*x) + cos(lambda*y)
 
