@@ -127,11 +127,9 @@ void MicroSolver<dim>::assemble_system() {
             cell_rhs = 0;
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-                    cell_rhs(i) += -4 * ((*macro_solution)(k) + pde_data.rhs.mvalue(grid_locations.at(k),
-                                                                                    fe_values.quadrature_point(
-                                                                                            q_index))) *
-                                   fe_values.shape_value(i, q_index) * //fixme setup testing
-                                   fe_values.JxW(q_index);
+                    cell_rhs(i) += ((*macro_solution)(k) +
+                                    pde_data.rhs.mvalue(grid_locations.at(k), fe_values.quadrature_point(q_index))) *
+                                   fe_values.shape_value(i, q_index) * fe_values.JxW(q_index);
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
             }

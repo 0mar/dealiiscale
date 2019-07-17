@@ -6,28 +6,25 @@ using namespace dealii;
 template<int dim>
 MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(params), micro(params) {
     params.declare_entry("macro_geometry", "[0,1]x[0,1]", Patterns::Anything());
-    params.declare_entry("macro_rhs", "0", Patterns::Anything());
-    params.declare_entry("macro_solution", "sin(lambda*x) + cos(lambda*y)", Patterns::Anything());
-    params.declare_entry("macro_bc", "sin(lambda*x) + cos(lambda*y)", Patterns::Anything());
+    params.declare_entry("macro_rhs", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("macro_solution", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("macro_bc", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
 
-    params.declare_entry("lambda", "1.63299316", Patterns::Double(), "Boundary constant");
     params.declare_entry("micro_geometry", "[0,1]x[0,1]", Patterns::Anything());
-    params.declare_entry("micro_rhs", "0", Patterns::Anything());
-    params.declare_entry("micro_solution", "cos(x0)*cos(x1)*(y0*y0+y1*y1)", Patterns::Anything());
-    params.declare_entry("micro_bc", "cos(x0)*cos(x1)*(y0*y0+y1*y1)", Patterns::Anything());
+    params.declare_entry("micro_rhs", "-sin(x0*x1) - cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("micro_solution", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
+    params.declare_entry("micro_bc", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
 
     params.parse_input(param_file);
 
     std::map<std::string, double> constants;
-    constants["lambda"] = params.get_double("lambda");
-    macro.rhs.initialize(FunctionParser<dim>::default_variable_names(), params.get("macro_rhs"), constants);
-    macro.bc.initialize(FunctionParser<dim>::default_variable_names(), params.get("macro_bc"), constants);
-    macro.solution.initialize(FunctionParser<dim>::default_variable_names(), params.get("macro_solution"),
-                              constants);
+    macro.rhs.initialize(macro_variables(), params.get("macro_rhs"), constants);
+    macro.bc.initialize(macro_variables(), params.get("macro_bc"), constants);
+    macro.solution.initialize(macro_variables(), params.get("macro_solution"), constants);
 
-    micro.rhs.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("micro_rhs"), constants);
-    micro.bc.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("micro_bc"), constants);
-    micro.solution.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), params.get("micro_solution"),
+    micro.rhs.initialize(multiscale_variables(), params.get("micro_rhs"), constants);
+    micro.bc.initialize(multiscale_variables(), params.get("micro_bc"), constants);
+    micro.solution.initialize(multiscale_variables(), params.get("micro_solution"),
                               constants);
 }
 

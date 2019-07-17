@@ -130,7 +130,9 @@ private:
     * @param dof_index Degree of freedom corresponding to the microscopic grid.
     * @return double with the value of the integral/other RHS function
     */
-    double integrate_micro_grid(unsigned int cell_index) const;
+    double get_micro_bulk(unsigned int cell_index) const;
+
+    double get_micro_flux(unsigned int cell_index) const;
 
     /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution

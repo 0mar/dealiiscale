@@ -65,7 +65,39 @@ public:
     ParameterHandler params;
     MacroData<dim> macro;
     MicroData<dim> micro;
+
+    const std::string multiscale_variables();
+
+    const std::string macro_variables();
 };
+
+template<int dim>
+const std::string MultiscaleData<dim>::multiscale_variables() {
+    switch (dim) {
+        case 1:
+            return "x0,y0";
+        case 2:
+            return "x0,x1,y0,y1";
+        case 3:
+            return "x0,x1,x2,y0,y1,y2,";
+        default: Assert(false, ExcNotImplemented())
+    }
+    return "";
+}
+
+template<int dim>
+const std::string MultiscaleData<dim>::macro_variables() {
+    switch (dim) {
+        case 1:
+            return "x0";
+        case 2:
+            return "x0,x1";
+        case 3:
+            return "x0,x1,x2";
+        default: Assert(false, ExcNotImplemented())
+    }
+    return "";
+}
 
 
 #endif
