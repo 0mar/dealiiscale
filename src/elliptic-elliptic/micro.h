@@ -79,6 +79,10 @@ public:
      */
     unsigned int get_num_grids() const;
 
+    /**
+     * Set the locations of the microgrids with respect to the macrogrids.
+     * in practice, these are the locations of the macroscopic degrees of freedom, although other options are possible.
+     */
     void set_grid_locations(const std::vector<Point<dim>> &locations);
 
     Triangulation<dim> triangulation;

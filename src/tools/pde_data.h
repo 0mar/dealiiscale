@@ -14,6 +14,10 @@
 
 using namespace dealii;
 
+/**
+ * Struct containing all the macroscopic functions and parameters
+ * @tparam dim dimension of functions
+ */
 template<int dim>
 struct MacroData {
     FunctionParser<dim> solution;
@@ -21,11 +25,21 @@ struct MacroData {
     FunctionParser<dim> bc;
     ParameterHandler &params;
 
+    /**
+     * Initialize struct with parameter object
+     * @param params parameterhandler object
+     */
     MacroData(ParameterHandler &params) : solution(), rhs(), bc(), params(params) {
         // Needed because this is a reference
     }
 };
 
+/**
+ * Struct containing all multiscale functions and parameters
+ * @tparam dim dimension of the multiscale functions.
+ * Caveat: currently, due to the implementation of MultiscaleFunctionParser,
+ * the dimensions of the macroscale and microscale must be equal.
+ */
 template<int dim>
 struct MicroData {
     MultiscaleFunctionParser<dim> solution;
@@ -38,6 +52,11 @@ struct MicroData {
     }
 };
 
+/**
+ * Multiscale data class, composed of a macrodata and microdata struct.
+ * This data class reads data from a file and initialized the corresponding structs with the relevant parameters.
+ * @tparam dim dimensions of functions.
+ */
 template<int dim>
 class MultiscaleData {
 public:

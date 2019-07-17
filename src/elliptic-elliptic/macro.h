@@ -85,6 +85,10 @@ public:
      */
     Vector<double> get_exact_solution() const;
 
+    /**
+     * Obtain the physical locations of the degrees of freedom
+     * @param locations output vector
+     */
     void get_dof_locations(std::vector<Point<dim>> &locations);
 
     Vector<double> solution;
@@ -133,6 +137,9 @@ private:
      */
     void solve();
 
+    /**
+     * Struct containing all data and macroscopic functions.
+     */
     MacroData<dim> &pde_data;
 
     const FE_Q<dim> fe;
