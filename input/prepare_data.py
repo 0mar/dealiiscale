@@ -62,16 +62,15 @@ if __name__ == '__main__':
     print("Manufactured function creator.\n"
           "We solve a elliptic-elliptic system.\n"
           "Dimensions 2, use x0,...,xd for the macro variable "
-          "and y0,...,yd for the micro variable.")
+          "and y0,...,yd for the micro variable.", flush=True)
     u = input("Supply macro function. u(x0,...,xd) = ")
     v = input("Supply micro function. v(x0,...,xd,y0,...,yd) = ")
     if u is None or v is None:
-        print("Going for default sets")
+        print("Going for default sets", flush=True)
         u = "sin(x0*x1) + cos(x0 + x1)"
         v = "exp(x0**2 + x1**2) + y0*y1"
     name = input("Suppy solution set name: ")
-    print("u(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (u, v, name))
-    print()
+    print("u(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (u, v, name), flush=True)
     input("If happy, press enter, else Ctrl-C: ")
     create_new_case(name, u, v)
     print("Succesfully written new parameter set")
