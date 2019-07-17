@@ -4,8 +4,12 @@
 
 #include "manager.h"
 
-Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file) : data(
-        data_file), macro_solver(data.macro, macro_refinement), micro_solver(data.micro, micro_refinement) {
+Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file,
+                 const std::string &out_file) :
+        data(data_file),
+        macro_solver(data.macro, macro_refinement),
+        micro_solver(data.micro, micro_refinement),
+        ct_file_name(out_file) {
 }
 
 void Manager::setup() {
@@ -67,27 +71,22 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
     residual = micro_l2 + macro_l2;
 }
 
-void Manager::set_ct_file_name(std::string &file_name) {
-    ct_file_name = file_name;
-
-}
-
 void Manager::output_results() {
     std::vector<std::string> error_classes = {"mL2", "mH1", "ML2", "MH1"};
     for (const std::string &error_class: error_classes) {
         convergence_table.set_precision(error_class, 3);
         convergence_table.set_scientific(error_class, true);
     }
-    std::ofstream convergence_output("results/" + ct_file_name, std::iostream::app);
+    std::ofstream convergence_output(ct_file_name, std::iostream::app);
     convergence_table.write_text(convergence_output);
     convergence_output.close();
-    DataOut<MACRO_DIMENSIONS> data_out;
+}
 
+void Manager::patch_and_write_solution() {
+    DataOut<MACRO_DIMENSIONS> data_out;
     data_out.attach_dof_handler(macro_solver.dof_handler);
     data_out.add_data_vector(macro_solver.solution, "solution");
-
     data_out.build_patches();
-
     std::ofstream output("results/macro-solution.gpl");
     data_out.write_gnuplot(output);
 }

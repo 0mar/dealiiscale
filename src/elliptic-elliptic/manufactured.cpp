@@ -11,14 +11,14 @@
  * @return 0
  */
 
-void run(std::string id) {
-    std::string file_name = "multi-convergence.txt";
+void run(const std::string &id) {
+    const std::string input_path = "input/" + id + ".prm";
+    const std::string output_path = "results/" + id + "_" + "convergence_table.txt";
     std::ofstream ofs;
-    ofs.open("results/" + id + file_name, std::ofstream::out | std::ofstream::trunc);
+    ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
     for (unsigned int i = 2; i < 5; i++) {
-        Manager manager(i, i, "input/" + id + ".prm");
-        manager.set_ct_file_name(file_name);
+        Manager manager(i, i, input_path, output_path);
         manager.setup();
         manager.run();
     }

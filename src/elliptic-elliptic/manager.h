@@ -19,7 +19,6 @@ public:
     MultiscaleData<MACRO_DIMENSIONS> data;
     MacroSolver<MACRO_DIMENSIONS> macro_solver;
     MicroSolver<MICRO_DIMENSIONS> micro_solver;
-    int repetitions;
 
     /**
      * Class that facilitates the interaction between the microscopic and macroscopic solvers.
@@ -27,7 +26,8 @@ public:
      * @param micro_refinement Resolution of the micro solver.
      * @param data_file String that contains the name of a data file.
      */
-    Manager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file);
+    Manager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file,
+            const std::string &output_file);
 
     /**
      * Run all the methods that setup the solvers of the two scales.
@@ -44,12 +44,6 @@ public:
      * Print the error computations/estimates in a convergence table.
      */
     void output_results();
-
-    /**
-     * Set a custom name for the file containing the convergence table.
-     * @param file_name Name of the convergence table file.
-     */
-    void set_ct_file_name(std::string &file_name);
 
     double eps = 1E-4;
     double max_iterations = 1E4;
@@ -72,7 +66,9 @@ private:
      */
     void compute_residuals(double &old_residual, double &residual);
 
-    std::string ct_file_name = "convergence.txt";
+    void patch_and_write_solution();
+
+    const std::string &ct_file_name = "convergence.txt";
     ConvergenceTable convergence_table;
 
 };
