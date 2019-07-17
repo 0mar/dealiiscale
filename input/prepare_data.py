@@ -16,7 +16,7 @@ def n_deriv(f, vars, normal):
 
 def boundary_integral(f, vars):
     if len(vars) == 2:
-        x0,x1 = vars
+        x0, x1 = vars
         normals = ((1, 0), (0, 1), (-1, 0), (0, -1))  # Can for sure be improved
         vals = [integrate(n_deriv(f, vars, normals[0]).subs(x0, 1), (x1, -1, 1)),
                 integrate(n_deriv(f, vars, normals[1]).subs(x1, 1), (x0, 1, -1)),
@@ -57,10 +57,24 @@ def create_new_case(name, u_def, v_def):
     funcs = compute_solution_set(u, v, xvars, yvars)
     write_param_file(name, funcs)
 
-if __name__=='__main__':
-    u = "sin(x0*x1) + cos(x0 + x1)"
-    v = "exp(x0**2 + x1**2) + y0*y1"
-    create_new_case("test",u,v)
+
+if __name__ == '__main__':
+    print("Manufactured function creator.\n"
+          "We solve a elliptic-elliptic system.\n"
+          "Dimensions 2, use x0,...,xd for the macro variable "
+          "and y0,...,yd for the micro variable.")
+    u = input("Supply macro function. u(x0,...,xd) = ")
+    v = input("Supply micro function. v(x0,...,xd,y0,...,yd) = ")
+    if u is None or v is None:
+        print("Going for default sets")
+        u = "sin(x0*x1) + cos(x0 + x1)"
+        v = "exp(x0**2 + x1**2) + y0*y1"
+    name = input("Suppy solution set name: ")
+    print("u(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (u, v, name))
+    print()
+    input("If happy, press enter, else Ctrl-C: ")
+    create_new_case(name, u, v)
+    print("Succesfully written new parameter set")
 
 # u = sin(x0*x1) + cos(x0 + x1)
 # v = exp(y0**2 + y1**2) + x0**2 + x1**2
