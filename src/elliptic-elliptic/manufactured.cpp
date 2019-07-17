@@ -26,13 +26,13 @@ void run(std::string id) {
 
 int main(int argc, char *argv[]) {
     dealii::deallog.depth_console(0);
-    std::string test = "test";
+    std::string id = "test";
     if (argc == 2) {
-        test = argv[1];
+        id = argv[1];
     } else if (argc > 2) {
         std::cout << "Too many arguments" << std::endl;
         return 1;
     }
-    run(test);
+    run(id);
     return 0;
 }
