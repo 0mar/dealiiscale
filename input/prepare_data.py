@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from sympy import *
 from sympy.parsing.sympy_parser import parse_expr
 
@@ -34,7 +35,8 @@ def compute_solution_set(u, v, xvars, yvars):
     macro_rhs = - boundary_v - del_u
     micro_rhs = - u - del_v
     funcs = {"macro_rhs": macro_rhs, "micro_rhs": micro_rhs,
-             "macro_bc": u, "micro_bc": v}
+             "macro_bc": u, "micro_bc": v,
+             "macro_solution": u, "micro_solution": v}
     return funcs
 
 
@@ -68,12 +70,12 @@ if __name__ == '__main__':
     if u is None or v is None:
         print("Going for default sets", flush=True)
         u = "sin(x0*x1) + cos(x0 + x1)"
-        v = "exp(x0**2 + x1**2) + y0*y1"
-    name = input("Suppy solution set name: ")
+        v = "exp(x0**2 + x1**2) + (1-y0**2)*(1-y1**2)"
+    name = input("Supply solution set name: ")
     print("u(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (u, v, name), flush=True)
     input("If happy, press enter, else Ctrl-C: ")
     create_new_case(name, u, v)
-    print("Succesfully written new parameter set")
+    print("Successfully written new parameter set")
 
 # u = sin(x0*x1) + cos(x0 + x1)
 # v = exp(y0**2 + y1**2) + x0**2 + x1**2
