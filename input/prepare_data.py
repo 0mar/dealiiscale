@@ -67,7 +67,7 @@ if __name__ == '__main__':
           "and y0,...,yd for the micro variable.", flush=True)
     u = input("Supply macro function. u(x0,...,xd) = ")
     v = input("Supply micro function. v(x0,...,xd,y0,...,yd) = ")
-    if u is None or v is None:
+    if not u or not v:
         print("Going for default sets", flush=True)
         u = "sin(x0*x1) + cos(x0 + x1)"
         v = "exp(x0**2 + x1**2) + (1-y0**2)*(1-y1**2)"
