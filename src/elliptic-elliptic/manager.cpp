@@ -10,6 +10,8 @@ Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, c
         macro_solver(data.macro, macro_refinement),
         micro_solver(data.micro, micro_refinement),
         ct_file_name(out_file) {
+    printf("Running elliptic-elliptic solver with data from %s, storing results in %s\n", data_file.c_str(),
+           out_file.c_str());
 }
 
 void Manager::setup() {
@@ -68,6 +70,7 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
     convergence_table.add_value("ML2", macro_l2);
     convergence_table.add_value("MH1", macro_h1);
     old_residual = residual;
+    printf("Micro residual: %.2e\tMacro residual: %.2e\n", micro_l2, macro_l2);
     residual = micro_l2 + macro_l2;
 }
 
