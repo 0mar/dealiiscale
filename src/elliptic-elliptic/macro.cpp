@@ -108,25 +108,6 @@ void MacroSolver<dim>::assemble_system() {
 }
 
 template<int dim>
-void MacroSolver<dim>::interpolate_function(const Vector<double> &func, Vector<double> &interp_func) {
-    interp_func = 0;
-    if (func.size() != dof_handler.n_dofs()) {
-        throw std::invalid_argument(
-                "func lengths:" + std::to_string(dof_handler.n_dofs()) + "/" + std::to_string(func.size()));
-    } else if (interp_func.size() != triangulation.n_active_cells()) {
-        throw std::invalid_argument("func lengths:" + std::to_string(interp_func.size()) + "/" +
-                                    std::to_string(triangulation.n_active_cells()));
-    }
-    FEValues<dim> fe_value(fe, QMidpoint<dim>(), update_values | update_quadrature_points | update_JxW_values);
-    std::vector<double> mid_point_value(1);
-    for (const auto &cell:dof_handler.active_cell_iterators()) {
-        fe_value.reinit(cell);
-        fe_value.get_function_values(func, mid_point_value);
-        interp_func[cell->active_cell_index()] = mid_point_value[0];
-    }
-}
-
-template<int dim>
 void MacroSolver<dim>::solve() {
     SolverControl solver_control(1000, 1e-12);
     SolverCG<> solver(solver_control);

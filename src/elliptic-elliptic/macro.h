@@ -113,13 +113,6 @@ private:
     void assemble_system();
 
     /**
-     * Interpolate a finite element function defined on the present grid to a single value per cell.
-     * @param fe Finite element function corresponding to the finite element space
-     * @return Vector (finite element function) with length `#cells`
-     */
-    void interpolate_function(const Vector<double> &func, Vector<double> &interp_func);
-
-    /**
      * Use the (probably updated) microscopic data to compute new elements of the macroscopic system.
      */
     void compute_microscopic_contribution();
