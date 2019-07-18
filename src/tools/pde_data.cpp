@@ -5,12 +5,12 @@ using namespace dealii;
 
 template<int dim>
 MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(params), micro(params) {
-    params.declare_entry("macro_geometry", "[0,1]x[0,1]", Patterns::Anything());
+    params.declare_entry("macro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
     params.declare_entry("macro_rhs", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("macro_solution", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("macro_bc", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
 
-    params.declare_entry("micro_geometry", "[0,1]x[0,1]", Patterns::Anything());
+    params.declare_entry("micro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
     params.declare_entry("micro_rhs", "-sin(x0*x1) - cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("micro_solution", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
     params.declare_entry("micro_bc", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
