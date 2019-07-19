@@ -70,7 +70,7 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
     convergence_table.add_value("ML2", macro_l2);
     convergence_table.add_value("MH1", macro_h1);
     old_residual = residual;
-    printf("Micro residual: %.2e\tMacro residual: %.2e\n", micro_l2, macro_l2);
+    printf("Macro residual: %.2e\tMicro residual: %.2e\n", macro_l2, micro_l2);
     residual = micro_l2 + macro_l2;
 }
 
@@ -83,13 +83,22 @@ void Manager::output_results() {
     std::ofstream convergence_output(ct_file_name, std::iostream::app);
     convergence_table.write_text(convergence_output);
     convergence_output.close();
+    patch_and_write_solutions();
 }
 
-void Manager::patch_and_write_solution() {
-    DataOut<MACRO_DIMENSIONS> data_out;
-    data_out.attach_dof_handler(macro_solver.dof_handler);
-    data_out.add_data_vector(macro_solver.solution, "solution");
-    data_out.build_patches();
-    std::ofstream output("results/macro-solution.gpl");
-    data_out.write_gnuplot(output);
+void Manager::patch_and_write_solutions() {
+    DataOut<MACRO_DIMENSIONS> macro_data_out;
+    macro_data_out.attach_dof_handler(macro_solver.dof_handler);
+    macro_data_out.add_data_vector(macro_solver.solution, "solution");
+    macro_data_out.build_patches();
+    std::ofstream macro_output("results/macro-solution.gpl");
+    macro_data_out.write_gnuplot(macro_output);
+
+    DataOut<MICRO_DIMENSIONS> micro_data_out;
+    micro_data_out.attach_dof_handler(micro_solver.dof_handler);
+    const unsigned int some_int = 0;//(int)(micro_solver.get_num_grids()/2);
+    micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
+    micro_data_out.build_patches();
+    std::ofstream micro_output("results/micro-solution.gpl");
+    micro_data_out.write_gnuplot(micro_output);
 }

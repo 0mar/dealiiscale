@@ -79,6 +79,9 @@ public:
      */
     unsigned int get_num_grids() const;
 
+    /** debug **/
+    void set_exact_solution();
+
     /**
      * Set the locations of the microgrids with respect to the macrogrids.
      * in practice, these are the locations of the macroscopic degrees of freedom, although other options are possible.

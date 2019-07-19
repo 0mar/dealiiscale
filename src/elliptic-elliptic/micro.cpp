@@ -180,6 +180,19 @@ void MicroSolver<dim>::run() {
 }
 
 template<int dim>
+void MicroSolver<dim>::set_exact_solution() {
+    std::cout << "Exact solution set" << std::endl;
+    std::vector<Point<dim>> locations(dof_handler.n_dofs());
+    MappingQ1<dim> mapping;
+    DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
+    for (unsigned int k = 0; k < num_grids; k++) {
+        for (unsigned int i = 0; i < solutions.at(k).size(); i++) {
+            solutions.at(k)(i) = pde_data.solution.mvalue(grid_locations.at(k), locations.at(i));
+        }
+    }
+}
+
+template<int dim>
 unsigned int MicroSolver<dim>::get_num_grids() const {
     return num_grids;
 }

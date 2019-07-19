@@ -66,7 +66,7 @@ private:
      */
     void compute_residuals(double &old_residual, double &residual);
 
-    void patch_and_write_solution();
+    void patch_and_write_solutions();
 
     const std::string &ct_file_name = "convergence.txt";
     ConvergenceTable convergence_table;

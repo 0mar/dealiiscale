@@ -162,17 +162,17 @@ double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
     // Computed as: f(x) = \int_\Gamma_R \nabla_y \rho(x,y) \cdot n_y d_\sigma_y
     const int integration_order = 3;
     double integral = 0;
-    QGauss<dim - 1> quadrature_formula(integration_order);
+    QGauss<dim - 1> quadrature_formula(integration_order); // Not necessarily the same dim
     FEFaceValues<dim> fe_face_values(micro_dof_handler->get_fe(),
                                      quadrature_formula,
                                      update_values | update_quadrature_points | update_JxW_values |
                                      update_normal_vectors | update_gradients);
     const unsigned int n_q_face_points = quadrature_formula.size();
+    std::vector<Tensor<1, dim>> solution_gradient(n_q_face_points);
     for (const auto &cell: micro_dof_handler->active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary()) {
                 fe_face_values.reinit(cell, face_number);
-                std::vector<Tensor<1, dim>> solution_gradient(n_q_face_points);
                 fe_face_values.get_function_gradients(micro_solutions->at(micro_index), solution_gradient);
                 for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                     double neumann = solution_gradient[q_index] * fe_face_values.normal_vector(q_index);
