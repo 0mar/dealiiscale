@@ -20,8 +20,8 @@ def boundary_integral(f, vars):
         x0, x1 = vars
         normals = ((1, 0), (0, 1), (-1, 0), (0, -1))  # Can for sure be improved
         vals = [integrate(n_deriv(f, vars, normals[0]).subs(x0, 1), (x1, -1, 1)),
-                integrate(n_deriv(f, vars, normals[1]).subs(x1, 1), (x0, 1, -1)),
-                integrate(n_deriv(f, vars, normals[2]).subs(x0, -1), (x1, 1, -1)),
+                integrate(n_deriv(f, vars, normals[1]).subs(x1, 1), (x0, -1, 1)),
+                integrate(n_deriv(f, vars, normals[2]).subs(x0, -1), (x1, -1, 1)),
                 integrate(n_deriv(f, vars, normals[3]).subs(x1, -1), (x0, -1, 1))]
         return sum(vals)
     else:
