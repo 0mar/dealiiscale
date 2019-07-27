@@ -37,7 +37,7 @@ void Manager::setup() {
 void Manager::run() {
     double old_residual = 1;
     double residual = 0;
-    while (std::fabs(old_residual - residual) > eps) {
+    while (std::fabs(old_residual - residual) > eps) { // Todo: make relative
         fixed_point_iterate();
         compute_residuals(old_residual, residual);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);

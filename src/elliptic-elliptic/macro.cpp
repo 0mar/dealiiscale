@@ -187,16 +187,9 @@ double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
 
 template<int dim>
 void MacroSolver<dim>::compute_microscopic_contribution() {
-    std::vector<Point<dim>> locations;
-    get_dof_locations(locations);
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
         micro_contribution[i] = get_micro_bulk(i);
-        double x0 = locations[i][0];
-        double x1 = locations[i][1];
-        double val = 4 * std::exp(x0 * x0) * std::exp(x1 * x1) + 16. / 9;
-        printf("Micro %.4f/%.4f\t", micro_contribution[i], val);
     }
-    std::cout << std::endl;
 }
 
 template<int dim>

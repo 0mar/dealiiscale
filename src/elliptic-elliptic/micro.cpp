@@ -170,8 +170,8 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
-    l2_error = macro_integral.l2_norm() / macro_domain_l2_error.size();
-    h1_error = macro_integral.l2_norm() / macro_domain_h1_error.size();
+    l2_error = macro_integral.l2_norm();
+    h1_error = macro_integral.l2_norm();
 }
 
 template<int dim>
