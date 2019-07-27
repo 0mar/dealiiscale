@@ -28,11 +28,22 @@ def boundary_integral(f, vars):
         raise NotImplemented("Not working for %dD" % len(vars))
 
 
-def compute_solution_set(u, v, xvars, yvars):
+def bulk_integral(f, vars):
+    for var in vars:
+        f = integrate(f, (var, -1, 1))
+    return f
+
+
+def compute_solution_set(u, v, xvars, yvars, micro_integration='bulk'):
     del_u = laplace(u, xvars)
     del_v = laplace(v, yvars)
-    boundary_v = boundary_integral(v, yvars)
-    macro_rhs = - boundary_v - del_u
+    if micro_integration == 'flux':
+        integral_v = boundary_integral(v, yvars)
+    elif micro_integration == 'bulk':
+        integral_v = bulk_integral(v, yvars)
+    else:
+        raise ValueError("Choose micro_integration to be either 'bulk' or 'flux', not %s" % micro_integration)
+    macro_rhs = - integral_v - del_u
     micro_rhs = - u - del_v
     funcs = {"macro_rhs": macro_rhs, "micro_rhs": micro_rhs,
              "macro_bc": u, "micro_bc": v,
