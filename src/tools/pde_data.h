@@ -41,13 +41,28 @@ struct MacroData {
  * the dimensions of the macroscale and microscale must be equal.
  */
 template<int dim>
-struct MicroData {
+struct MicroData { // Rename to EllipticMicroData
     MultiscaleFunctionParser<dim> solution;
     MultiscaleFunctionParser<dim> rhs;
     MultiscaleFunctionParser<dim> bc;
     ParameterHandler &params;
 
     MicroData(ParameterHandler &params) : solution(), rhs(), bc(), params(params) {
+        // Needed because this is a reference
+    }
+};
+
+template<int dim>
+struct ParabolicMicroData {
+    MultiscaleFunctionParser<dim> solution;
+    MultiscaleFunctionParser<dim> rhs;
+    MultiscaleFunctionParser<dim> neumann_bc;
+    MultiscaleFunctionParser<dim> robin_bc;
+    MultiscaleFunctionParser<dim> init_rho;
+    ParameterHandler &params;
+
+    ParabolicMicroData(ParameterHandler &params)
+            : solution(), rhs(), neumann_bc(), robin_bc(), init_rho(), params(params) {
         // Needed because this is a reference
     }
 };
@@ -66,13 +81,29 @@ public:
     MacroData<dim> macro;
     MicroData<dim> micro;
 
-    const std::string multiscale_variables();
+    static std::string multiscale_variables();
 
-    const std::string macro_variables();
+    static std::string macro_variables();
 };
 
 template<int dim>
-const std::string MultiscaleData<dim>::multiscale_variables() {
+class TwoPressureData {
+public:
+    TwoPressureData(const std::string &param_file);
+
+    ParameterHandler params;
+    MacroData<dim> macro;
+    ParabolicMicroData<dim> micro;
+
+    void set_time(const double time);
+
+    static std::string multiscale_variables();
+
+    static std::string macro_variables();
+};
+
+template<int dim>
+std::string MultiscaleData<dim>::multiscale_variables() {
     switch (dim) {
         case 1:
             return "x0,y0";
@@ -86,7 +117,7 @@ const std::string MultiscaleData<dim>::multiscale_variables() {
 }
 
 template<int dim>
-const std::string MultiscaleData<dim>::macro_variables() {
+std::string MultiscaleData<dim>::macro_variables() {
     switch (dim) {
         case 1:
             return "x0";
@@ -94,6 +125,35 @@ const std::string MultiscaleData<dim>::macro_variables() {
             return "x0,x1";
         case 3:
             return "x0,x1,x2";
+        default: Assert(false, ExcNotImplemented())
+    }
+    return "";
+}
+
+
+template<int dim>
+std::string TwoPressureData<dim>::multiscale_variables() {
+    switch (dim) {
+        case 1:
+            return "x0,y0,t";
+        case 2:
+            return "x0,x1,y0,y1,t";
+        case 3:
+            return "x0,x1,x2,y0,y1,y2,t";
+        default: Assert(false, ExcNotImplemented())
+    }
+    return "";
+}
+
+template<int dim>
+std::string TwoPressureData<dim>::macro_variables() {
+    switch (dim) {
+        case 1:
+            return "x0,t";
+        case 2:
+            return "x0,x1,t";
+        case 3:
+            return "x0,x1,x2,t";
         default: Assert(false, ExcNotImplemented())
     }
     return "";

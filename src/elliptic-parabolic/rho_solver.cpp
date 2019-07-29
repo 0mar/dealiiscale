@@ -8,41 +8,21 @@
 using namespace dealii;
 
 template<int dim>
-double MicroInitCondition<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = macro_field[macro_cell_index];
-    double pi = 3.141592;
-    for (int i = 0; i < dim; i++) {
-        val *= 1 + std::cos(pi * p[i]);
-    }
-    return val;
-}
-
-template<int dim>
-void MicroInitCondition<dim>::set_macro_field(const Vector<double> &field) {
-    this->macro_field = field;
-}
-
-template<int dim>
-void MicroInitCondition<dim>::set_macro_cell_index(unsigned int index) {
-    macro_cell_index = index;
-}
-
-
-template<int dim>
-RhoSolver<dim>::RhoSolver():  dof_handler(triangulation), fe(1), macro_solution(nullptr),
-                              old_macro_solution(nullptr), macro_dof_handler(nullptr),
-                              diffusion_coefficient(1.),
-                              R(2.),
-                              kappa(1.),
-                              p_F(4.),
-                              theta(1),
-                              integration_order(2) {
+RhoSolver<dim>::RhoSolver(ParabolicMicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
+                                                                                            fe(1),
+                                                                                            refine_level(refine_level),
+                                                                                            num_grids(1),
+                                                                                            macro_solution(nullptr),
+                                                                                            old_macro_solution(nullptr),
+                                                                                            macro_dof_handler(nullptr),
+                                                                                            pde_data(micro_data),
+                                                                                            euler(1), integration_order(
+                fe.degree + 1) {
     printf("Solving micro problem in %d space dimensions\n",dim);
-    refine_level = 1;
     num_grids = 1;
-    integration_order = fe.degree + 1;
     init_macro_field.reinit(num_grids);
     init_macro_field = 1;
+    time = 0;
 }
 
 template<int dim>
@@ -56,13 +36,17 @@ template<int dim>
 void RhoSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
+    // Refine the cells
     // If we ever use refinement, we have to remark every time we refine the grid.
+    const double EPS = 1E-4;
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-            if (cell->face(face_number)->at_boundary() and
-                std::fabs(cell->face(face_number)->center()(0) < 0)) { // Todo: Play with this
-                cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
-            } // Else: Robin by default.
+            if (cell->face(face_number)->at_boundary()) {
+                const double y0_abs = std::fabs(cell->face(face_number)->center()(0));
+                if (std::fabs(y0_abs - 1) < EPS) {
+                    cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
+                } // Else: Robin by default. Note that this arrangement is implicitly coupled
+            }
         }
     }
     printf("%d active micro cells\n",triangulation.n_active_cells());
@@ -83,34 +67,21 @@ void RhoSolver<dim>::setup_system() {
 }
 
 template<int dim>
-void RhoSolver<dim>::set_refine_level(const int &refinement_level) {
-    this->refine_level = refinement_level;
-}
-
-template<int dim>
-void RhoSolver<dim>::set_initial_condition(const Vector<double> &initial_condition) {
-    AssertDimension(initial_condition.size(), num_grids)
-    init_macro_field = initial_condition;
-}
-
-template<int dim>
 void RhoSolver<dim>::setup_scatter() {
     solutions.clear();
     old_solutions.clear();
     righthandsides.clear();
     system_matrices.clear();
     compute_macroscopic_contribution();
-    MicroInitCondition<dim> mic;
-    mic.set_macro_field(init_macro_field);
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int i = 0; i < num_grids; i++) {
-        mic.set_macro_cell_index(i);
+        pde_data.init_rho.set_macro_point(grid_locations[i]);
         Vector<double> solution(n_dofs);
 
-        VectorTools::interpolate(dof_handler, mic, solution);
+        VectorTools::interpolate(dof_handler, pde_data.init_rho, solution);
         solutions.push_back(solution);
         Vector<double> old_solution(n_dofs);
-        VectorTools::interpolate(dof_handler, mic, old_solution);
+        VectorTools::interpolate(dof_handler, pde_data.init_rho, old_solution);
         old_solutions.push_back(old_solution);
 
         Vector<double> rhs(n_dofs);
@@ -133,7 +104,7 @@ void RhoSolver<dim>::set_macro_solutions(Vector<double> *_solution, Vector<doubl
 
 template<int dim>
 void RhoSolver<dim>::compute_macroscopic_contribution() {
-    // Nothing needs to happen in this simple case because it is local in x
+    // Nothing needs to happen in this case because it is local in x
 }
 
 
@@ -155,17 +126,27 @@ void RhoSolver<dim>::assemble_system() {
     Vector<double> cell_rhs(dofs_per_cell);
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+    // Todo: Break from Crank Nicholson implementation
+    // Fix by: Storing a copy of the previously projected RHS in a persistent vector.
     for (unsigned int k = 0; k < num_grids; k++) {
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
         mass_matrix.vmult(righthandsides.at(k), old_solutions.at(k));
         laplace_matrix.vmult(intermediate_vector, old_solutions.at(k));
-        righthandsides.at(k).add(-dt * (1 - theta), intermediate_vector); // scalar factor, matrix
+        righthandsides.at(k).add(-dt * (1 - euler), intermediate_vector); // scalar factor, matrix
 
+        // For now, implicit euler only
+        Vector<double> rhs_func(dof_handler.n_dofs());
+        pde_data.rhs.set_macro_point(grid_locations[k]);
+        VectorTools::create_right_hand_side(dof_handler, QGauss<dim>(fe.degree + 1), pde_data.rhs, rhs_func);
+        righthandsides.at(k).add(dt * (euler), rhs_func);
+        // Missing: rhs_func * dt * (1- euler) from the previous time step
         system_matrices.at(k).copy_from(mass_matrix);
-        system_matrices.at(k).add(dt * theta * diffusion_coefficient, laplace_matrix);
+        system_matrices.at(k).add(dt * euler * pde_data.params.get_double("D"), laplace_matrix);
     }
+    // kappa * euler * dt * R // Todo: Put dt and euler into params
+    const double bilin_param = pde_data.params.get_double("kappa") * euler * dt * pde_data.params.get_double("R");
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary() and cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
@@ -176,7 +157,7 @@ void RhoSolver<dim>::assemble_system() {
                     for (unsigned int j = 0; j < dofs_per_cell; j++) {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                             cell_matrix(i, j) +=
-                                    kappa * dt * theta * R * fe_face_values.shape_value(i, q_index) *
+                                    bilin_param * fe_face_values.shape_value(i, q_index) *
                                     fe_face_values.shape_value(j, q_index) * fe_face_values.JxW(q_index);
                         }
                     }
@@ -192,11 +173,12 @@ void RhoSolver<dim>::assemble_system() {
                 }
             }
         }
-
+        const double kappa = pde_data.params.get_double("kappa");
+        const double p_F = pde_data.params.get_double("p_F");
+        const double R = pde_data.params.get_double("R");
         for (unsigned int k = 0; k < num_grids; k++) {
             for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-                if (cell->face(face_number)->at_boundary() and
-                    cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
+                if (cell->face(face_number)->at_boundary()) {
                     fe_face_values.reinit(cell, face_number);
                     cell->get_dof_indices(local_dof_indices);
                     cell_rhs = 0;
@@ -204,11 +186,30 @@ void RhoSolver<dim>::assemble_system() {
                     fe_face_values.get_function_values(old_solutions.at(k), old_interpolated_solution);
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
-                            cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * kappa *
-                                           (theta * (*macro_solution)(k) +
-                                            (1 - theta) * (*old_macro_solution)(k) + p_F -
-                                            R * (1 - theta) * old_interpolated_solution[q_index]) *
-                                           fe_face_values.JxW(q_index);
+                            if (cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
+                                cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * (kappa *
+                                                                                                (euler *
+                                                                                                 (*macro_solution)(k) +
+                                                                                                 (1 - euler) *
+                                                                                                 (*old_macro_solution)(
+                                                                                                         k) + p_F -
+                                                                                                 // add (1-euler)*robin_bc
+                                                                                                 R * (1 - euler) *
+                                                                                                 old_interpolated_solution[q_index]) +
+                                                                                                euler *
+                                                                                                pde_data.robin_bc.mvalue(
+                                                                                                        grid_locations.at(
+                                                                                                                k),
+                                                                                                        fe_face_values.quadrature_point(
+                                                                                                                q_index))) *
+                                               fe_face_values.JxW(q_index);
+                            } else {
+                                cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * euler *
+                                               pde_data.neumann_bc.mvalue(grid_locations.at(k),
+                                                                          fe_face_values.quadrature_point(q_index)) *
+                                               fe_face_values.JxW(q_index);
+                            }
+
                         }
                     }
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
@@ -237,24 +238,6 @@ void RhoSolver<dim>::solve_time_step() {
 template<int dim>
 void RhoSolver<dim>::compute_residual() {
     Vector<double> macro_domain_l2_error(num_grids);
-//    for (unsigned int k = 0; k < num_grids; k++) { // Todo: Update with residual
-//        boundary.set_macro_cell_index(k);
-//        const unsigned int n_active = triangulation.n_active_cells();
-//        Vector<double> difference_per_cell(n_active);
-//        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell,
-//                                          QGauss<dim>(3),
-//                                          VectorTools::L2_norm);
-//        double micro_l2_error = difference_per_cell.l2_norm();
-//        VectorTools::integrate_difference(dof_handler, solutions.at(k), boundary, difference_per_cell,
-//                                          QGauss<dim>(3),
-//                                          VectorTools::H1_seminorm);
-//        double micro_h1_error = difference_per_cell.l2_norm();
-//        macro_domain_l2_error(k) = micro_l2_error;
-//        macro_domain_h1_error(k) = micro_h1_error;
-//    }
-//    l2_error = macro_domain_l2_error.l2_norm() / macro_domain_l2_error.size(); // Is this the most correct norm?
-//    h1_error = macro_domain_h1_error.l2_norm() / macro_domain_h1_error.size();
-
 }
 
 template<int dim>
@@ -274,7 +257,7 @@ void RhoSolver<dim>::patch_micro_solutions(const std::vector<Point<dim>> &locati
         down_left(i) = -0.5 * micro_size(i);
         up_right(i) = 0.5 * micro_size(i);
     }
-    for (unsigned int i = 0; i < locations.size(); i++) {
+    for (unsigned long i = 0; i < locations.size(); i++) {
         Triangulation<dim> mapped_tria;
         GridGenerator::hyper_rectangle(mapped_tria, down_left + locations.at(i), up_right + locations.at(i));
         mapped_tria.refine_global(refine_level);
@@ -290,10 +273,6 @@ void RhoSolver<dim>::patch_micro_solutions(const std::vector<Point<dim>> &locati
     output.close();
 }
 
-template<int dim>
-void RhoSolver<dim>::set_num_grids(unsigned int _num_grids) {
-    this->num_grids = _num_grids;
-}
 
 template<int dim>
 Point<dim> RhoSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &locations) const {
@@ -319,7 +298,7 @@ void RhoSolver<dim>::write_solutions_to_file(const std::vector<Vector<double>> &
     std::vector<Point<dim>> locations;
     locations.resize(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
-    for (unsigned int i = 0; i < locations.size(); i++) {
+    for (unsigned long i = 0; i < locations.size(); i++) {
         for (const Vector<double> &sol: sols) {
             AssertDimension(locations.size(), sol.size())
             output << sol(i) << " ";
@@ -330,6 +309,37 @@ void RhoSolver<dim>::write_solutions_to_file(const std::vector<Vector<double>> &
         output << std::endl;
     }
     output.close();
+}
+
+template<int dim>
+void RhoSolver<dim>::compute_error(double &l2_error) {
+    Vector<double> macro_domain_l2_error(num_grids);
+    for (unsigned int k = 0; k < num_grids; k++) {
+        pde_data.solution.set_macro_point(grid_locations.at(k));
+        const unsigned int n_active = triangulation.n_active_cells();
+        Vector<double> difference_per_cell(n_active);
+        VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
+                                          QGauss<dim>(3),
+                                          VectorTools::L2_norm);
+        double micro_l2_error = difference_per_cell.l2_norm();
+
+        macro_domain_l2_error(k) = micro_l2_error;
+    }
+    Vector<double> macro_integral(num_grids);
+    VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
+                                      macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
+    l2_error = macro_integral.l2_norm();
+}
+
+template<int dim>
+void RhoSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations) {
+    grid_locations = locations;
+    num_grids = locations.size();
+}
+
+template<int dim>
+unsigned int RhoSolver<dim>::get_num_grids() {
+    return num_grids;
 }
 
 template<int dim>
@@ -353,7 +363,7 @@ void RhoSolver<dim>::read_solutions_from_file(const std::string &filename, std::
     for (unsigned int k = 0; k < num_grids; k++) {
         sols.at(k) = Vector<double>(locations.size());
     }
-    for (unsigned int i = 0; i < locations.size(); i++) {
+    for (unsigned long i = 0; i < locations.size(); i++) {
         std::getline(input, line);
         std::istringstream iss1(line);
         for (unsigned int k = 0; k < num_grids; k++) {
@@ -371,7 +381,7 @@ void RhoSolver<dim>::read_solutions_from_file(const std::string &filename, std::
     // Check if the points match
     bool is_correct = true;
     double eps = 1E-4;
-    for (unsigned int i = 0; i < check_locations.size(); i++) {
+    for (unsigned long i = 0; i < check_locations.size(); i++) {
         for (unsigned int j = 0; j < dim; j++) {
             is_correct &= std::fabs(check_locations.at(i)[j] - locations.at(i)[j]) < eps;
         }

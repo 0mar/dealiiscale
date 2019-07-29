@@ -36,48 +36,11 @@
 #include <string>
 #include <memory>
 #include <cmath>
-#include <stdlib.h>
+#include <cstdlib>
 #include <deal.II/base/logstream.h>
-
+#include "../tools/multiscale_function_parser.h"
+#include "../tools/pde_data.h"
 using namespace dealii;
-
-
-template<int dim>
-class MicroInitCondition : public Function<dim> {
-public:
-    MicroInitCondition() : Function<dim>() {
-
-    }
-
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-    /**
-     * Set a precomputed macroscopic scalar field for the boundary.
-     * After this value is set, individual micro boundaries can be imposed by simply setting the macroscopic cell index.
-     * @param macro_solution Value of the macroscopic field for the corresponding microscopic system.
-     */
-    void set_macro_field(const Vector<double> &field);
-
-    /**
-     *
-     * Set the macroscopic cell index so that the micro boundary has the appropriate macroscopic value.
-     * @param index
-     */
-    void set_macro_cell_index(unsigned int index);
-
-private:
-
-    /**
-     * Contains the macroscopic field
-     */
-    Vector<double> macro_field;
-
-    /**
-     * The macroscopic cell this boundary needs to work on.
-     */
-    unsigned int macro_cell_index = 0;
-
-};
 
 template<int dim>
 class RhoSolver {
@@ -86,7 +49,7 @@ public:
     /**
      * Create a RhoSolver that resolves the microscopic systems.
      */
-    RhoSolver();
+    RhoSolver(ParabolicMicroData<dim> &micro_data, unsigned int refine_level);
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -98,14 +61,6 @@ public:
      * @param time_step Time step size.
      */
     void iterate(const double &time_step);
-
-    /**
-     * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
-     * @param refine_level number of bisections of the grid.
-     */
-    void set_refine_level(const int &refinement_level);
-
-    void set_initial_condition(const Vector<double> &initial_condition);
 
     /**
      * Set the macroscopic solution so that the solver can compute its contribution from it.
@@ -120,11 +75,20 @@ public:
      */
     void compute_residual();
 
+    void compute_error(double &l2_error);
+
+    /**
+   * Set the locations of the microgrids with respect to the macrogrids.
+   * in practice, these are the locations of the macroscopic degrees of freedom, although other options are possible.
+   */
+    void set_grid_locations(const std::vector<Point<dim>> &locations);
+
     /**
      * Prescribe the number of microscopic systems.
      * @param _num_grids int with the number of microscopic systems.
      */
-    void set_num_grids(const unsigned int _num_grids);
+
+    unsigned int get_num_grids();
 
     void patch_micro_solutions(const std::vector<Point<dim>> &locations) const;
 
@@ -140,6 +104,7 @@ public:
     std::vector<Vector<double>> solutions;
     std::vector<Vector<double>> old_solutions;
     double dt = 0.1;
+    double time;
     double residual = 1;
 private:
 
@@ -183,8 +148,8 @@ private:
 
     const unsigned int ROBIN_BOUNDARY = 0;
     const unsigned int NEUMANN_BOUNDARY = 1;
-    unsigned int refine_level;
     FE_Q<dim> fe;
+    unsigned int refine_level;
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
     Vector<double> *macro_solution;
@@ -196,11 +161,9 @@ private:
     std::vector<Vector<double>> righthandsides;
     SparseMatrix<double> mass_matrix;
     SparseMatrix<double> laplace_matrix;
-    double diffusion_coefficient = 1;
-    double R;
-    double kappa;
-    double p_F;
-    double theta; // Todo: Test thorougly if theta<1 works as well
+    std::vector<Point<dim>> grid_locations;
+    ParabolicMicroData<dim> &pde_data;
+    double euler; // Todo: Test thoroughly if euler<1 works as well
     int integration_order;
     Vector<double> intermediate_vector;
 };

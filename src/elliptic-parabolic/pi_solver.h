@@ -36,40 +36,12 @@
 #include <string>
 #include <memory>
 #include <cmath>
-#include <stdlib.h>
+#include <cstdlib>
+#include "../tools/multiscale_function_parser.h"
+#include "../tools/pde_data.h"
 #include <deal.II/base/logstream.h>
 
 using namespace dealii;
-
-template<int dim>
-class MacroBoundary : public Function<dim> {
-public:
-    MacroBoundary() : Function<dim>() {
-
-    }
-
-    /**
-     * Creates a macroscopic boundary (only Dirichlet at this point)
-     * @param p The point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return Value of the microscopic boundary condition at p
-     */
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-
-    /**
-     * Compute the analytic gradient of the boundary at point p. Necessary for Robin/Neumann boundary conditions and
-     * exact evaluation of the error.
-     * @param p The nD point where the boundary condition is evaluated
-     * @param component Component of the vector: not used in this case
-     * @return gradient of the microscopic boundary condition at p
-    */
-    virtual Tensor<1, dim> gradient(const Point<dim> &p, const unsigned int component = 0) const;
-
-private:
-    const double lambda = std::sqrt(8. / 3.); // Coming from manufactured problem
-};
-
 
 template<int dim>
 class PiSolver {
@@ -78,7 +50,7 @@ public:
      * Create and run a macroscopic solver with the given resolution (number of unit square bisections)
      * @param refine_level Number of macroscopic and microscopic bisections.
      */
-    PiSolver();
+    PiSolver(MacroData<dim> &macro_data, unsigned int refine_level);
 
     /**
      * All the methods that setup the system.
@@ -99,7 +71,7 @@ public:
     /**
      * Compute residual/convergence estimates.
      */
-    void compute_residual();
+    void compute_error(double &l2_error);
 
     /**
      * Set the microscopic solutions pointers, so that this solver can compute its contribution from it.
@@ -108,15 +80,7 @@ public:
      */
     void set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler);
 
-    /**
-     * Set the refinement level of the grid (i.e. h = 1/2^refinement_level)
-     * @param refine_level number of bisections of the grid.
-     */
-    void set_refine_level(int num_bisections);
-
     void get_dof_locations(std::vector<Point<dim>> &locations);
-
-    void get_initial_condition(Vector<double> &initial);
 
     void write_solution_to_file(const Vector<double> &sol,
                                 const DoFHandler<dim> &corr_dof_handler);
@@ -197,7 +161,7 @@ private:
     Vector<double> system_rhs;
     Vector<double> micro_contribution;
     std::vector<Vector<double>> *micro_solutions;
-    MacroBoundary<dim> boundary;
+    MacroData<dim> &pde_data;
     int integration_order;
     int refine_level;
     double diffusion_coefficient;

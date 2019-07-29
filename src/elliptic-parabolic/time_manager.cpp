@@ -4,22 +4,21 @@
 
 #include "time_manager.h"
 
-TimeManager::TimeManager(int macro_refinement, int micro_refinement) :
-        pi_solver(),
-        rho_solver(),
-        time_step(0.1),
-        final_time(5) {
-    pi_solver.set_refine_level(macro_refinement);
-    rho_solver.set_refine_level(micro_refinement);
+TimeManager::TimeManager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file,
+                         const std::string &out_file) : data(data_file),
+                                                        pi_solver(data.macro, macro_refinement),
+                                                        rho_solver(data.micro, micro_refinement),
+                                                        time_step(0.1),
+                                                        final_time(5),
+                                                        ct_file_name(out_file) {
 }
 
 void TimeManager::setup() {
     // Create the grids and solution data structures for each grid
     pi_solver.setup();
-    rho_solver.set_num_grids(pi_solver.dof_handler.n_dofs());
-    Vector<double> init_condition;
-    pi_solver.get_initial_condition(init_condition);
-    rho_solver.set_initial_condition(init_condition);
+    std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
+    pi_solver.get_dof_locations(dof_locations);
+    rho_solver.set_grid_locations(dof_locations);
     rho_solver.setup();
     // Couple the macro structures with the micro structures.
 
@@ -43,7 +42,7 @@ void TimeManager::run() {
         compute_residuals(old_residual, residual);
         iterate();
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
-        time += time_step;
+        time += time_step; // todo: Update to it*dt
         it++;
         if (it==10) {
             printf("Storing patched micro and corresponding macro solutions at time %.2f\n",time);
@@ -54,12 +53,13 @@ void TimeManager::run() {
         }
     }
     output_results();
-    pi_solver.write_solution_to_file(pi_solver.solution, pi_solver.dof_handler);
-    rho_solver.write_solutions_to_file(rho_solver.solutions, rho_solver.dof_handler);
+//    pi_solver.write_solution_to_file(pi_solver.solution, pi_solver.dof_handler);
+//    rho_solver.write_solutions_to_file(rho_solver.solutions, rho_solver.dof_handler);
 }
 
 
 void TimeManager::iterate() {
+    data.set_time(time);
     pi_solver.iterate();
     rho_solver.iterate(time_step);
     write_plot();
@@ -95,11 +95,6 @@ void TimeManager::write_plot() {
         std::ofstream output("results/macro-solution" + Utilities::int_to_string(it, 3) + ".vtk");
         data_out.write_vtk(output);
     }
-}
-
-void TimeManager::set_ct_file_name(std::string &file_name) {
-    ct_file_name = file_name;
-
 }
 
 void TimeManager::output_results() {

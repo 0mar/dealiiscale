@@ -38,6 +38,7 @@ deal_II_setup_target(single_scale)
 
 add_library(parabolic ${PARABOLIC_DIR}/time_manager.h ${PARABOLIC_DIR}/time_manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h)
 deal_II_setup_target(parabolic)
+target_link_libraries(parabolic tools)
 
 add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)

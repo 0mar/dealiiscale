@@ -7,26 +7,32 @@
 #include <cmath>
 
 /**
- * Run a multiscale elliptic-parabolic solver
+ * Run that solver
  * @return 0
  */
-int main(int argc, char *argv[]) {
-    int micro_refine = 3;
-    int macro_refine = 3;
-    if (argc >= 2) {
-        macro_refine = std::stoi(argv[1]);
-    }
-    if (argc >= 3) {
-        micro_refine = std::stoi(argv[2]);
-    }
-    dealii::deallog.depth_console(0);
-    std::string file_name = "two-scale-convergence.txt";
+
+void run(const std::string &id) {
+    const std::string input_path = "input/" + id + ".prm";
+    const std::string output_path = "results/" + id + "_" + "convergence_table.txt";
     std::ofstream ofs;
-    ofs.open("results/" + file_name, std::ofstream::out | std::ofstream::trunc);
+    ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    TimeManager manager(macro_refine, micro_refine);
-    manager.set_ct_file_name(file_name);
-    manager.setup();
-    manager.run();
+    for (unsigned int i = 2; i < 7; i++) {
+        TimeManager manager(i, i, input_path, output_path);
+        manager.setup();
+        manager.run();
+    }
+}
+
+int main(int argc, char *argv[]) {
+    dealii::deallog.depth_console(0);
+    std::string id = "two";
+    if (argc == 2) {
+        id = argv[1];
+    } else if (argc > 2) {
+        std::cout << "Too many arguments" << std::endl;
+        return 1;
+    }
+    run(id);
     return 0;
 }

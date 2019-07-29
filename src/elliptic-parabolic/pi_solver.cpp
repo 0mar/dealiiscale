@@ -8,36 +8,20 @@
 using namespace dealii;
 
 template<int dim>
-double MacroBoundary<dim>::value(const Point<dim> &p, const unsigned int) const {
-    double val = 0;
-    return val;
-}
-
-template<int dim>
-Tensor<1, dim> MacroBoundary<dim>::gradient(const Point<dim> &p, const unsigned int) const {
-    Tensor<1, dim> return_val;
-    return_val = 0;
-    return return_val;
-}
-
-
-template<int dim>
-PiSolver<dim>::PiSolver():dof_handler(triangulation), fe(1), micro_dof_handler(nullptr), micro_solutions(nullptr),
-                          boundary(), integration_order(2), diffusion_coefficient(0.8), max_support(10) {
+PiSolver<dim>::PiSolver(MacroData<dim> &macro_data, unsigned int refine_level):dof_handler(triangulation), fe(1),
+                                                                               micro_dof_handler(nullptr),
+                                                                               micro_solutions(nullptr),
+                                                                               pde_data(macro_data),
+                                                                               integration_order(fe.degree + 1),
+                                                                               refine_level(refine_level) {
     refine_level = 1;
     residual = 1;
-    integration_order = fe.degree + 1;
     printf("Solving macro problem in %d space dimensions\n",dim);}
 
 template<int dim>
 void PiSolver<dim>::setup() {
     make_grid();
     setup_system();
-}
-
-template<int dim>
-void PiSolver<dim>::set_refine_level(int num_bisections) {
-    this->refine_level = num_bisections;
 }
 
 template<int dim>
@@ -73,8 +57,8 @@ template<int dim>
 void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) const {
     Assert(pi.size() == out_vector.size(), ExcDimensionMismatch(pi.size(), out_vector.size()))
     for (unsigned int i = 0; i < pi.size(); i++) {
-        const double abs_pi = std::fabs(pi(i));
-        out_vector(i) = 0.5 * std::fmin(abs_pi, std::sqrt(abs_pi));
+//        const double abs_pi = std::fabs(pi(i));
+        out_vector(i) = pde_data.params.get_double("theta") * pi(i);//* std::fmin(abs_pi, std::sqrt(abs_pi));
         printf("%.2f, ", out_vector(i));
     }
     std::cout << std::endl;
@@ -99,7 +83,8 @@ void PiSolver<dim>::assemble_system() {
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     system_matrix = 0;
     system_rhs = 0;
-    system_matrix.add(diffusion_coefficient, laplace_matrix); // Todo: This can be moved out, it only happens once.
+    // Todo: This can be moved out, it only happens once.
+    system_matrix.add(pde_data.params.get_double("A"), laplace_matrix);
 
     get_pi_contribution_rhs(old_solution, macro_contribution);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
@@ -113,9 +98,9 @@ void PiSolver<dim>::assemble_system() {
         cell->get_dof_indices(local_dof_indices);
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index)
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-                cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                rho_rhs_points[q_index] *
-                                pi_rhs_points[q_index] *
+                cell_rhs(i) += (fe_values.shape_value(i, q_index) * (rho_rhs_points[q_index] * pi_rhs_points[q_index] +
+                                                                     pde_data.rhs.value(
+                                                                             fe_values.quadrature_point(q_index))) *
                                 fe_values.JxW(q_index));
             }
 
@@ -124,7 +109,7 @@ void PiSolver<dim>::assemble_system() {
         }
     }
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, ZeroFunction<dim>(), boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, pde_data.bc, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
@@ -153,14 +138,16 @@ void PiSolver<dim>::solve() {
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
     printf("\t %d CG iterations to convergence (macro)\n",solver_control.last_step());
-    compute_residual();
     old_solution = solution;
 }
 
 template<int dim>
-void PiSolver<dim>::compute_residual() {
+void PiSolver<dim>::compute_error(double &l2_error) {
     const unsigned int n_active = triangulation.n_active_cells();
-    // Todo: Compute the residual
+    Vector<double> difference_per_cell(n_active);
+    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
+                                      VectorTools::L2_norm);
+    l2_error = difference_per_cell.l2_norm();
 }
 
 template<int dim>
@@ -219,23 +206,6 @@ double PiSolver<dim>::get_micro_flux(unsigned int micro_index) const {
     return integral;
 }
 
-
-template<int dim>
-void PiSolver<dim>::get_initial_condition(Vector<double> &initial) {
-    initial.reinit(dof_handler.n_dofs());
-    std::vector<Point<dim>> locations;
-    get_dof_locations(locations);
-    for (unsigned int i = 0; i < initial.size(); i++) {
-        Point<dim> p = locations.at(i);
-        double val = 0;
-        for (unsigned int j = 0; j < dim; j++) {
-            val += (1 - p[j]) * (1 - p[j]);
-        }
-        initial[i] = val;
-    }
-}
-
-
 template<int dim>
 void PiSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
     MappingQ1<dim> mapping;
@@ -244,7 +214,6 @@ void PiSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
     DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
 
 }
-
 
 template<int dim>
 void PiSolver<dim>::compute_microscopic_contribution() {
@@ -322,15 +291,6 @@ void PiSolver<dim>::read_solution_from_file(const std::string &filename, Vector<
     }
 }
 // Explicit instantiation
-
-template
-class MacroBoundary<1>;
-
-template
-class MacroBoundary<2>;
-
-template
-class MacroBoundary<3>;
 
 template
 class PiSolver<1>;

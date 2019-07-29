@@ -7,6 +7,7 @@
 
 #include "pi_solver.h"
 #include "rho_solver.h"
+#include "../tools/pde_data.h" // todo: fix imports
 
 
 class TimeManager {
@@ -14,6 +15,7 @@ class TimeManager {
 public:
     const static int MACRO_DIMENSIONS = 2;
     const static int MICRO_DIMENSIONS = 2;
+    TwoPressureData<MACRO_DIMENSIONS> data; // todo: unify twopressure naming
     PiSolver<MACRO_DIMENSIONS> pi_solver;
     RhoSolver<MICRO_DIMENSIONS> rho_solver;
 
@@ -22,7 +24,8 @@ public:
      * @param macro_refinement Resolution of the macro solver.
      * @param micro_refinement Resolution of the micro solver.
      */
-    TimeManager(int macro_refinement, int micro_refinement);
+    TimeManager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file,
+                const std::string &output_file);
 
     /**
      * Run all the methods that setup the solvers of the two scales and couple the data structures.
@@ -46,12 +49,6 @@ public:
      * Write plots to VTK format so they can be opened with Paraview.
      */
     void write_plot();
-
-    /**
-     * Set a custom name for the file containing the convergence table.
-     * @param file_name Name of the convergence table file.
-     */
-    void set_ct_file_name(std::string &file_name);
 
     // Time step size
     double time_step = 0.1;
