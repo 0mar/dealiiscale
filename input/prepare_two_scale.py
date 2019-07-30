@@ -59,7 +59,7 @@ def compute_solution_set(pi, rho, xvars, yvars, t, consts):
     del_pi = laplace(pi, xvars)
     del_rho = laplace(rho, yvars)
     macro_rhs = - macro_functional(pi, rho, yvars, consts) - consts['A'] * del_pi
-    micro_rhs = - time_deriv(rho, t) - consts['D'] * del_rho
+    micro_rhs = time_deriv(rho, t) - consts['D'] * del_rho
     HORIZONTAL, VERTICAL = 0, 1
     neumann_rhs = consts['D'] * boundary_flux(rho, yvars, HORIZONTAL)
     robin_rhs = consts['D'] * boundary_flux(rho, yvars, VERTICAL) - consts['kappa'] * (
@@ -106,8 +106,8 @@ if __name__ == '__main__':
     rho = input("Supply micro function. rho(x0,...,xd,y0,...,yd,t) = ")
     if not pi or not rho:
         print("Going for default sets", flush=True)
-        pi = "exp(x0**2 + x1**2 + t**2)"
-        rho = "sin(y1)**2 + cos(y0)**2 + 2"
+        pi = "(cos(exp(-D*t)*2*sin(1)*sqrt(theta/A)*x0) + cos(exp(-D*t)*2*sin(1)*sqrt(theta/A)*x1))"
+        rho = "exp(-2*D*t)*cos(y0)*cos(y1)"
     name = input("Supply solution set name: ")
     print("pi(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (pi, rho, name), flush=True)
     input("If happy, press enter, else Ctrl-C: ")

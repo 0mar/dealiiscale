@@ -1,0 +1,16 @@
+set macro_rhs = -A*(-4*theta*exp(-2*D*t)*sin(1)^2*cos(2*x0*sqrt(theta/A)*exp(-D*t)*sin(1))/A - 4*theta*exp(-2*D*t)*sin(1)^2*cos(2*x1*sqrt(theta/A)*exp(-D*t)*sin(1))/A) - 4*theta*(cos(2*x0*sqrt(theta/A)*exp(-D*t)*sin(1)) + cos(2*x1*sqrt(theta/A)*exp(-D*t)*sin(1)))*exp(-2*D*t)*sin(1)^2
+set micro_rhs = 0
+set macro_bc = cos(2*x0*sqrt(theta/A)*exp(-D*t)*sin(1)) + cos(2*x1*sqrt(theta/A)*exp(-D*t)*sin(1))
+set micro_bc_neumann = -D*y0*exp(-2*D*t)*sin(y0)*cos(y1)
+set micro_bc_robin = -D*y1*exp(-2*D*t)*sin(y1)*cos(y0) - kappa*(-R*exp(-2*D*t)*cos(y0)*cos(y1) + p_F + cos(2*x0*sqrt(theta/A)*exp(-D*t)*sin(1)) + cos(2*x1*sqrt(theta/A)*exp(-D*t)*sin(1)))
+set init_rho = cos(y0)*cos(y1)
+set macro_solution = cos(2*x0*sqrt(theta/A)*exp(-D*t)*sin(1)) + cos(2*x1*sqrt(theta/A)*exp(-D*t)*sin(1))
+set micro_solution = exp(-2*D*t)*cos(y0)*cos(y1)
+set A = 0.8
+set D = 1
+set theta = 0.5
+set kappa = 1
+set p_F = 4
+set R = 2
+set micro_geometry = [-1,1]x[-1,1]
+set macro_geometry = [-1,1]x[-1,1]
