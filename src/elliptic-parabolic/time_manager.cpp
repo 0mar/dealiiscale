@@ -76,7 +76,8 @@ void TimeManager::compute_residuals(double &old_residual, double &residual) {
     convergence_table.add_value("dofs", pi_solver.dof_handler.n_dofs());
     convergence_table.add_value("mL2", micro_l2);
     convergence_table.add_value("ML2", macro_l2);
-    old_residual = residual;
+    const double res = residual;
+    old_residual = res;
     residual = micro_l2 + macro_l2;
 }
 
