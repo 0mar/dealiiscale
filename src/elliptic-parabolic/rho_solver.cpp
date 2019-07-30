@@ -127,15 +127,19 @@ void RhoSolver<dim>::assemble_system() {
     Vector<double> cell_rhs(dofs_per_cell);
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    // Todo: Break from Crank Nicholson implementation
+    // Todo: this is a break from Crank Nicholson implementation
     // Fix by: Storing a copy of the previously projected RHS in a persistent vector.
+    const double kappa = pde_data.params.get_double("kappa");
+    const double p_F = pde_data.params.get_double("p_F");
+    const double R = pde_data.params.get_double("R");
+    const double D = pde_data.params.get_double("D");
     for (unsigned int k = 0; k < num_grids; k++) {
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
         mass_matrix.vmult(righthandsides.at(k), old_solutions.at(k));
         laplace_matrix.vmult(intermediate_vector, old_solutions.at(k));
-        righthandsides.at(k).add(-dt * (1 - euler), intermediate_vector); // scalar factor, matrix
+        righthandsides.at(k).add(-dt * D * (1 - euler), intermediate_vector); // scalar factor, matrix
 
         // For now, implicit euler only
         Vector<double> rhs_func(dof_handler.n_dofs());
@@ -144,7 +148,7 @@ void RhoSolver<dim>::assemble_system() {
         righthandsides.at(k).add(dt * (euler), rhs_func);
         // Missing: rhs_func * dt * (1- euler) from the previous time step
         system_matrices.at(k).copy_from(mass_matrix);
-        system_matrices.at(k).add(dt * euler * pde_data.params.get_double("D"), laplace_matrix);
+        system_matrices.at(k).add(dt * D * euler, laplace_matrix);
     }
     // kappa * euler * dt * R // Todo: Put dt and euler into params
     const double bilin_param = pde_data.params.get_double("kappa") * euler * dt * pde_data.params.get_double("R");
@@ -174,13 +178,11 @@ void RhoSolver<dim>::assemble_system() {
                 }
             }
         }
-        const double kappa = pde_data.params.get_double("kappa");
-        const double p_F = pde_data.params.get_double("p_F");
-        const double R = pde_data.params.get_double("R");
+
         for (unsigned int k = 0; k < num_grids; k++) {
             for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+                fe_face_values.reinit(cell, face_number); // pretty sure this can be moved inside the if body
                 if (cell->face(face_number)->at_boundary()) {
-                    fe_face_values.reinit(cell, face_number);
                     cell->get_dof_indices(local_dof_indices);
                     cell_rhs = 0;
                     std::vector<double> old_interpolated_solution(n_q_face_points);
@@ -234,6 +236,7 @@ void RhoSolver<dim>::solve_time_step() {
     printf("\t %d CG iterations to convergence (micro)\n",solver_control.last_step());
     compute_residual();
     old_solutions = solutions;
+    std::cout << "Micro: " << solutions.at(0) << std::endl;
 }
 
 
@@ -331,12 +334,27 @@ void RhoSolver<dim>::compute_error(double &l2_error) {
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
     l2_error = macro_integral.l2_norm();
+    printf("Micro error: %.3f\n", l2_error);
 }
 
 template<int dim>
 void RhoSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations) {
     grid_locations = locations;
     num_grids = locations.size();
+}
+
+
+template<int dim>
+void RhoSolver<dim>::set_exact_solution() {
+    std::cout << "Exact rho solution set" << std::endl;
+    std::vector<Point<dim>> locations(dof_handler.n_dofs());
+    MappingQ1<dim> mapping;
+    DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
+    for (unsigned int k = 0; k < num_grids; k++) {
+        for (unsigned int i = 0; i < solutions.at(k).size(); i++) {
+            solutions.at(k)(i) = pde_data.solution.mvalue(grid_locations.at(k), locations.at(i));
+        }
+    }
 }
 
 template<int dim>

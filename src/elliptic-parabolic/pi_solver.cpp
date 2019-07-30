@@ -59,7 +59,6 @@ void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<dou
     for (unsigned int i = 0; i < pi.size(); i++) {
 //        const double abs_pi = std::fabs(pi(i));
         out_vector(i) = pde_data.params.get_double("theta") * pi(i);//* std::fmin(abs_pi, std::sqrt(abs_pi));
-        printf("%.2f, ", out_vector(i));
     }
     std::cout << std::endl;
 }
@@ -79,7 +78,6 @@ void PiSolver<dim>::assemble_system() {
     Vector<double> cell_rhs(dofs_per_cell);
 
     compute_microscopic_contribution();
-    std::cout << " Micro " << micro_contribution << std::endl;
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     system_matrix = 0;
     system_rhs = 0;
@@ -98,10 +96,9 @@ void PiSolver<dim>::assemble_system() {
         cell->get_dof_indices(local_dof_indices);
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index)
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-                cell_rhs(i) += (fe_values.shape_value(i, q_index) * (rho_rhs_points[q_index] * pi_rhs_points[q_index] +
-                                                                     pde_data.rhs.value(
-                                                                             fe_values.quadrature_point(q_index))) *
-                                fe_values.JxW(q_index));
+                const double functional = rho_rhs_points[q_index] * pi_rhs_points[q_index] +
+                                          pde_data.rhs.value(fe_values.quadrature_point(q_index));
+                cell_rhs(i) += (fe_values.shape_value(i, q_index) * functional * fe_values.JxW(q_index));
             }
 
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
@@ -139,6 +136,7 @@ void PiSolver<dim>::solve() {
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
     printf("\t %d CG iterations to convergence (macro)\n",solver_control.last_step());
     old_solution = solution;
+    std::cout << "Macro: " << solution << std::endl;
 }
 
 template<int dim>
@@ -148,6 +146,7 @@ void PiSolver<dim>::compute_error(double &l2_error) {
     VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::L2_norm);
     l2_error = difference_per_cell.l2_norm();
+    printf("Macro error: %.3f\n", l2_error);
 }
 
 template<int dim>
@@ -227,6 +226,18 @@ void PiSolver<dim>::iterate() {
     assemble_system();
     solve();
 }
+
+
+template<int dim>
+void PiSolver<dim>::set_exact_solution() {
+    MappingQ1<dim> mapping;
+    std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
+    DoFTools::map_dofs_to_support_points(mapping, dof_handler, dof_locations);
+    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
+        solution[i] = pde_data.solution.value(dof_locations[i]);
+    }
+}
+
 
 template<int dim>
 void PiSolver<dim>::write_solution_to_file(const Vector<double> &sol,

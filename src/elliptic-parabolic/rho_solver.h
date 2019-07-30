@@ -88,6 +88,8 @@ public:
      * @param _num_grids int with the number of microscopic systems.
      */
 
+    void set_exact_solution();
+
     unsigned int get_num_grids();
 
     void patch_micro_solutions(const std::vector<Point<dim>> &locations) const;
