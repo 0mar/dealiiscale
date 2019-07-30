@@ -45,7 +45,8 @@ void RhoSolver<dim>::make_grid() {
                 const double y0_abs = std::fabs(cell->face(face_number)->center()(0));
                 if (std::fabs(y0_abs - 1) < EPS) {
                     cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
-                } // Else: Robin by default. Note that this arrangement is implicitly coupled
+                } // Else: Robin by default.
+                // Note that this arrangement is implicitly coupled with ./prepare_two_scale.py
             }
         }
     }
@@ -187,21 +188,22 @@ void RhoSolver<dim>::assemble_system() {
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                             if (cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
-                                cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * (kappa *
-                                                                                                (euler *
-                                                                                                 (*macro_solution)(k) +
-                                                                                                 (1 - euler) *
-                                                                                                 (*old_macro_solution)(
-                                                                                                         k) + p_F -
-                                                                                                 // add (1-euler)*robin_bc
-                                                                                                 R * (1 - euler) *
-                                                                                                 old_interpolated_solution[q_index]) +
-                                                                                                euler *
-                                                                                                pde_data.robin_bc.mvalue(
-                                                                                                        grid_locations.at(
-                                                                                                                k),
-                                                                                                        fe_face_values.quadrature_point(
-                                                                                                                q_index))) *
+                                // add (1-euler)*robin_bc
+                                cell_rhs(i) += fe_face_values.shape_value(i, q_index) * dt * (kappa * (euler *
+                                                                                                       (*macro_solution)(
+                                                                                                               k) +
+                                                                                                       (1 - euler) *
+                                                                                                       (*old_macro_solution)(
+                                                                                                               k) +
+                                                                                                       p_F -
+                                                                                                       R * (1 - euler) *
+                                                                                                       old_interpolated_solution[q_index]) +
+                                                                                              euler *
+                                                                                              pde_data.robin_bc.mvalue(
+                                                                                                      grid_locations.at(
+                                                                                                              k),
+                                                                                                      fe_face_values.quadrature_point(
+                                                                                                              q_index))) *
                                                fe_face_values.JxW(q_index);
                             } else {
                                 cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * euler *

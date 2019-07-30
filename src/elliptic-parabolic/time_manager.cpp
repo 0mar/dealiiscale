@@ -66,8 +66,10 @@ void TimeManager::iterate() {
 }
 
 void TimeManager::compute_residuals(double &old_residual, double &residual) {
-    double macro_l2 = pi_solver.residual;
-    double micro_l2 = rho_solver.residual;
+    double macro_l2 = 0;
+    double micro_l2 = 0;
+    pi_solver.compute_error(macro_l2);
+    rho_solver.compute_error(micro_l2);
     convergence_table.add_value("iteration", it);
     convergence_table.add_value("time", time);
     convergence_table.add_value("cells", pi_solver.triangulation.n_active_cells());
@@ -103,7 +105,7 @@ void TimeManager::output_results() {
         convergence_table.set_precision(error_class, 3);
         convergence_table.set_scientific(error_class, true);
     }
-    std::ofstream convergence_output("results/" + ct_file_name, std::iostream::app);
+    std::ofstream convergence_output(ct_file_name, std::iostream::app);
     convergence_table.write_text(convergence_output);
     convergence_output.close();
     DataOut<MACRO_DIMENSIONS> data_out;
