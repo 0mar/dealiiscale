@@ -51,7 +51,7 @@ public:
     void write_plot();
 
     // Time step size
-    double time_step = 0.1;
+    double time_step = 0.02;
 
     // Time variable
     double time = 0;
