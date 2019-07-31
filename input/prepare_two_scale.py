@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sympy
 from sympy.parsing.sympy_parser import parse_expr
-
+import re
 
 def laplace(f, vars):
     return sum([sympy.diff(f, i, i) for i in vars])
@@ -84,12 +84,14 @@ def write_param_file(filename, funcs, parameters):
     data['macro_geometry'] = "[-1,1]x[-1,1]"
 
     with open('%s.prm' % filename, 'w') as param_file:
-        param_file.write("# This parameter file has been automatically generated and is deal.II compliant")
+        param_file.write("# This parameter file has been automatically generated and is deal.II compliant\n")
         for key, val in data.items():
-            if type(val) == bool:
-                formatted_val = str(val).lower()
-            else:
-                formatted_val = str(val).replace('**', '^')
+            formatted_val = str(val)
+            formatted_val = re.sub(r'\bAbs\b', 'abs', formatted_val)
+            formatted_val = re.sub(r'\bTrue\b', 'true', formatted_val)
+            formatted_val = re.sub(r'\bMin\b', 'min', formatted_val)
+            formatted_val = re.sub(r'\bre\b', '', formatted_val)
+            formatted_val = formatted_val.replace('**', '^')
             param_file.write("set %s = %s\n" % (key, formatted_val))
 
 
