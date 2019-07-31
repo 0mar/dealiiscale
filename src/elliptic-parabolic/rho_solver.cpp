@@ -335,7 +335,7 @@ void RhoSolver<dim>::compute_error(double &l2_error) {
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
     l2_error = macro_integral.l2_norm();
-    printf("Micro error: %.3f\n", l2_error);
+    printf("Micro error: %.3e\n", l2_error);
 }
 
 template<int dim>

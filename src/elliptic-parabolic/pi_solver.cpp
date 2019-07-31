@@ -60,7 +60,6 @@ void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<dou
 //        const double abs_pi = std::fabs(pi(i));
         out_vector(i) = pde_data.params.get_double("theta") * pi(i);//* std::fmin(abs_pi, std::sqrt(abs_pi));
     }
-    std::cout << std::endl;
 }
 
 template<int dim>
@@ -148,7 +147,7 @@ void PiSolver<dim>::compute_error(double &l2_error) {
     VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::L2_norm);
     l2_error = difference_per_cell.l2_norm();
-    printf("Macro error: %.3f\n", l2_error);
+    printf("Macro error: %.3e\n", l2_error);
 }
 
 template<int dim>
@@ -221,7 +220,7 @@ void PiSolver<dim>::compute_microscopic_contribution() {
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
         micro_contribution[i] = get_micro_mass(i);
     }
-    std::cout << micro_contribution << std::endl;
+    std::cout << "Micro Mass " << micro_contribution << std::endl;
 }
 
 template<int dim>
