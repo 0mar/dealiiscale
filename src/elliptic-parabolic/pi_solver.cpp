@@ -47,7 +47,7 @@ void PiSolver<dim>::setup_system() {
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     macro_contribution.reinit(dof_handler.n_dofs());
-    old_solution = 1.; // Todo: How to choose the initial value?
+    old_solution = 5; // Todo: How to choose the initial value?
     micro_contribution.reinit(dof_handler.n_dofs());
     laplace_matrix.reinit(sparsity_pattern);
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
@@ -77,14 +77,15 @@ void PiSolver<dim>::assemble_system() {
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
 
-    compute_microscopic_contribution();
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     system_matrix = 0;
     system_rhs = 0;
     // Todo: This can be moved out, it only happens once.
     system_matrix.add(pde_data.params.get_double("A"), laplace_matrix);
 
+    compute_microscopic_contribution();
     get_pi_contribution_rhs(old_solution, macro_contribution);
+    //macro_contribution = 4*pde_data.params.get_double("theta"); // Exact rho part
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
@@ -98,13 +99,14 @@ void PiSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 const double functional = rho_rhs_points[q_index] * pi_rhs_points[q_index] +
                                           pde_data.rhs.value(fe_values.quadrature_point(q_index));
-                cell_rhs(i) += (fe_values.shape_value(i, q_index) * functional * fe_values.JxW(q_index));
+                cell_rhs(i) += fe_values.shape_value(i, q_index) * functional * fe_values.JxW(q_index);
             }
 
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
         }
     }
+    std::cout << "Macro rhs: " << system_rhs << std::endl;
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler, 0, pde_data.bc, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
@@ -219,12 +221,14 @@ void PiSolver<dim>::compute_microscopic_contribution() {
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
         micro_contribution[i] = get_micro_mass(i);
     }
+    std::cout << micro_contribution << std::endl;
 }
 
 template<int dim>
 void PiSolver<dim>::iterate() {
     assemble_system();
     solve();
+//    set_exact_solution();
 }
 
 

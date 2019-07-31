@@ -250,6 +250,7 @@ void RhoSolver<dim>::iterate(const double &time_step) {
     dt = time_step;
     assemble_system();
     solve_time_step();
+//    set_exact_solution();
 }
 
 template<int dim>
