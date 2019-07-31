@@ -189,29 +189,23 @@ void RhoSolver<dim>::assemble_system() {
                     fe_face_values.get_function_values(old_solutions.at(k), old_interpolated_solution);
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
+                            const double dtxvixJxW =
+                                    dt * fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index);
                             if (cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
+                                const double pi_part =
+                                        euler * (*macro_solution)(k) + (1 - euler) * (*old_macro_solution)(k);
                                 // add (1-euler)*robin_bc
-                                cell_rhs(i) += fe_face_values.shape_value(i, q_index) * dt * (kappa * (euler *
-                                                                                                       (*macro_solution)(
-                                                                                                               k) +
-                                                                                                       (1 - euler) *
-                                                                                                       (*old_macro_solution)(
-                                                                                                               k) +
-                                                                                                       p_F -
-                                                                                                       R * (1 - euler) *
-                                                                                                       old_interpolated_solution[q_index]) +
-                                                                                              euler *
-                                                                                              pde_data.robin_bc.mvalue(
-                                                                                                      grid_locations.at(
-                                                                                                              k),
-                                                                                                      fe_face_values.quadrature_point(
-                                                                                                              q_index))) *
-                                               fe_face_values.JxW(q_index);
+                                const double func_part = euler * pde_data.robin_bc.mvalue(grid_locations.at(k),
+                                                                                          fe_face_values.quadrature_point(
+                                                                                                  q_index));
+                                cell_rhs(i) += (kappa *
+                                                (pi_part + p_F - R * (1 - euler) * old_interpolated_solution[q_index]) +
+                                                func_part) * dtxvixJxW;
                             } else {
-                                cell_rhs(i) += (fe_face_values.shape_value(i, q_index)) * dt * euler *
-                                               pde_data.neumann_bc.mvalue(grid_locations.at(k),
-                                                                          fe_face_values.quadrature_point(q_index)) *
-                                               fe_face_values.JxW(q_index);
+                                const double func_part = euler * pde_data.neumann_bc.mvalue(grid_locations.at(k),
+                                                                                            fe_face_values.quadrature_point(
+                                                                                                    q_index));
+                                cell_rhs(i) += dtxvixJxW * func_part;
                             }
 
                         }
