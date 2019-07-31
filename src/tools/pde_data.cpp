@@ -47,6 +47,7 @@ TwoPressureData<dim>::TwoPressureData(const std::string &param_file) : macro(par
                          "2*D*y1*sin(y1)*cos(y1) - kappa*(-R*(sin(y1)^2 + cos(y0)^2 + 2) + p_F + exp(t^2 + x0^2 + x1^2))",
                          Patterns::Anything());
     params.declare_entry("init_rho", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
+    params.declare_entry("nonlinear", "false", Patterns::Bool());
 
     std::map<std::string, double> constants = {{"A",     0.8},
                                                {"D",     1},

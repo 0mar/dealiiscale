@@ -120,7 +120,7 @@ private:
     /**
      * Use the (probably updated) microscopic data to compute new elements of the macroscopic system.
      */
-    void compute_microscopic_contribution();
+    void get_microscopic_contribution(Vector<double> micro_contribution, bool nonlinear);
 
     /**
     * Compute the right hand side of the Macroscopic function;
@@ -145,7 +145,7 @@ private:
      * f(s) = g(s)*\int_Y \rho(x,y)dy.
      * This method computes g(s): a hat function with support from 0 to some theta
      */
-    void get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) const;
+    void get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector, bool nonlinear) const;
 
     /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
@@ -161,7 +161,6 @@ private:
     Vector<double> macro_contribution;
     DoFHandler<dim> *micro_dof_handler;
     Vector<double> system_rhs;
-    Vector<double> micro_contribution;
     std::vector<Vector<double>> *micro_solutions;
     MacroData<dim> &pde_data;
     int integration_order;

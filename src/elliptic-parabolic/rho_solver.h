@@ -156,7 +156,6 @@ private:
     SparsityPattern sparsity_pattern;
     Vector<double> *macro_solution;
     Vector<double> *old_macro_solution;
-    Vector<double> macro_contribution;
     Vector<double> init_macro_field;
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;

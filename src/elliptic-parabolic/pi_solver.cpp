@@ -16,7 +16,14 @@ PiSolver<dim>::PiSolver(MacroData<dim> &macro_data, unsigned int refine_level):d
                                                                                refine_level(refine_level) {
     refine_level = 1;
     residual = 1;
-    printf("Solving macro problem in %d space dimensions\n",dim);}
+    printf("Solving macro problem in %d space dimensions\n", dim);
+    if (pde_data.params.get_bool("nonlinear")) {
+        printf("Running nonlinear right hand side in macroscopic part\n");
+    } else {
+        printf("Running linear right hand side in macroscopic part\n");
+    }
+}
+
 
 template<int dim>
 void PiSolver<dim>::setup() {
@@ -48,17 +55,20 @@ void PiSolver<dim>::setup_system() {
     system_rhs.reinit(dof_handler.n_dofs());
     macro_contribution.reinit(dof_handler.n_dofs());
     old_solution = 5; // Todo: How to choose the initial value?
-    micro_contribution.reinit(dof_handler.n_dofs());
     laplace_matrix.reinit(sparsity_pattern);
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
 }
 
 template<int dim>
-void PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector) const {
-    Assert(pi.size() == out_vector.size(), ExcDimensionMismatch(pi.size(), out_vector.size()))
+void
+PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector, bool nonlinear) const {
+    AssertDimension(pi.size(), out_vector.size())
     for (unsigned int i = 0; i < pi.size(); i++) {
-//        const double abs_pi = std::fabs(pi(i));
-        out_vector(i) = pde_data.params.get_double("theta") * pi(i);//* std::fmin(abs_pi, std::sqrt(abs_pi));
+        out_vector(i) = pde_data.params.get_double("theta") * pi(i);
+        if (nonlinear) {
+            const double abs_pi = std::fabs(pi(i));
+            out_vector(i) = pde_data.params.get_double("theta") * std::fmin(abs_pi, std::sqrt(abs_pi));
+        }
     }
 }
 
@@ -81,9 +91,10 @@ void PiSolver<dim>::assemble_system() {
     system_rhs = 0;
     // Todo: This can be moved out, it only happens once.
     system_matrix.add(pde_data.params.get_double("A"), laplace_matrix);
-
-    compute_microscopic_contribution();
-    get_pi_contribution_rhs(old_solution, macro_contribution);
+    Vector<double> micro_contribution(dof_handler.n_dofs());
+    const bool is_nonlinear = pde_data.params.get_bool("nonlinear");
+    get_microscopic_contribution(micro_contribution, is_nonlinear);
+    get_pi_contribution_rhs(old_solution, macro_contribution, is_nonlinear);
     //macro_contribution = 4*pde_data.params.get_double("theta"); // Exact rho part
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
@@ -216,11 +227,16 @@ void PiSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
 }
 
 template<int dim>
-void PiSolver<dim>::compute_microscopic_contribution() {
+void PiSolver<dim>::get_microscopic_contribution(Vector<double> micro_contribution, bool nonlinear) {
+    AssertDimension(micro_contribution.size(), dof_handler.n_dofs())
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
-        micro_contribution[i] = get_micro_mass(i);
+        if (nonlinear) {
+            micro_contribution[i] = get_micro_mass(i);
+        } else {
+            micro_contribution[i] = std::fmin(get_micro_mass(i), 1);
+        }
     }
-    std::cout << "Micro Mass " << micro_contribution << std::endl;
+//    std::cout << "Micro Mass " << micro_contribution << std::endl;
 }
 
 template<int dim>
