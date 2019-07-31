@@ -54,11 +54,16 @@ TwoPressureData<dim>::TwoPressureData(const std::string &param_file) : macro(par
                                                {"kappa", 1},
                                                {"p_F",   4},
                                                {"R",     2}};
-
+    // All the constants will be declared in the file
     for (const auto &pair: constants) {
         params.declare_entry(pair.first, std::to_string(pair.second), Patterns::Double());
     }
     params.parse_input(param_file);
+    // Override the default constants declared above
+    for (auto &pair: constants) {
+        pair.second = params.get_double(pair.first);
+    }
+
 
     macro.rhs.initialize(TwoPressureData<dim>::macro_variables(), params.get("macro_rhs"), constants, true);
     macro.bc.initialize(TwoPressureData<dim>::macro_variables(), params.get("macro_bc"), constants, true);
