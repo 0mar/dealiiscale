@@ -151,12 +151,17 @@ void PiSolver<dim>::solve() {
 
 template<int dim>
 void PiSolver<dim>::compute_error(double &l2_error) {
-    const unsigned int n_active = triangulation.n_active_cells();
-    Vector<double> difference_per_cell(n_active);
-    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(1),
+    Vector<double> difference_per_cell(triangulation.n_active_cells());
+    Vector<double> mass_per_cell(triangulation.n_active_cells());
+    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
+                                      VectorTools::L2_norm);
+    VectorTools::integrate_difference(dof_handler, solution, Functions::ZeroFunction<dim>(), mass_per_cell,
+                                      QGauss<dim>(3),
                                       VectorTools::L2_norm);
     l2_error = difference_per_cell.l2_norm();
+    const double l2_mass = mass_per_cell.l2_norm();
     printf("Macro error: %.3e\n", l2_error);
+    printf("Macro mass:  %.3e\n", l2_mass);
 }
 
 template<int dim>
@@ -241,8 +246,8 @@ template<int dim>
 void PiSolver<dim>::iterate() {
     assemble_system();
     solve();
-    //    std::cout << "Macro: " << solution << std::endl;
-    set_exact_solution();
+//    std::cout << "Macro: " << solution << std::endl;
+//    set_exact_solution();
 }
 
 
