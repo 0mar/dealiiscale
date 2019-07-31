@@ -39,8 +39,8 @@ void TimeManager::run() {
     double old_residual = 1;
     double residual = 0;
     while (time < final_time) {
-        compute_residuals(old_residual, residual);
         iterate();
+        compute_residuals(old_residual, residual);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
         time += time_step; // todo: Update to it*dt
         it++;

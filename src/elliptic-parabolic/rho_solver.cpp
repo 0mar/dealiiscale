@@ -230,7 +230,6 @@ void RhoSolver<dim>::solve_time_step() {
     printf("\t %d CG iterations to convergence (micro)\n",solver_control.last_step());
     compute_residual();
     old_solutions = solutions;
-    std::cout << "Micro: " << solutions.at(0) << std::endl;
 }
 
 
@@ -244,6 +243,7 @@ void RhoSolver<dim>::iterate(const double &time_step) {
     dt = time_step;
     assemble_system();
     solve_time_step();
+//    std::cout << "Micro: " << solutions.at(0) << std::endl;
 //    set_exact_solution();
 }
 

@@ -95,7 +95,6 @@ void PiSolver<dim>::assemble_system() {
     const bool is_nonlinear = pde_data.params.get_bool("nonlinear");
     get_microscopic_contribution(micro_contribution, is_nonlinear);
     get_pi_contribution_rhs(old_solution, macro_contribution, is_nonlinear);
-    //macro_contribution = 4*pde_data.params.get_double("theta"); // Exact rho part
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
@@ -116,7 +115,7 @@ void PiSolver<dim>::assemble_system() {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
         }
     }
-    std::cout << "Macro rhs: " << system_rhs << std::endl;
+//    std::cout << "Macro rhs: " << system_rhs << std::endl;
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler, 0, pde_data.bc, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
@@ -148,14 +147,13 @@ void PiSolver<dim>::solve() {
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
     printf("\t %d CG iterations to convergence (macro)\n",solver_control.last_step());
     old_solution = solution;
-    std::cout << "Macro: " << solution << std::endl;
 }
 
 template<int dim>
 void PiSolver<dim>::compute_error(double &l2_error) {
     const unsigned int n_active = triangulation.n_active_cells();
     Vector<double> difference_per_cell(n_active);
-    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
+    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(1),
                                       VectorTools::L2_norm);
     l2_error = difference_per_cell.l2_norm();
     printf("Macro error: %.3e\n", l2_error);
@@ -243,7 +241,8 @@ template<int dim>
 void PiSolver<dim>::iterate() {
     assemble_system();
     solve();
-//    set_exact_solution();
+    //    std::cout << "Macro: " << solution << std::endl;
+    set_exact_solution();
 }
 
 
