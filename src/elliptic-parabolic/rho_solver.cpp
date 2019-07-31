@@ -243,12 +243,11 @@ void RhoSolver<dim>::iterate(const double &time_step) {
     dt = time_step;
     assemble_system();
     solve_time_step();
-    std::cout << "Computing residual with perfect old_data and raw new data" << std::endl;
-    compute_residual();
 //    std::cout << "Micro: " << solutions.at(0) << std::endl;
+    auto temp(solutions);
     set_exact_solution();
-
-    old_solutions = solutions;
+    old_solutions = solutions; // Trick to make the old solutions perfect but the current ones the same
+    solutions = temp;
 }
 
 template<int dim>
