@@ -247,7 +247,7 @@ void PiSolver<dim>::iterate() {
     assemble_system();
     solve();
 //    std::cout << "Macro: " << solution << std::endl;
-//    set_exact_solution();
+    set_exact_solution();
 }
 
 

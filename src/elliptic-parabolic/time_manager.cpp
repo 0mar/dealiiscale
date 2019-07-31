@@ -8,8 +8,8 @@ TimeManager::TimeManager(unsigned int macro_refinement, unsigned int micro_refin
                          const std::string &out_file) : data(data_file),
                                                         pi_solver(data.macro, macro_refinement),
                                                         rho_solver(data.micro, micro_refinement),
-                                                        time_step(0.1),
-                                                        final_time(5),
+                                                        time_step(0.05),
+                                                        final_time(0.5),
                                                         ct_file_name(out_file) {
 }
 
@@ -44,13 +44,13 @@ void TimeManager::run() {
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
         time += time_step; // todo: Update to it*dt
         it++;
-        if (it==10) {
-            printf("Storing patched micro and corresponding macro solutions at time %.2f\n",time);
-            std::vector<Point<2>> locations;
-            pi_solver.get_dof_locations(locations);
-            rho_solver.patch_micro_solutions(locations);
-            output_results();
-        }
+//        if (it==10) {
+//            printf("Storing patched micro and corresponding macro solutions at time %.2f\n",time);
+//            std::vector<Point<2>> locations;
+//            pi_solver.get_dof_locations(locations);
+//            rho_solver.patch_micro_solutions(locations);
+//            output_results();
+//        }
     }
     output_results();
 //    pi_solver.write_solution_to_file(pi_solver.solution, pi_solver.dof_handler);
