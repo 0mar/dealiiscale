@@ -9,7 +9,7 @@ TimeManager::TimeManager(unsigned int macro_refinement, unsigned int micro_refin
                                                         pi_solver(data.macro, macro_refinement),
                                                         rho_solver(data.micro, micro_refinement),
                                                         time_step(0.05),
-                                                        final_time(0.5),
+                                                        final_time(0.15),
                                                         ct_file_name(out_file) {
 }
 
