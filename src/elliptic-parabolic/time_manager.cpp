@@ -7,12 +7,12 @@
 TimeManager::TimeManager(unsigned int macro_refinement, unsigned int micro_refinement, unsigned int time_refinement,
                          const std::string &data_file, const std::string &out_file) : data(data_file),
                                                                                       pi_solver(data.macro,
-                                                                                                macro_refinement + 3),
+                                                                                                macro_refinement),
                                                                                       rho_solver(data.micro,
-                                                                                                 micro_refinement + 3),
+                                                                                                 micro_refinement),
                                                                                       time_step(0.5),
-                                                        final_time(0.15),
-                                                        ct_file_name(out_file) {
+                                                                                      final_time(0.15),
+                                                                                      ct_file_name(out_file) {
     time_step /= std::pow(2, time_refinement);
     printf("Using a time step of %.2e\n", time_step);
 }
@@ -43,12 +43,12 @@ void TimeManager::run() {
     double old_residual = 1;
     double residual = 0;
     while (time < final_time) {
+        time += time_step; // todo: Update to it*dt
+        it++;
         printf("\nSolving for t = %f\n", time);
         iterate();
         compute_residuals(old_residual, residual);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
-        time += time_step; // todo: Update to it*dt
-        it++;
 //        if (it==10) {
 //            printf("Storing patched micro and corresponding macro solutions at time %.2f\n",time);
 //            std::vector<Point<2>> locations;
