@@ -24,7 +24,8 @@ public:
      * @param macro_refinement Resolution of the macro solver.
      * @param micro_refinement Resolution of the micro solver.
      */
-    TimeManager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file,
+    TimeManager(unsigned int macro_refinement, unsigned int micro_refinement, unsigned int time_refinement,
+                const std::string &data_file,
                 const std::string &output_file);
 
     /**
