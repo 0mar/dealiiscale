@@ -64,10 +64,11 @@ void
 PiSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<double> &out_vector, bool nonlinear) const {
     AssertDimension(pi.size(), out_vector.size())
     for (unsigned int i = 0; i < pi.size(); i++) {
-        out_vector(i) = pde_data.params.get_double("theta") * pi(i);
         if (nonlinear) {
             const double abs_pi = std::fabs(pi(i));
             out_vector(i) = pde_data.params.get_double("theta") * std::fmin(abs_pi, std::sqrt(abs_pi));
+        } else {
+            out_vector(i) = pde_data.params.get_double("theta") * pi(i);
         }
     }
 }
@@ -234,9 +235,9 @@ void PiSolver<dim>::get_microscopic_contribution(Vector<double> micro_contributi
     AssertDimension(micro_contribution.size(), dof_handler.n_dofs())
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
         if (nonlinear) {
-            micro_contribution[i] = get_micro_mass(i);
-        } else {
             micro_contribution[i] = std::fmin(get_micro_mass(i), 1);
+        } else {
+            micro_contribution[i] = get_micro_mass(i);
         }
     }
 //    std::cout << "Micro Mass " << micro_contribution << std::endl;
