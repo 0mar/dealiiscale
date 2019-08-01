@@ -1,0 +1,16 @@
+set macro_rhs = -theta*(2*x0 + 3*x1)*(24*x0 - 12*x1)
+set micro_rhs = 0
+set macro_bc = 2*x0 + 3*x1
+set micro_bc_neumann = 4*D*y0
+set micro_bc_robin = 5*D*y1 - kappa*(-R*(6*x0 - 3*x1 + 4*y0 + 5*y1) + p_F + 2*x0 + 3*x1)
+set init_rho = 6*x0 - 3*x1 + 4*y0 + 5*y1
+set macro_solution = 2*x0 + 3*x1
+set micro_solution = 6*x0 - 3*x1 + 4*y0 + 5*y1
+set A = 0.8
+set D = 1
+set theta = 0.5
+set kappa = 1
+set p_F = 4
+set R = 2
+set micro_geometry = [-1,1]x[-1,1]
+set macro_geometry = [-1,1]x[-1,1]

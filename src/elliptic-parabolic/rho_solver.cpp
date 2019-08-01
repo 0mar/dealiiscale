@@ -245,10 +245,10 @@ void RhoSolver<dim>::iterate(const double &time_step) {
     assemble_system();
     solve_time_step();
 //    std::cout << "Micro: " << solutions.at(0) << std::endl;
-    auto temp(solutions);
-    set_exact_solution();
+//    auto temp(solutions);
+//    set_exact_solution();
     old_solutions = solutions; // Trick to make the old solutions perfect but the current ones the same
-    solutions = temp;
+//    solutions = temp;
 }
 
 template<int dim>
