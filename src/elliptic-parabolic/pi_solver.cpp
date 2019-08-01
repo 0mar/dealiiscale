@@ -13,7 +13,7 @@ PiSolver<dim>::PiSolver(MacroData<dim> &macro_data, unsigned int refine_level):d
                                                                                micro_solutions(nullptr),
                                                                                pde_data(macro_data),
                                                                                integration_order(fe.degree + 1),
-                                                                               refine_level(refine_level) {
+                                                                               refine_level(refine_level + 3) {
     refine_level = 1;
     residual = 1;
     printf("Solving macro problem in %d space dimensions\n", dim);

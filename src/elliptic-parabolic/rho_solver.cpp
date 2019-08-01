@@ -10,7 +10,8 @@ using namespace dealii;
 template<int dim>
 RhoSolver<dim>::RhoSolver(ParabolicMicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
                                                                                             fe(1),
-                                                                                            refine_level(refine_level),
+                                                                                            refine_level(
+                                                                                                    refine_level + 3),
                                                                                             num_grids(1),
                                                                                             macro_solution(nullptr),
                                                                                             old_macro_solution(nullptr),
