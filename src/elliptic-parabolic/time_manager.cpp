@@ -11,7 +11,7 @@ TimeManager::TimeManager(unsigned int macro_refinement, unsigned int micro_refin
                                                                                       rho_solver(data.micro,
                                                                                                  micro_refinement),
                                                                                       time_step(0.25),
-                                                                                      final_time(0.26),
+                                                                                      final_time(0.25),
                                                                                       ct_file_name(out_file) {
     time_step /= std::pow(2, time_refinement);
     printf("Using a time step of %.2e\n", time_step);
