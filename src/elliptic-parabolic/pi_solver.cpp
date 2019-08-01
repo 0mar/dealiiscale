@@ -235,7 +235,7 @@ void PiSolver<dim>::get_microscopic_contribution(Vector<double> micro_contributi
     AssertDimension(micro_contribution.size(), dof_handler.n_dofs())
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
         if (nonlinear) {
-            micro_contribution[i] = std::fmin(get_micro_mass(i), 1);
+            micro_contribution[i] = std::fmin(std::fabs(get_micro_mass(i)), 1);
         } else {
             micro_contribution[i] = get_micro_mass(i);
         }
