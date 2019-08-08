@@ -33,10 +33,7 @@ add_library(elliptic ${ELLIPTIC_DIR}/manager.h ${ELLIPTIC_DIR}/manager.cpp ${ELL
 deal_II_setup_target(elliptic)
 target_link_libraries(elliptic tools)
 
-add_library(single_scale ${ELLIPTIC_DIR}/micro_manager.h ${ELLIPTIC_DIR}/micro_manager.cpp ${ELLIPTIC_DIR}/micro.h ${ELLIPTIC_DIR}/micro.cpp ${ELLIPTIC_DIR}/macro.h ${ELLIPTIC_DIR}/macro.cpp ${ELLIPTIC_DIR}/micro_manager.h ${ELLIPTIC_DIR}/macro_manager.cpp)
-deal_II_setup_target(single_scale)
-
-add_library(parabolic ${PARABOLIC_DIR}/time_manager.h ${PARABOLIC_DIR}/time_manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h)
+add_library(parabolic ${PARABOLIC_DIR}/time_manager.h ${PARABOLIC_DIR}/time_manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp)
 deal_II_setup_target(parabolic)
 target_link_libraries(parabolic tools)
 
@@ -44,19 +41,11 @@ add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)
 target_link_libraries(solve_elliptic elliptic)
 
-add_executable(test_elliptic_separate ${ELLIPTIC_DIR}/separate_scales.cpp)
-deal_II_setup_target(test_elliptic_separate)
-target_link_libraries(test_elliptic_separate single_scale)
-
 set(PLOT_NOTEBOOK plot_convergence.ipynb)
 
 add_executable(solve_parabolic ${PARABOLIC_DIR}/two_scale.cpp)
 deal_II_setup_target(solve_parabolic)
 target_link_libraries(solve_parabolic parabolic)
-
-add_executable(test_rho_separate ${PARABOLIC_DIR}/rho_tester.cpp)
-deal_II_setup_target(test_rho_separate)
-target_link_libraries(test_rho_separate parabolic)
 
 add_executable(simple ${DEMO_DIR}/simple.cpp)
 deal_II_setup_target(simple)
@@ -81,21 +70,21 @@ deal_II_setup_target(parsing)
 target_link_libraries(parsing tools)
 
 # Create result directory
-add_custom_command(TARGET test_elliptic_separate solve_elliptic POST_BUILD
+add_custom_command(TARGET solve_elliptic POST_BUILD # Todo: Make another report for solve_parabolic
         COMMAND ${CMAKE_COMMAND} -E make_directory
         ${CMAKE_CURRENT_BINARY_DIR}/results)
 # Run everytime we make
-add_custom_command(TARGET test_elliptic_separate solve_elliptic POST_BUILD
+add_custom_command(TARGET solve_elliptic POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/results
         ${CMAKE_CURRENT_BINARY_DIR}/results)
 
 # Create input directory
-add_custom_command(TARGET test_elliptic_separate solve_elliptic parsing POST_BUILD
+add_custom_command(TARGET solve_elliptic parsing POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
         ${CMAKE_CURRENT_BINARY_DIR}/input)
 # Run everytime we make
-add_custom_command(TARGET test_elliptic_separate solve_elliptic parsing POST_BUILD
+add_custom_command(TARGET solve_elliptic parsing POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/input
         ${CMAKE_CURRENT_BINARY_DIR}/input)
