@@ -6,7 +6,7 @@ A more detailed description of the mathematical framework behind this implementa
 
 ## Requirements
 
- - `cmake`, preferable version 3.1, but lower versions should work too
+ - `cmake`, preferable version 3.1, but lower versions should work too, if you adapt `CMakeLists.txt`.
  - deal.II, version 9.0. See below for installation hints
 
 ## Installation for macOS
@@ -24,13 +24,13 @@ sudo apt install lib-deal.ii-dev
 
 *Caveat*: On the latest Ubuntu LTS (18.04), at the time of writing, the deal.II version available is 8.5.
 Unfortunately, some of the (even basic) tutorial programs are not backwards compatible with this version.
-In order to install deal.II 9.0.0, either compile from source or add the `universe` component of the 18.10 edition of Ubuntu to `apt`:
+In order to install deal.II 9.0.0, either compile from source (recommended) or add the `universe` component of the 18.10 edition of Ubuntu to `apt`:
 
 ```bash
 echo 'deb http://archive.ubuntu.com/ubuntu/ cosmic main universe' | sudo tee -a /etc/apt/sources.list
 sudo apt update
 ```
-But be aware that this last option will update all of software from the repository to its 18.10 version, which in some cases might not be recommendable.
+But be aware that this last option will update all of software from the repository to its 18.10 version, which might be more than you want.
 
 ## Configuring CMake for deal.II
 
@@ -82,10 +82,8 @@ Currently, the working implementations are:
 
 - `elliptic-elliptic`
     * `solve_elliptic`, a multiscale elliptic-elliptic solver with convergence testing.
-    * `test_elliptic_separate` decoupled elliptic-elliptic solver used to test individual convergence properties of the coupled elliptic-elliptic implementation.
 - `elliptic-parabolic`
     * `solve_parabolic`, a multiscale elliptic-parabolic solver (work in progress, main target of this exercise).
-    * `test_rho_separate`, a decoupled microscopic-only solver testing the properties of the `rho` equation solver.
 - `playground` (collection of separate tests and implementations)
     * `demo`, a verbatim copy of a tutorial (step 3) to check if the installation works.
     * `dirichlet`, a Poisson problem in a circular domain. 
