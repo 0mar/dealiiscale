@@ -31,12 +31,19 @@ if (NOT ${deal.II_FOUND})
             )
 endif ()
 
+find_package(Boost COMPONENTS unit_test_framework REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS}) # Todo: Generalize this for all architectures.
+
 deal_II_initialize_cached_variables()
 
 set(ELLIPTIC_DIR src/elliptic-elliptic) # Todo: Make a CMakeLists for each subdirectory
 set(PARABOLIC_DIR src/elliptic-parabolic)
 set(TOOLS_DIR src/tools)
 set(DEMO_DIR src/playground)
+set(TEST_DIR tests)
+add_executable(test_tools ${TEST_DIR}/test_tools.cpp ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h)
+deal_II_setup_target(test_tools)
+target_link_libraries(test_tools ${Boost_LIBRARIES})
 
 add_library(tools ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h)
 deal_II_setup_target(tools)
@@ -80,6 +87,10 @@ deal_II_setup_target(compare_solutions)
 add_executable(parsing ${DEMO_DIR}/parsing.cpp)
 deal_II_setup_target(parsing)
 target_link_libraries(parsing tools)
+
+enable_testing()
+add_definitions(-DBOOST_TEST_DYN_LINK)
+add_test(test_tools test_tools)
 
 # Create result directory
 add_custom_command(TARGET solve_elliptic POST_BUILD # Todo: Make another report for solve_parabolic
