@@ -89,6 +89,7 @@ def write_param_file(filename, funcs, parameters):
             formatted_val = str(val)
             formatted_val = re.sub(r'\bAbs\b', 'abs', formatted_val)
             formatted_val = re.sub(r'\bTrue\b', 'true', formatted_val)
+            formatted_val = re.sub(r'\bFalse\b', 'false', formatted_val)
             formatted_val = re.sub(r'\bMin\b', 'min', formatted_val)
             formatted_val = re.sub(r'\bre\b', '', formatted_val)
             formatted_val = formatted_val.replace('**', '^')
@@ -120,7 +121,8 @@ if __name__ == '__main__':
         pi = "(cos(exp(-D*t)*2*sin(1)*sqrt(theta/A)*x0) + cos(exp(-D*t)*2*sin(1)*sqrt(theta/A)*x1))"
         rho = "exp(-2*D*t)*cos(y0)*cos(y1)"
 
-    nonlinear = bool(input("Running nonlinear version? [1/0]: "))
+    nonlinear = input("Running nonlinear version? [1/0]: ")
+    nonlinear = nonlinear not in {'n','0','','N'}
     print("Nonlinearity set to %s" % nonlinear)
     name = input("Supply solution set name: ")
     print("pi(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (pi, rho, name), flush=True)
