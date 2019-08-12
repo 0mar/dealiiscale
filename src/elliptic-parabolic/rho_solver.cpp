@@ -43,8 +43,8 @@ void RhoSolver<dim>::make_grid() {
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary()) {
-                const double y0_abs = std::fabs(cell->face(face_number)->center()(0));
-                if (std::fabs(y0_abs - 1) < EPS) {
+                const double y1_abs = std::fabs(cell->face(face_number)->center()(1));
+                if (std::fabs(y1_abs - 1) < EPS) {
                     cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
                 } // Else: Robin by default.
                 // Note that this arrangement is implicitly coupled with ./prepare_two_scale.py

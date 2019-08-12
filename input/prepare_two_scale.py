@@ -65,7 +65,7 @@ def compute_solution_set(pi, rho, xvars, yvars, t, consts, nonlinear):
     del_rho = laplace(rho, yvars)
     macro_rhs = - macro_functional(pi, rho, yvars, consts, nonlinear) - consts['A'] * del_pi
     micro_rhs = time_deriv(rho, t) - consts['D'] * del_rho
-    HORIZONTAL, VERTICAL = 0, 1
+    VERTICAL, HORIZONTAL = 0, 1
     neumann_rhs = consts['D'] * boundary_flux(rho, yvars, HORIZONTAL)
     robin_rhs = consts['D'] * boundary_flux(rho, yvars, VERTICAL) - consts['kappa'] * (
             pi + consts['p_F'] - consts['R'] * rho)
@@ -84,7 +84,7 @@ def write_param_file(filename, funcs, parameters):
     data['macro_geometry'] = "[-1,1]x[-1,1]"
 
     with open('%s.prm' % filename, 'w') as param_file:
-        param_file.write("# This parameter file has been automatically generated and is deal.II compliant\n")
+        param_file.write("# dealiiscale has automatically generated this parameter file for deal.II 9.0\n")
         for key, val in data.items():
             formatted_val = str(val)
             formatted_val = re.sub(r'\bAbs\b', 'abs', formatted_val)
