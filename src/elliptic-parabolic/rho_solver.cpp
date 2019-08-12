@@ -75,6 +75,7 @@ void RhoSolver<dim>::setup_scatter() {
     righthandsides.clear();
     system_matrices.clear();
     compute_macroscopic_contribution();
+    constraints.close();
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int k = 0; k < num_grids; k++) {
         pde_data.init_rho.set_macro_point(grid_locations[k]);
