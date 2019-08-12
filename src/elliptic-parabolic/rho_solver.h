@@ -30,6 +30,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/numerics/error_estimator.h>
+#include <deal.II/lac/constraint_matrix.h>
 
 #include <fstream>
 #include <iostream>
@@ -167,6 +168,7 @@ private:
     double euler; // Todo: Test thoroughly if euler<1 works as well
     int integration_order;
     Vector<double> intermediate_vector;
+    ConstraintMatrix constraints;
 };
 
 #endif //RHO_SOLVER_H

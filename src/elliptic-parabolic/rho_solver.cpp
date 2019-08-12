@@ -76,14 +76,13 @@ void RhoSolver<dim>::setup_scatter() {
     system_matrices.clear();
     compute_macroscopic_contribution();
     unsigned int n_dofs = dof_handler.n_dofs();
-    for (unsigned int i = 0; i < num_grids; i++) {
-        pde_data.init_rho.set_macro_point(grid_locations[i]);
+    for (unsigned int k = 0; k < num_grids; k++) {
+        pde_data.init_rho.set_macro_point(grid_locations[k]);
         Vector<double> solution(n_dofs);
-
-        VectorTools::interpolate(dof_handler, pde_data.init_rho, solution);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_rho, solution);
         solutions.push_back(solution);
         Vector<double> old_solution(n_dofs);
-        VectorTools::interpolate(dof_handler, pde_data.init_rho, old_solution);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_rho, old_solution);
         old_solutions.push_back(old_solution);
 
         Vector<double> rhs(n_dofs);
@@ -247,8 +246,8 @@ void RhoSolver<dim>::iterate(const double &time_step) {
 //    std::cout << "Micro: " << solutions.at(0) << std::endl;
 //    auto temp(solutions);
 //    set_exact_solution();
-    old_solutions = solutions; // Trick to make the old solutions perfect but the current ones the same
-//    solutions = temp;
+    old_solutions = solutions;
+//    solutions = temp; // Trick to make the old solutions perfect but the current ones the same
 }
 
 template<int dim>
@@ -353,14 +352,10 @@ void RhoSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations
 
 template<int dim>
 void RhoSolver<dim>::set_exact_solution() {
-    std::cout << "Exact rho solution set" << std::endl;
-    std::vector<Point<dim>> locations(dof_handler.n_dofs());
-    MappingQ1<dim> mapping;
-    DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
+    std::cout << "Exact rho solutions set" << std::endl;
     for (unsigned int k = 0; k < num_grids; k++) {
-        for (unsigned int i = 0; i < solutions.at(k).size(); i++) {
-            solutions.at(k)(i) = pde_data.solution.mvalue(grid_locations.at(k), locations.at(i));
-        }
+        pde_data.solution.set_macro_point(grid_locations[k]);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.solution, solutions[k]);
     }
 }
 

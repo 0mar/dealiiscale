@@ -30,6 +30,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/numerics/error_estimator.h>
+#include <deal.II/lac/constraint_matrix.h>
 
 #include <fstream>
 #include <iostream>
@@ -167,6 +168,7 @@ private:
     unsigned int refine_level;
     double diffusion_coefficient;
     double max_support;
+    ConstraintMatrix constraints;
 
 };
 

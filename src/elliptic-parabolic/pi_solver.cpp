@@ -57,6 +57,7 @@ void PiSolver<dim>::setup_system() {
     old_solution = 5; // Todo: How to choose the initial value?
     laplace_matrix.reinit(sparsity_pattern);
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
+    constraints.close();
 }
 
 template<int dim>
@@ -254,12 +255,8 @@ void PiSolver<dim>::iterate() {
 
 template<int dim>
 void PiSolver<dim>::set_exact_solution() {
-    MappingQ1<dim> mapping;
-    std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
-    DoFTools::map_dofs_to_support_points(mapping, dof_handler, dof_locations);
-    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
-        solution[i] = pde_data.solution.value(dof_locations[i]);
-    }
+    std::cout << "Exact pi solution set" << std::endl;
+    VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.solution, solution);
 }
 
 
