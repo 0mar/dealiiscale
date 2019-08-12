@@ -7,7 +7,7 @@ A more detailed description of the mathematical framework behind this implementa
 ## Requirements
 
  - `cmake`, preferable version 3.1, but lower versions should work too, if you adapt `CMakeLists.txt`.
- - deal.II, version 9.0. See below for installation hints
+ - deal.II, version 9.0. Please note that both lower versions (e.g. 8.5) and higher versions (e.g. 9.1) will not be compatible. See below for installation hints.
 
 ## Installation for macOS
 
@@ -72,7 +72,14 @@ This builds a debug version of the code. One can then run any of the created bin
 cd bin
 ./manufactured
 ``` 
+## Tests
 
+This framework has tests (present in `tests`) that use Boost's test framework. This might need to be installed, but since deal.II itself also uses the Boost testing suite, this is no extra prerequisite.
+Run tests with 
+```bash
+cd bin
+make test
+``` 
 ## Solver gallery
 
 deal.II comes with many examples, located in `/Applications/deal.II-9.0.0.app/Contents/Resources/examples`, also found in a more legible format on the [tutorial page][5].
