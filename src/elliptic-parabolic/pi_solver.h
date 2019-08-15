@@ -121,7 +121,7 @@ private:
     /**
      * Use the (probably updated) microscopic data to compute new elements of the macroscopic system.
      */
-    void get_microscopic_contribution(Vector<double> micro_contribution, bool nonlinear);
+    void get_microscopic_contribution(Vector<double> &micro_contribution, bool nonlinear);
 
     /**
     * Compute the right hand side of the Macroscopic function;

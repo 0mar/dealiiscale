@@ -232,7 +232,7 @@ void PiSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
 }
 
 template<int dim>
-void PiSolver<dim>::get_microscopic_contribution(Vector<double> micro_contribution, bool nonlinear) {
+void PiSolver<dim>::get_microscopic_contribution(Vector<double> &micro_contribution, bool nonlinear) {
     AssertDimension(micro_contribution.size(), dof_handler.n_dofs())
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
         if (nonlinear) {
