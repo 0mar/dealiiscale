@@ -169,6 +169,7 @@ private:
     double diffusion_coefficient;
     double max_support;
     ConstraintMatrix constraints;
+    int count = 0; //debug
 
 };
 

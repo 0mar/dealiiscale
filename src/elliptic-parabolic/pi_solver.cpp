@@ -35,14 +35,14 @@ template<int dim>
 void PiSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
-    printf("%d active macro cells\n",triangulation.n_active_cells());
+    printf("%d active macro cells\n", triangulation.n_active_cells());
 
 }
 
 template<int dim>
 void PiSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-    printf("%d macro DoFs\n",dof_handler.n_dofs());
+    printf("%d macro DoFs\n", dof_handler.n_dofs());
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
@@ -147,7 +147,7 @@ void PiSolver<dim>::solve() {
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
-    printf("\t %d CG iterations to convergence (macro)\n",solver_control.last_step());
+    printf("\t %d CG iterations to convergence (macro)\n", solver_control.last_step());
     old_solution = solution;
 }
 
@@ -249,7 +249,11 @@ void PiSolver<dim>::iterate() {
     assemble_system();
     solve();
 //    std::cout << "Macro: " << solution << std::endl;
-//    set_exact_solution();
+    if (count == 0) {
+        set_exact_solution();
+    }
+    count++;
+
 }
 
 
@@ -263,7 +267,7 @@ void PiSolver<dim>::set_exact_solution() {
 template<int dim>
 void PiSolver<dim>::write_solution_to_file(const Vector<double> &sol,
                                            const DoFHandler<dim> &corr_dof_handler) {
-    const std::string filename="results/test_pi_"+std::to_string(refine_level)+".txt";
+    const std::string filename = "results/test_pi_" + std::to_string(refine_level) + ".txt";
 
     std::ofstream output(filename);
     output << refine_level << std::endl;
