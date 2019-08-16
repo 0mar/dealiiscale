@@ -1,0 +1,18 @@
+# dealiiscale has automatically generated this parameter file for deal.II 9.0
+set macro_rhs = -theta*min(sqrt(abs(t/2 + 2*x0 + 3*x1)), abs(t/2 + 2*x0 + 3*x1))
+set micro_rhs = 0
+set macro_bc = t/2 + 2*x0 + 3*x1
+set micro_bc_neumann = D*y1
+set micro_bc_robin = 3*D*y0 - kappa*(-R*(3*y0 + y1 + 2) + p_F + t/2 + 2*x0 + 3*x1)
+set init_rho = 3*y0 + y1 + 2
+set macro_solution = t/2 + 2*x0 + 3*x1
+set micro_solution = 3*y0 + y1 + 2
+set nonlinear = true
+set A = 3.0
+set D = 1
+set theta = 0.5
+set kappa = 1
+set p_F = 4
+set R = 2
+set micro_geometry = [-1,1]x[-1,1]
+set macro_geometry = [-1,1]x[-1,1]

@@ -65,7 +65,7 @@ def compute_solution_set(pi, rho, xvars, yvars, t, consts, nonlinear):
     del_rho = laplace(rho, yvars)
     macro_rhs = - macro_functional(pi, rho, yvars, consts, nonlinear) - consts['A'] * del_pi
     micro_rhs = time_deriv(rho, t) - consts['D'] * del_rho
-    VERTICAL, HORIZONTAL = 0, 1
+    VERTICAL, HORIZONTAL= 0, 1
     neumann_rhs = consts['D'] * boundary_flux(rho, yvars, HORIZONTAL)
     robin_rhs = consts['D'] * boundary_flux(rho, yvars, VERTICAL) - consts['kappa'] * (
             pi + consts['p_F'] - consts['R'] * rho)
