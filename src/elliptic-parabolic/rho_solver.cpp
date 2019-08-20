@@ -20,7 +20,6 @@ RhoSolver<dim>::RhoSolver(ParabolicMicroData<dim> &micro_data, unsigned int refi
                                                                                             euler(1), integration_order(
                 fe.degree + 1) {
     printf("Solving micro problem in %d space dimensions\n",dim);
-    num_grids = 1;
     init_macro_field.reinit(num_grids);
     init_macro_field = 1;
     time = 0;
