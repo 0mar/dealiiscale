@@ -155,6 +155,8 @@ private:
 
     void set_exact_solution();
 
+    void get_solution_difference(double &diff);
+
     FE_Q<dim> fe;
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;

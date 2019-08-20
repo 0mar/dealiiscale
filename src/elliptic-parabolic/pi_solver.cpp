@@ -249,10 +249,28 @@ void PiSolver<dim>::iterate() {
     solve();
 //    std::cout << "Macro: " << solution << std::endl;
     if (count == 0) {
-        set_exact_solution();
+        double diff = 1;
+        while (diff > 1E-9) {
+            printf("Difference: %.3e, reiterating first step\n", diff);
+            get_solution_difference(diff);
+            old_solution = solution;
+            assemble_system();
+            solve();
+        }
     }
     count++;
     old_solution = solution;
+}
+
+template<int dim>
+void PiSolver<dim>::get_solution_difference(double &diff) {
+    Vector<double> tmp_diff(solution);
+    tmp_diff -= old_solution;
+    Vector<double> difference_per_cell(triangulation.n_active_cells());
+    VectorTools::integrate_difference(dof_handler, tmp_diff, Functions::ZeroFunction<dim>(), difference_per_cell,
+                                      QGauss<dim>(3),
+                                      VectorTools::L2_norm);
+    diff = difference_per_cell.l2_norm();
 }
 
 
