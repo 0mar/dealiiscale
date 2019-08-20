@@ -35,9 +35,9 @@ void plot(const std::string &id) {
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
     {
-        auto macro_h_inv = 4;
-        auto micro_h_inv = 16;
-        auto t_inv = 16;
+        unsigned int macro_h_inv = 4;
+        unsigned int micro_h_inv = 16;
+        unsigned int t_inv = 16;
         TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
         manager.setup();
         manager.run();
@@ -45,9 +45,9 @@ void plot(const std::string &id) {
         printf("Moving micro plot. Succeeded = %d\n", succeeded);
     }
     {
-        auto macro_h_inv = 4;
-        auto micro_h_inv = 32;
-        auto t_inv = 16;
+        unsigned int macro_h_inv = 4;
+        unsigned int micro_h_inv = 32;
+        unsigned int t_inv = 16;
         TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
         manager.setup();
         manager.run();
@@ -55,10 +55,9 @@ void plot(const std::string &id) {
         printf("Moving micro plot. Succeeded = %d\n", succeeded);
     }
     {
-        unsigned int i = 4;
-        auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
-        auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
-        auto t_inv = (unsigned int) std::round(4 * std::pow(2, i));
+        unsigned int macro_h_inv = 32;
+        unsigned int micro_h_inv = 32;
+        unsigned int t_inv = 16;
         TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
         manager.setup();
         manager.run();
