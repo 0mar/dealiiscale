@@ -148,7 +148,6 @@ void PiSolver<dim>::solve() {
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
     printf("\t %d CG iterations to convergence (macro)\n", solver_control.last_step());
-    old_solution = solution;
 }
 
 template<int dim>
@@ -253,7 +252,7 @@ void PiSolver<dim>::iterate() {
         set_exact_solution();
     }
     count++;
-
+    old_solution = solution;
 }
 
 
