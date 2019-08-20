@@ -5,6 +5,7 @@
 #include <deal.II/base/logstream.h>
 #include "time_manager.h"
 #include <cmath>
+#include <cstdio>
 
 /**
  * Run that solver
@@ -33,13 +34,27 @@ void plot(const std::string &id) {
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    unsigned int i = 4;
-    auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
-    auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
-    auto t_inv = (unsigned int) std::round(4 * std::pow(2, i));
-    TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
-    manager.setup();
-    manager.run();
+    {
+        auto macro_h_inv = 4;
+        auto micro_h_inv = 16;
+        auto t_inv = 16;
+        TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+        manager.setup();
+        manager.run();
+        const int succeeded = std::rename("results/patched-micro-solution.gpl", "results/micro_plot.gpl");
+        printf("Moving micro plot. Succeeded = %d\n", succeeded);
+    }
+    {
+        unsigned int i = 4;
+        auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+        auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+        auto t_inv = (unsigned int) std::round(4 * std::pow(2, i));
+        TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+        manager.setup();
+        manager.run();
+        const int succeeded = std::rename("results/final_macro_solution.gpl", "results/macro_plot.gpl");
+        printf("Moving macro plot. Succeeded = %d\n", succeeded);
+    }
 
 }
 
@@ -53,9 +68,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     if (id == "paper_plot") {
-        run(id);
-    } else {
         plot(id);
+    } else {
+        run(id);
     }
 
     return 0;
