@@ -52,7 +52,7 @@ void plot(const std::string &id) {
         TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
         manager.setup();
         manager.run();
-        const int succeeded = std::rename("results/final_macro_solution.gpl", "results/macro_plot.gpl");
+        const int succeeded = std::rename("results/final-macro-solution.gpl", "results/macro_plot.gpl");
         printf("Moving macro plot. Succeeded = %d\n", succeeded);
     }
 
