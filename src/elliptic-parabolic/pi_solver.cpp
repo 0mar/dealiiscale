@@ -8,12 +8,12 @@
 using namespace dealii;
 
 template<int dim>
-PiSolver<dim>::PiSolver(MacroData<dim> &macro_data, unsigned int refine_level):dof_handler(triangulation), fe(1),
-                                                                               micro_dof_handler(nullptr),
-                                                                               micro_solutions(nullptr),
-                                                                               pde_data(macro_data),
-                                                                               integration_order(fe.degree + 1),
-                                                                               refine_level(refine_level + 3) {
+PiSolver<dim>::PiSolver(MacroData<dim> &macro_data, unsigned int h_inv):dof_handler(triangulation), fe(1),
+                                                                        micro_dof_handler(nullptr),
+                                                                        micro_solutions(nullptr),
+                                                                        pde_data(macro_data),
+                                                                        integration_order(fe.degree + 1),
+                                                                        h_inv(h_inv) {
     residual = 1;
     printf("Solving macro problem in %d space dimensions\n", dim);
     if (pde_data.params.get_bool("nonlinear")) {
@@ -32,8 +32,7 @@ void PiSolver<dim>::setup() {
 
 template<int dim>
 void PiSolver<dim>::make_grid() {
-    GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(refine_level);
+    GridGenerator::subdivided_hyper_cube(triangulation, h_inv, -1, 1);
     printf("%d active macro cells\n", triangulation.n_active_cells());
 
 }
@@ -283,10 +282,10 @@ void PiSolver<dim>::set_exact_solution() {
 template<int dim>
 void PiSolver<dim>::write_solution_to_file(const Vector<double> &sol,
                                            const DoFHandler<dim> &corr_dof_handler) {
-    const std::string filename = "results/test_pi_" + std::to_string(refine_level) + ".txt";
+    const std::string filename = "results/test_pi_" + std::to_string(h_inv) + ".txt";
 
     std::ofstream output(filename);
-    output << refine_level << std::endl;
+    output << h_inv << std::endl;
     std::vector<Point<dim>> locations;
     locations.resize(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);

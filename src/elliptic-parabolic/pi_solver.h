@@ -167,7 +167,7 @@ private:
     std::vector<Vector<double>> *micro_solutions;
     MacroData<dim> &pde_data;
     int integration_order;
-    unsigned int refine_level;
+    unsigned int h_inv;
     double diffusion_coefficient;
     double max_support;
     ConstraintMatrix constraints;

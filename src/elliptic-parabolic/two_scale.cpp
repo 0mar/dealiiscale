@@ -17,8 +17,11 @@ void run(const std::string &id) {
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    for (unsigned int i = 0; i < 4; i++) {
-        TimeManager manager(i, i, 2 * i, input_path, output_path);
+    for (int i = 0; i < 7; i++) {
+        auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+        auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+        auto t_inv = (unsigned int) std::round(4 * std::pow(2, i));
+        TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
         manager.setup();
         manager.run();
     }

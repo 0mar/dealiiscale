@@ -4,16 +4,15 @@
 
 #include "time_manager.h"
 
-TimeManager::TimeManager(unsigned int macro_refinement, unsigned int micro_refinement, unsigned int time_refinement,
+TimeManager::TimeManager(unsigned int macro_h_inv, unsigned int micro_h_inv, unsigned int t_inv,
                          const std::string &data_file, const std::string &out_file) : data(data_file),
                                                                                       pi_solver(data.macro,
-                                                                                                macro_refinement),
+                                                                                                macro_h_inv),
                                                                                       rho_solver(data.micro,
-                                                                                                 micro_refinement),
-                                                                                      time_step(0.25),
+                                                                                                 micro_h_inv),
+                                                                                      time_step(1. / t_inv),
                                                                                       final_time(0.5),
                                                                                       ct_file_name(out_file) {
-    time_step /= std::pow(2, time_refinement);
     printf("Using a time step of %.2e\n", time_step);
 }
 

@@ -98,8 +98,8 @@ public:
     void write_solutions_to_file(const std::vector<Vector<double>> &sols,
                                  const DoFHandler<dim> &corr_dof_handler);
 
-    void read_solutions_from_file(const std::string &filename, std::vector<Vector<double>> &sols,
-                                  DoFHandler<dim> &corr_dof_handler);
+//    void read_solutions_from_file(const std::string &filename, std::vector<Vector<double>> &sols,
+//                                  DoFHandler<dim> &corr_dof_handler);
 
 
     Triangulation<dim> triangulation;
@@ -152,7 +152,7 @@ private:
     const unsigned int ROBIN_BOUNDARY = 0;
     const unsigned int NEUMANN_BOUNDARY = 1;
     FE_Q<dim> fe;
-    unsigned int refine_level;
+    unsigned int h_inv;
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
     Vector<double> *macro_solution;
