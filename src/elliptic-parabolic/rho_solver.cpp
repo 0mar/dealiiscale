@@ -279,8 +279,7 @@ Point<dim> RhoSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &lo
     // Only implemented for rectangular non-refined grids!
     // For more complex meshes we will have to think of something smart
     double side_length = std::pow(locations.size(), 1.0 / dim);
-    double eps = 1E-5;
-    Assert(std::fmod(side_length, 1) < eps, ExcNotMultiple(side_length, 1))
+    Assert(std::fmod(side_length, 1) < 1E-5, ExcNotMultiple(side_length, 1))
     Point<dim> size;
     for (unsigned int i = 0; i < dim; i++) {
         size(i) = 1. / (int(side_length) - 1);
