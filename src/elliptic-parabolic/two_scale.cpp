@@ -27,15 +27,36 @@ void run(const std::string &id) {
     }
 }
 
+void plot(const std::string &id) {
+    const std::string input_path = "input/" + id + ".prm";
+    const std::string output_path = "/dev/null";
+    std::ofstream ofs;
+    ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
+    ofs.close();
+    unsigned int i = 4;
+    auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+    auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+    auto t_inv = (unsigned int) std::round(4 * std::pow(2, i));
+    TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+    manager.setup();
+    manager.run();
+
+}
+
 int main(int argc, char *argv[]) {
     dealii::deallog.depth_console(0);
-    std::string id = "two";
+    std::string id = "full_nonlinear";
     if (argc == 2) {
         id = argv[1];
     } else if (argc > 2) {
         std::cout << "Too many arguments" << std::endl;
         return 1;
     }
-    run(id);
+    if (id == "paper_plot") {
+        run(id);
+    } else {
+        plot(id);
+    }
+
     return 0;
 }

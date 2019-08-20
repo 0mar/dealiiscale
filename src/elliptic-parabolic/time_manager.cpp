@@ -42,7 +42,7 @@ void TimeManager::run() {
     double old_residual = 1;
     double residual = 0;
     while (time < final_time) {
-        time += time_step; // todo: Update to it*dt
+        time += time_step;
         it++;
         printf("\nSolving for t = %f\n", time);
         iterate();
@@ -114,12 +114,13 @@ void TimeManager::output_results() {
     convergence_table.write_text(convergence_output);
     convergence_output.close();
     DataOut<MACRO_DIMENSIONS> data_out;
-
     data_out.attach_dof_handler(pi_solver.dof_handler);
     data_out.add_data_vector(pi_solver.solution, "solution");
-
     data_out.build_patches();
-
     std::ofstream output("results/final-macro-solution.gpl");
     data_out.write_gnuplot(output);
+
+    std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
+    pi_solver.get_dof_locations(dof_locations);
+    rho_solver.patch_micro_solutions(dof_locations);
 }
