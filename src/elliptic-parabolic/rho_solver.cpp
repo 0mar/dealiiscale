@@ -245,7 +245,7 @@ void RhoSolver<dim>::iterate(const double &time_step) {
 
 template<int dim>
 void RhoSolver<dim>::patch_micro_solutions(const std::vector<Point<dim>> &locations) const {
-    std::ofstream output("results/patched-micro-solution.gpl");
+    std::ofstream output("results/patched_micro_solution.gpl");
     Point<dim> micro_size = 2 * get_micro_grid_size(locations);
     Point<dim> down_left;
     Point<dim> up_right;

@@ -41,7 +41,17 @@ void plot(const std::string &id) {
         TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
         manager.setup();
         manager.run();
-        const int succeeded = std::rename("results/patched-micro-solution.gpl", "results/micro_plot.gpl");
+        const int succeeded = std::rename("results/patched_micro_solution.gpl", "results/patched_plot.gpl");
+        printf("Moving micro plot. Succeeded = %d\n", succeeded);
+    }
+    {
+        auto macro_h_inv = 4;
+        auto micro_h_inv = 32;
+        auto t_inv = 16;
+        TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+        manager.setup();
+        manager.run();
+        const int succeeded = std::rename("results/final_micro_solution.gpl", "results/micro_plot.gpl");
         printf("Moving micro plot. Succeeded = %d\n", succeeded);
     }
     {
@@ -52,7 +62,7 @@ void plot(const std::string &id) {
         TimeManager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
         manager.setup();
         manager.run();
-        const int succeeded = std::rename("results/final-macro-solution.gpl", "results/macro_plot.gpl");
+        const int succeeded = std::rename("results/final_macro_solution.gpl", "results/macro_plot.gpl");
         printf("Moving macro plot. Succeeded = %d\n", succeeded);
     }
 

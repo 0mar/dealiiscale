@@ -113,12 +113,25 @@ void TimeManager::output_results() {
     std::ofstream convergence_output(ct_file_name, std::iostream::app);
     convergence_table.write_text(convergence_output);
     convergence_output.close();
-    DataOut<MACRO_DIMENSIONS> data_out;
-    data_out.attach_dof_handler(pi_solver.dof_handler);
-    data_out.add_data_vector(pi_solver.solution, "solution");
-    data_out.build_patches();
-    std::ofstream output("results/final-macro-solution.gpl");
-    data_out.write_gnuplot(output);
+    {
+        DataOut<MACRO_DIMENSIONS> data_out;
+        data_out.attach_dof_handler(pi_solver.dof_handler);
+        data_out.add_data_vector(pi_solver.solution, "solution");
+        data_out.build_patches();
+        std::ofstream output("results/final_macro_solution.gpl");
+        data_out.write_gnuplot(output);
+
+    }
+
+    {
+        DataOut<MICRO_DIMENSIONS> data_out;
+        data_out.attach_dof_handler(rho_solver.dof_handler);
+        unsigned int index = rho_solver.get_num_grids() / 2;
+        data_out.add_data_vector(rho_solver.solutions.at(index), "solution");
+        data_out.build_patches();
+        std::ofstream output("results/final_micro_solution.gpl");
+        data_out.write_gnuplot(output);
+    }
 
     std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
     pi_solver.get_dof_locations(dof_locations);
