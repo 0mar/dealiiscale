@@ -158,7 +158,7 @@ void PiSolver<dim>::compute_error(double &l2_error) {
                                       QGauss<dim>(3),
                                       VectorTools::L2_norm);
     l2_error = difference_per_cell.l2_norm();
-    const double l2_mass = mass_per_cell.l2_norm();
+    const double l2_mass = mass_per_cell.l1_norm();
     printf("Macro error: %.3e\n", l2_error);
     printf("Macro mass:  %.3e\n", l2_mass);
 }

@@ -327,7 +327,7 @@ void RhoSolver<dim>::compute_error(double &l2_error) {
                                           QGauss<dim>(3),
                                           VectorTools::L2_norm);
 
-        macro_domain_mass(k) = difference_per_cell.l2_norm();
+        macro_domain_mass(k) = difference_per_cell.l1_norm();
     }
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
@@ -336,7 +336,7 @@ void RhoSolver<dim>::compute_error(double &l2_error) {
     printf("Micro error: %.3e\n", l2_error);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_mass, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
-    printf("Micro mass:  %.3e\n", macro_integral.l2_norm());
+    printf("Micro mass:  %.3e\n", macro_integral.l1_norm());
 }
 
 template<int dim>
