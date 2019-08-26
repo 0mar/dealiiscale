@@ -226,13 +226,6 @@ void RhoSolver<dim>::solve_time_step() {
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
     }
     printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
-    compute_residual();
-}
-
-
-template<int dim>
-void RhoSolver<dim>::compute_residual() {
-    Vector<double> macro_domain_l2_error(num_grids);
 }
 
 template<int dim>

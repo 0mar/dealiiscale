@@ -74,8 +74,6 @@ public:
     /**
      * Post-process the solution (write convergence estimates and other stuff)
      */
-    void compute_residual();
-
     void compute_error(double &l2_error);
 
     /**
