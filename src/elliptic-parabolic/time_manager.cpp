@@ -71,7 +71,7 @@ void TimeManager::iterate() {
 
 void TimeManager::compute_residuals(double &old_residual, double &residual) {
     double macro_l2 = 0;
-    double macro_h1;
+    double macro_h1 = 0;
     double micro_l2 = 0;
     double micro_h1 = 0;
     pi_solver.compute_error(macro_l2, macro_h1);

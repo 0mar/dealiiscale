@@ -319,7 +319,7 @@ void RhoSolver<dim>::compute_error(double &l2_error, double &h1_error) {
                                                                      VectorTools::L2_norm);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
                                           QGauss<dim>(3),
-                                          VectorTools::L2_norm);
+                                          VectorTools::H1_norm);
         macro_domain_h1_error(k) = VectorTools::compute_global_error(triangulation, difference_per_cell,
                                                                      VectorTools::H1_seminorm);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), Functions::ZeroFunction<dim>(),
