@@ -74,7 +74,7 @@ public:
     /**
      * Post-process the solution (write convergence estimates and other stuff)
      */
-    void compute_error(double &l2_error);
+    void compute_error(double &l2_error, double &h1_error);
 
     /**
    * Set the locations of the microgrids with respect to the macrogrids.

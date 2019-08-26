@@ -304,8 +304,9 @@ void RhoSolver<dim>::write_solutions_to_file(const std::vector<Vector<double>> &
 }
 
 template<int dim>
-void RhoSolver<dim>::compute_error(double &l2_error) {
+void RhoSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> macro_domain_l2_error(num_grids);
+    Vector<double> macro_domain_h1_error(num_grids);
     Vector<double> macro_domain_mass(num_grids);
     for (unsigned int k = 0; k < num_grids; k++) {
         pde_data.solution.set_macro_point(grid_locations.at(k));
@@ -314,11 +315,17 @@ void RhoSolver<dim>::compute_error(double &l2_error) {
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
                                           QGauss<dim>(3),
                                           VectorTools::L2_norm);
-        macro_domain_l2_error(k) = difference_per_cell.l2_norm();
+        macro_domain_l2_error(k) = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                     VectorTools::L2_norm);
+        VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
+                                          QGauss<dim>(3),
+                                          VectorTools::L2_norm);
+        macro_domain_h1_error(k) = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                     VectorTools::H1_seminorm);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), Functions::ZeroFunction<dim>(),
                                           difference_per_cell,
                                           QGauss<dim>(3),
-                                          VectorTools::L2_norm);
+                                          VectorTools::L1_norm);
 
         macro_domain_mass(k) = difference_per_cell.l1_norm();
     }
@@ -326,6 +333,9 @@ void RhoSolver<dim>::compute_error(double &l2_error) {
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
     l2_error = macro_integral.l2_norm();
+    VectorTools::integrate_difference(*macro_dof_handler, macro_domain_h1_error, Functions::ZeroFunction<dim>(),
+                                      macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
+    h1_error = macro_integral.l2_norm();
     printf("Micro error: %.3e\n", l2_error);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_mass, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
