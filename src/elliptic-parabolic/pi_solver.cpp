@@ -149,15 +149,19 @@ void PiSolver<dim>::solve() {
 }
 
 template<int dim>
-void PiSolver<dim>::compute_error(double &l2_error) {
+void PiSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> difference_per_cell(triangulation.n_active_cells());
     Vector<double> mass_per_cell(triangulation.n_active_cells());
     VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::L2_norm);
+    l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::L2_norm);
+    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
+                                      VectorTools::H1_seminorm);
+    h1_error = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::H1_seminorm);
     VectorTools::integrate_difference(dof_handler, solution, Functions::ZeroFunction<dim>(), mass_per_cell,
                                       QGauss<dim>(3),
-                                      VectorTools::L2_norm);
-    l2_error = difference_per_cell.l2_norm();
+                                      VectorTools::L1_norm);
+
     const double l2_mass = mass_per_cell.l1_norm();
     printf("Macro error: %.3e\n", l2_error);
     printf("Macro mass:  %.3e\n", l2_mass);

@@ -71,8 +71,9 @@ void TimeManager::iterate() {
 
 void TimeManager::compute_residuals(double &old_residual, double &residual) {
     double macro_l2 = 0;
+    double macro_h1;
     double micro_l2 = 0;
-    pi_solver.compute_error(macro_l2);
+    pi_solver.compute_error(macro_l2, macro_h1);
     rho_solver.compute_error(micro_l2);
     convergence_table.add_value("iteration", it);
     convergence_table.add_value("time", time);
@@ -80,6 +81,7 @@ void TimeManager::compute_residuals(double &old_residual, double &residual) {
     convergence_table.add_value("dofs", pi_solver.dof_handler.n_dofs());
     convergence_table.add_value("mL2", micro_l2);
     convergence_table.add_value("ML2", macro_l2);
+    convergence_table.add_value("MH1", macro_h1);
     const double res = residual;
     old_residual = res;
     residual = micro_l2 + macro_l2;
@@ -105,7 +107,7 @@ void TimeManager::write_plot() {
 }
 
 void TimeManager::output_results() {
-    std::vector<std::string> error_classes = {"mL2", "ML2"};
+    std::vector<std::string> error_classes = {"mL2", "ML2", "MH1"};
     for (const std::string &error_class: error_classes) {
         convergence_table.set_precision(error_class, 3);
         convergence_table.set_scientific(error_class, true);

@@ -72,7 +72,7 @@ public:
     /**
      * Compute residual/convergence estimates.
      */
-    void compute_error(double &l2_error);
+    void compute_error(double &l2_error, double &h1_error);
 
     /**
      * Set the microscopic solutions pointers, so that this solver can compute its contribution from it.
