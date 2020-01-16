@@ -38,6 +38,7 @@ deal_II_initialize_cached_variables()
 
 set(ELLIPTIC_DIR src/elliptic-elliptic) # Todo: Make a CMakeLists for each subdirectory
 set(PARABOLIC_DIR src/elliptic-parabolic)
+set(TEST_PREC_DIR src/test_preconditioner)
 set(TOOLS_DIR src/tools)
 set(DEMO_DIR src/playground)
 set(TEST_DIR tests)
@@ -65,6 +66,10 @@ set(PLOT_NOTEBOOK plot_convergence.ipynb)
 add_executable(solve_parabolic ${PARABOLIC_DIR}/two_scale.cpp)
 deal_II_setup_target(solve_parabolic)
 target_link_libraries(solve_parabolic parabolic)
+
+add_executable(test_preconditioner ${TEST_PREC_DIR}/time_manager.h ${TEST_PREC_DIR}/time_manager.cpp ${TEST_PREC_DIR}/rho_solver.h ${TEST_PREC_DIR}/rho_solver.cpp ${TEST_PREC_DIR}/pi_solver.h ${TEST_PREC_DIR}/pi_solver.cpp ${TEST_PREC_DIR}/two_scale.cpp)
+deal_II_setup_target(test_preconditioner)
+target_link_libraries(test_preconditioner tools)
 
 add_executable(simple ${DEMO_DIR}/simple.cpp)
 deal_II_setup_target(simple)
