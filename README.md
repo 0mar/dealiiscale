@@ -19,7 +19,7 @@ Other options are available as well and should work, but the rest of this README
 Most popular distros have deal.II available in their repos. For Ubuntu, deal.II is installed using
 
 ```bash
-sudo apt install lib-deal.ii-dev
+sudo apt install libdeal.ii-dev
 ``` 
 
 *Caveat*: On the latest Ubuntu LTS (18.04), at the time of writing, the deal.II version available is 8.5.
