@@ -72,7 +72,7 @@ public:
     /**
      * Compute residual/convergence estimates.
      */
-    void compute_error(double &l2_error);
+    void compute_error(double &l2_error, double &h1_error);
 
     /**
      * Set the microscopic solutions pointers, so that this solver can compute its contribution from it.
@@ -155,6 +155,8 @@ private:
 
     void set_exact_solution();
 
+    void get_solution_difference(double &diff);
+
     FE_Q<dim> fe;
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
@@ -165,7 +167,7 @@ private:
     std::vector<Vector<double>> *micro_solutions;
     MacroData<dim> &pde_data;
     int integration_order;
-    unsigned int refine_level;
+    unsigned int h_inv;
     double diffusion_coefficient;
     double max_support;
     ConstraintMatrix constraints;

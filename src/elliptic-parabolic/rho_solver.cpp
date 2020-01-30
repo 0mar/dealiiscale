@@ -8,19 +8,17 @@
 using namespace dealii;
 
 template<int dim>
-RhoSolver<dim>::RhoSolver(ParabolicMicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
-                                                                                            fe(1),
-                                                                                            refine_level(
-                                                                                                    refine_level + 3),
-                                                                                            num_grids(1),
-                                                                                            macro_solution(nullptr),
-                                                                                            old_macro_solution(nullptr),
-                                                                                            macro_dof_handler(nullptr),
-                                                                                            pde_data(micro_data),
-                                                                                            euler(1), integration_order(
+RhoSolver<dim>::RhoSolver(ParabolicMicroData<dim> &micro_data, unsigned int h_inv):  dof_handler(triangulation),
+                                                                                     fe(1),
+                                                                                     h_inv(h_inv),
+                                                                                     num_grids(1),
+                                                                                     macro_solution(nullptr),
+                                                                                     old_macro_solution(nullptr),
+                                                                                     macro_dof_handler(nullptr),
+                                                                                     pde_data(micro_data),
+                                                                                     euler(1), integration_order(
                 fe.degree + 1) {
-    printf("Solving micro problem in %d space dimensions\n",dim);
-    num_grids = 1;
+    printf("Solving micro problem in %d space dimensions\n", dim);
     init_macro_field.reinit(num_grids);
     init_macro_field = 1;
     time = 0;
@@ -35,8 +33,7 @@ void RhoSolver<dim>::setup() {
 
 template<int dim>
 void RhoSolver<dim>::make_grid() {
-    GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(refine_level);
+    GridGenerator::subdivided_hyper_cube(triangulation, h_inv, -1, 1);
     // Refine the cells
     // If we ever use refinement, we have to remark every time we refine the grid.
     const double EPS = 1E-4;
@@ -51,13 +48,13 @@ void RhoSolver<dim>::make_grid() {
             }
         }
     }
-    printf("%d active micro cells\n",triangulation.n_active_cells());
+    printf("%d active micro cells\n", triangulation.n_active_cells());
 }
 
 template<int dim>
 void RhoSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-    printf("%d micro DoFs\n",dof_handler.n_dofs());
+    printf("%d micro DoFs\n", dof_handler.n_dofs());
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
@@ -228,15 +225,7 @@ void RhoSolver<dim>::solve_time_step() {
     for (unsigned int k = 0; k < num_grids; k++) {
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
     }
-    printf("\t %d CG iterations to convergence (micro)\n",solver_control.last_step());
-    compute_residual();
-    old_solutions = solutions;
-}
-
-
-template<int dim>
-void RhoSolver<dim>::compute_residual() {
-    Vector<double> macro_domain_l2_error(num_grids);
+    printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
 }
 
 template<int dim>
@@ -244,16 +233,12 @@ void RhoSolver<dim>::iterate(const double &time_step) {
     dt = time_step;
     assemble_system();
     solve_time_step();
-//    std::cout << "Micro: " << solutions.at(0) << std::endl;
-//    auto temp(solutions);
-//    set_exact_solution();
     old_solutions = solutions;
-//    solutions = temp; // Trick to make the old solutions perfect but the current ones the same
 }
 
 template<int dim>
 void RhoSolver<dim>::patch_micro_solutions(const std::vector<Point<dim>> &locations) const {
-    std::ofstream output("results/patched-micro-solution.gpl");
+    std::ofstream output("results/patched_micro_solution.gpl");
     Point<dim> micro_size = 2 * get_micro_grid_size(locations);
     Point<dim> down_left;
     Point<dim> up_right;
@@ -263,8 +248,12 @@ void RhoSolver<dim>::patch_micro_solutions(const std::vector<Point<dim>> &locati
     }
     for (unsigned long i = 0; i < locations.size(); i++) {
         Triangulation<dim> mapped_tria;
-        GridGenerator::hyper_rectangle(mapped_tria, down_left + locations.at(i), up_right + locations.at(i));
-        mapped_tria.refine_global(refine_level);
+        std::vector<unsigned int> repetitions(dim);
+        for (unsigned int d = 0; d < dim; d++) {
+            repetitions.at(d) = h_inv;
+        }
+        GridGenerator::subdivided_hyper_rectangle(mapped_tria, repetitions, down_left + locations.at(i),
+                                                  up_right + locations.at(i));
         DoFHandler<dim> mapped_dof_handler(mapped_tria);
         mapped_dof_handler.distribute_dofs(fe);
         DataOut<dim> data_out;
@@ -283,8 +272,7 @@ Point<dim> RhoSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &lo
     // Only implemented for rectangular non-refined grids!
     // For more complex meshes we will have to think of something smart
     double side_length = std::pow(locations.size(), 1.0 / dim);
-    double eps = 1E-5;
-    Assert(std::fmod(side_length, 1) < eps, ExcNotMultiple(side_length, 1))
+    Assert(std::fmod(side_length, 1) < 1E-5, ExcNotMultiple(side_length, 1))
     Point<dim> size;
     for (unsigned int i = 0; i < dim; i++) {
         size(i) = 1. / (int(side_length) - 1);
@@ -296,9 +284,9 @@ Point<dim> RhoSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &lo
 template<int dim>
 void RhoSolver<dim>::write_solutions_to_file(const std::vector<Vector<double>> &sols,
                                              const DoFHandler<dim> &corr_dof_handler) {
-    const std::string filename="results/test_rho_"+std::to_string(refine_level)+".txt";
+    const std::string filename = "results/test_rho_" + std::to_string(h_inv) + ".txt";
     std::ofstream output(filename);
-    output << refine_level << std::endl;
+    output << h_inv << std::endl;
     std::vector<Point<dim>> locations;
     locations.resize(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
@@ -316,8 +304,9 @@ void RhoSolver<dim>::write_solutions_to_file(const std::vector<Vector<double>> &
 }
 
 template<int dim>
-void RhoSolver<dim>::compute_error(double &l2_error) {
+void RhoSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> macro_domain_l2_error(num_grids);
+    Vector<double> macro_domain_h1_error(num_grids);
     Vector<double> macro_domain_mass(num_grids);
     for (unsigned int k = 0; k < num_grids; k++) {
         pde_data.solution.set_macro_point(grid_locations.at(k));
@@ -326,22 +315,31 @@ void RhoSolver<dim>::compute_error(double &l2_error) {
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
                                           QGauss<dim>(3),
                                           VectorTools::L2_norm);
-        macro_domain_l2_error(k) = difference_per_cell.l2_norm();
+        macro_domain_l2_error(k) = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                     VectorTools::L2_norm);
+        VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
+                                          QGauss<dim>(3),
+                                          VectorTools::H1_norm);
+        macro_domain_h1_error(k) = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                     VectorTools::H1_seminorm);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), Functions::ZeroFunction<dim>(),
                                           difference_per_cell,
                                           QGauss<dim>(3),
-                                          VectorTools::L2_norm);
+                                          VectorTools::L1_norm);
 
-        macro_domain_mass(k) = difference_per_cell.l2_norm();
+        macro_domain_mass(k) = difference_per_cell.l1_norm();
     }
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
     l2_error = macro_integral.l2_norm();
+    VectorTools::integrate_difference(*macro_dof_handler, macro_domain_h1_error, Functions::ZeroFunction<dim>(),
+                                      macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
+    h1_error = macro_integral.l2_norm();
     printf("Micro error: %.3e\n", l2_error);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_mass, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
-    printf("Micro mass:  %.3e\n", macro_integral.l2_norm());
+    printf("Micro mass:  %.3e\n", macro_integral.l1_norm());
 }
 
 template<int dim>
@@ -364,52 +362,52 @@ template<int dim>
 unsigned int RhoSolver<dim>::get_num_grids() {
     return num_grids;
 }
-
-template<int dim>
-void RhoSolver<dim>::read_solutions_from_file(const std::string &filename, std::vector<Vector<double>> &sols,
-                                              DoFHandler<dim> &corr_dof_handler) {
-    std::ifstream input(filename);
-    int refine_lvl;
-    std::string line;
-    std::getline(input, line);
-    std::istringstream iss(line);
-    iss >> refine_lvl;
-    Triangulation<dim> tria;
-    DoFHandler<dim> new_dof_handler(tria);
-    GridGenerator::hyper_cube(tria, -1, 1);
-    tria.refine_global(refine_lvl);
-    new_dof_handler.distribute_dofs(fe);
-    std::vector<Point<dim>> locations(new_dof_handler.n_dofs());
-    DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
-    std::vector<Point<dim>> check_locations(locations.size());
-    sols.resize(num_grids);
-    for (unsigned int k = 0; k < num_grids; k++) {
-        sols.at(k) = Vector<double>(locations.size());
-    }
-    for (unsigned long i = 0; i < locations.size(); i++) {
-        std::getline(input, line);
-        std::istringstream iss1(line);
-        for (unsigned int k = 0; k < num_grids; k++) {
-            iss1 >> sols.at(k)(i);
-        }
-        Point<dim> point;
-        for (unsigned int j = 0; j < dim; j++) {
-            iss1 >> point(j);
-        }
-        check_locations.at(i) = point;
-    }
-    std::getline(input, line);
-    Assert(line.empty(), ExcInternalError("Too many locations in file"))
-    input.close();
-    // Check if the points match
-    bool is_correct = true;
-    double eps = 1E-4;
-    for (unsigned long i = 0; i < check_locations.size(); i++) {
-        for (unsigned int j = 0; j < dim; j++) {
-            is_correct &= std::fabs(check_locations.at(i)[j] - locations.at(i)[j]) < eps;
-        }
-    }
-}
+//
+//template<int dim>
+//void RhoSolver<dim>::read_solutions_from_file(const std::string &filename, std::vector<Vector<double>> &sols,
+//                                              DoFHandler<dim> &corr_dof_handler) {
+//    std::ifstream input(filename);
+//    int refine_lvl;
+//    std::string line;
+//    std::getline(input, line);
+//    std::istringstream iss(line);
+//    iss >> refine_lvl;
+//    Triangulation<dim> tria;
+//    DoFHandler<dim> new_dof_handler(tria);
+//    GridGenerator::hyper_cube(tria, -1, 1);
+//    tria.refine_global(refine_lvl);
+//    new_dof_handler.distribute_dofs(fe);
+//    std::vector<Point<dim>> locations(new_dof_handler.n_dofs());
+//    DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
+//    std::vector<Point<dim>> check_locations(locations.size());
+//    sols.resize(num_grids);
+//    for (unsigned int k = 0; k < num_grids; k++) {
+//        sols.at(k) = Vector<double>(locations.size());
+//    }
+//    for (unsigned long i = 0; i < locations.size(); i++) {
+//        std::getline(input, line);
+//        std::istringstream iss1(line);
+//        for (unsigned int k = 0; k < num_grids; k++) {
+//            iss1 >> sols.at(k)(i);
+//        }
+//        Point<dim> point;
+//        for (unsigned int j = 0; j < dim; j++) {
+//            iss1 >> point(j);
+//        }
+//        check_locations.at(i) = point;
+//    }
+//    std::getline(input, line);
+//    Assert(line.empty(), ExcInternalError("Too many locations in file"))
+//    input.close();
+//    // Check if the points match
+//    bool is_correct = true;
+//    double eps = 1E-4;
+//    for (unsigned long i = 0; i < check_locations.size(); i++) {
+//        for (unsigned int j = 0; j < dim; j++) {
+//            is_correct &= std::fabs(check_locations.at(i)[j] - locations.at(i)[j]) < eps;
+//        }
+//    }
+//}
 
 
 // Explicit instantiation

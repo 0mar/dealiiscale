@@ -100,21 +100,21 @@ add_definitions(-DBOOST_TEST_DYN_LINK)
 add_test(test_tools test_tools)
 
 # Create result directory
-add_custom_command(TARGET solve_elliptic POST_BUILD # Todo: Make another report for solve_parabolic
+add_custom_command(TARGET solve_elliptic solve_parabolic POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
         ${CMAKE_CURRENT_BINARY_DIR}/results)
 # Run everytime we make
-add_custom_command(TARGET solve_elliptic POST_BUILD
+add_custom_command(TARGET solve_elliptic solve_parabolic POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/results
         ${CMAKE_CURRENT_BINARY_DIR}/results)
 
 # Create input directory
-add_custom_command(TARGET solve_elliptic parsing POST_BUILD
+add_custom_command(TARGET solve_elliptic solve_parabolic POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
         ${CMAKE_CURRENT_BINARY_DIR}/input)
 # Run everytime we make
-add_custom_command(TARGET solve_elliptic parsing POST_BUILD
+add_custom_command(TARGET solve_elliptic solve_parabolic POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/input
         ${CMAKE_CURRENT_BINARY_DIR}/input)

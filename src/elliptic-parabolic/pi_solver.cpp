@@ -8,13 +8,12 @@
 using namespace dealii;
 
 template<int dim>
-PiSolver<dim>::PiSolver(MacroData<dim> &macro_data, unsigned int refine_level):dof_handler(triangulation), fe(1),
-                                                                               micro_dof_handler(nullptr),
-                                                                               micro_solutions(nullptr),
-                                                                               pde_data(macro_data),
-                                                                               integration_order(fe.degree + 1),
-                                                                               refine_level(refine_level + 3) {
-    refine_level = 1;
+PiSolver<dim>::PiSolver(MacroData<dim> &macro_data, unsigned int h_inv):dof_handler(triangulation), fe(1),
+                                                                        micro_dof_handler(nullptr),
+                                                                        micro_solutions(nullptr),
+                                                                        pde_data(macro_data),
+                                                                        integration_order(fe.degree + 1),
+                                                                        h_inv(h_inv) {
     residual = 1;
     printf("Solving macro problem in %d space dimensions\n", dim);
     if (pde_data.params.get_bool("nonlinear")) {
@@ -33,8 +32,7 @@ void PiSolver<dim>::setup() {
 
 template<int dim>
 void PiSolver<dim>::make_grid() {
-    GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(refine_level);
+    GridGenerator::subdivided_hyper_cube(triangulation, h_inv, -1, 1);
     printf("%d active macro cells\n", triangulation.n_active_cells());
 
 }
@@ -148,20 +146,23 @@ void PiSolver<dim>::solve() {
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
     printf("\t %d CG iterations to convergence (macro)\n", solver_control.last_step());
-    old_solution = solution;
 }
 
 template<int dim>
-void PiSolver<dim>::compute_error(double &l2_error) {
+void PiSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> difference_per_cell(triangulation.n_active_cells());
     Vector<double> mass_per_cell(triangulation.n_active_cells());
     VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
                                       VectorTools::L2_norm);
+    l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::L2_norm);
+    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
+                                      VectorTools::H1_seminorm);
+    h1_error = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::H1_seminorm);
     VectorTools::integrate_difference(dof_handler, solution, Functions::ZeroFunction<dim>(), mass_per_cell,
                                       QGauss<dim>(3),
-                                      VectorTools::L2_norm);
-    l2_error = difference_per_cell.l2_norm();
-    const double l2_mass = mass_per_cell.l2_norm();
+                                      VectorTools::L1_norm);
+
+    const double l2_mass = mass_per_cell.l1_norm();
     printf("Macro error: %.3e\n", l2_error);
     printf("Macro mass:  %.3e\n", l2_mass);
 }
@@ -250,10 +251,28 @@ void PiSolver<dim>::iterate() {
     solve();
 //    std::cout << "Macro: " << solution << std::endl;
     if (count == 0) {
-        set_exact_solution();
+        double diff = 1;
+        while (diff > 1E-9) {
+            printf("Difference: %.3e, reiterating first step\n", diff);
+            get_solution_difference(diff);
+            old_solution = solution;
+            assemble_system();
+            solve();
+        }
     }
     count++;
+    old_solution = solution;
+}
 
+template<int dim>
+void PiSolver<dim>::get_solution_difference(double &diff) {
+    Vector<double> tmp_diff(solution);
+    tmp_diff -= old_solution;
+    Vector<double> difference_per_cell(triangulation.n_active_cells());
+    VectorTools::integrate_difference(dof_handler, tmp_diff, Functions::ZeroFunction<dim>(), difference_per_cell,
+                                      QGauss<dim>(3),
+                                      VectorTools::L2_norm);
+    diff = difference_per_cell.l2_norm();
 }
 
 
@@ -267,10 +286,10 @@ void PiSolver<dim>::set_exact_solution() {
 template<int dim>
 void PiSolver<dim>::write_solution_to_file(const Vector<double> &sol,
                                            const DoFHandler<dim> &corr_dof_handler) {
-    const std::string filename = "results/test_pi_" + std::to_string(refine_level) + ".txt";
+    const std::string filename = "results/test_pi_" + std::to_string(h_inv) + ".txt";
 
     std::ofstream output(filename);
-    output << refine_level << std::endl;
+    output << h_inv << std::endl;
     std::vector<Point<dim>> locations;
     locations.resize(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);

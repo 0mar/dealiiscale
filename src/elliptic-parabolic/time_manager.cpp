@@ -4,16 +4,15 @@
 
 #include "time_manager.h"
 
-TimeManager::TimeManager(unsigned int macro_refinement, unsigned int micro_refinement, unsigned int time_refinement,
+TimeManager::TimeManager(unsigned int macro_h_inv, unsigned int micro_h_inv, unsigned int t_inv,
                          const std::string &data_file, const std::string &out_file) : data(data_file),
                                                                                       pi_solver(data.macro,
-                                                                                                macro_refinement),
+                                                                                                macro_h_inv),
                                                                                       rho_solver(data.micro,
-                                                                                                 micro_refinement),
-                                                                                      time_step(0.25),
+                                                                                                 micro_h_inv),
+                                                                                      time_step(1. / t_inv),
                                                                                       final_time(0.5),
                                                                                       ct_file_name(out_file) {
-    time_step /= std::pow(2, time_refinement);
     printf("Using a time step of %.2e\n", time_step);
 }
 
@@ -43,7 +42,7 @@ void TimeManager::run() {
     double old_residual = 1;
     double residual = 0;
     while (time < final_time) {
-        time += time_step; // todo: Update to it*dt
+        time += time_step;
         it++;
         printf("\nSolving for t = %f\n", time);
         iterate();
@@ -72,15 +71,19 @@ void TimeManager::iterate() {
 
 void TimeManager::compute_residuals(double &old_residual, double &residual) {
     double macro_l2 = 0;
+    double macro_h1 = 0;
     double micro_l2 = 0;
-    pi_solver.compute_error(macro_l2);
-    rho_solver.compute_error(micro_l2);
+    double micro_h1 = 0;
+    pi_solver.compute_error(macro_l2, macro_h1);
+    rho_solver.compute_error(micro_l2, micro_h1);
     convergence_table.add_value("iteration", it);
     convergence_table.add_value("time", time);
     convergence_table.add_value("cells", pi_solver.triangulation.n_active_cells());
     convergence_table.add_value("dofs", pi_solver.dof_handler.n_dofs());
     convergence_table.add_value("mL2", micro_l2);
     convergence_table.add_value("ML2", macro_l2);
+    convergence_table.add_value("mH1", micro_h1);
+    convergence_table.add_value("MH1", macro_h1);
     const double res = residual;
     old_residual = res;
     residual = micro_l2 + macro_l2;
@@ -106,7 +109,7 @@ void TimeManager::write_plot() {
 }
 
 void TimeManager::output_results() {
-    std::vector<std::string> error_classes = {"mL2", "ML2"};
+    std::vector<std::string> error_classes = {"mL2", "ML2", "mH1", "MH1"};
     for (const std::string &error_class: error_classes) {
         convergence_table.set_precision(error_class, 3);
         convergence_table.set_scientific(error_class, true);
@@ -114,13 +117,27 @@ void TimeManager::output_results() {
     std::ofstream convergence_output(ct_file_name, std::iostream::app);
     convergence_table.write_text(convergence_output);
     convergence_output.close();
-    DataOut<MACRO_DIMENSIONS> data_out;
+    {
+        DataOut<MACRO_DIMENSIONS> data_out;
+        data_out.attach_dof_handler(pi_solver.dof_handler);
+        data_out.add_data_vector(pi_solver.solution, "solution");
+        data_out.build_patches();
+        std::ofstream output("results/final_macro_solution.gpl");
+        data_out.write_gnuplot(output);
 
-    data_out.attach_dof_handler(pi_solver.dof_handler);
-    data_out.add_data_vector(pi_solver.solution, "solution");
+    }
 
-    data_out.build_patches();
+    {
+        DataOut<MICRO_DIMENSIONS> data_out;
+        data_out.attach_dof_handler(rho_solver.dof_handler);
+        unsigned int index = rho_solver.get_num_grids() / 2;
+        data_out.add_data_vector(rho_solver.solutions.at(index), "solution");
+        data_out.build_patches();
+        std::ofstream output("results/final_micro_solution.gpl");
+        data_out.write_gnuplot(output);
+    }
 
-    std::ofstream output("results/final-macro-solution.gpl");
-    data_out.write_gnuplot(output);
+    std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
+    pi_solver.get_dof_locations(dof_locations);
+    rho_solver.patch_micro_solutions(dof_locations);
 }
