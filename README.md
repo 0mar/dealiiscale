@@ -32,6 +32,27 @@ sudo apt update
 ```
 But be aware that this last option will update all of software from the repository to its 18.10 version, which might be more than you want.
 
+## Docker installation
+
+Alternatively, if you can't/don't want to install a global version of deal.II, you can use [Docker](https://www.docker.com/).
+
+After installing Docker (guides are available online, should be quite easy), pull the `dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease`
+image (more info [here](https://hub.docker.com/r/dealii/base/)), mount the `dealiiscale` directory and compile the code. If run in a docker container, the `CMakeLists.txt` file assumes this image.
+
+A complete workflow looks as follows (where `/path/to/dealiiscale` is the absolute path of the cloned repo).
+
+```bash
+git clone git@github.com:0mar/dealiiscale.git # Clone the source code
+docker pull dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease # Pull the docker image with deal.II installed
+# Now start the container and mount the source directory and drop in
+docker run --name dealii -v /path/to/dealiiscale:/home/dealii/dealiiscale -i -t dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease
+cd dealiiscale # Enter the source directory (inside the container) 
+mkdir build # Create a build folder
+cd build
+cmake .. # Setup the compilation structure (debug by default)
+make # Compile all sources
+``` 
+
 ## Configuring CMake for deal.II
 
 deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, it is easily installed using [Homebrew][4] (Mac).
