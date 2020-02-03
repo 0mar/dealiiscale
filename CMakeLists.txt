@@ -79,6 +79,12 @@ deal_II_setup_target(simple)
 add_executable(robin ${DEMO_DIR}/robin.cpp)
 deal_II_setup_target(robin)
 
+add_executable(transform ${DEMO_DIR}/transform.cpp)
+deal_II_setup_target(transform)
+
+add_executable(example ${DEMO_DIR}/example.cpp)
+deal_II_setup_target(example)
+
 add_executable(demo ${DEMO_DIR}/demo.cpp)
 deal_II_setup_target(demo)
 
