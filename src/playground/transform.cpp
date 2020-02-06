@@ -48,83 +48,104 @@ class RightHandSide : public Function<dim> {
 public:
     RightHandSide() : Function<dim>() {}
 
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point <dim> &p, const unsigned int component = 0) const;
 
 };
 
 template<int dim>
-double RightHandSide<dim>::value(const Point<dim> &p, const unsigned int) const {
-    return 3*p[1]*p[1] - 2*p[0];
+double RightHandSide<dim>::value(const Point <dim> &p, const unsigned int) const {
+    return 3 * p[1] * p[1] - 2 * p[0];
 }
 
 template<int dim>
-class DomainMapping : public Function<dim> {
+class DomainMapping {
 public:
-    DomainMapping() : Function<dim>(dim) {}
-    void init();
-    virtual void vector_value(const Point<dim> &p, Vector<double> &value) const;
+    DomainMapping();
 
-    FullMatrix<double> jacobian;
-    FullMatrix<double> inv_jacobian;
-    const double det_jac = 2;
-    const double inv_det_jac = 0.5;
+//    void kkt(const Point<dim> &p, SymmetricTensor<2,dim> &value) const;
+    Tensor<2, dim> map_coef;
+    SymmetricTensor<2, dim> bilin_coef;
+//    const double det_jac(const Point<dim> &p);
+
+    Point <dim> map(const Point <dim> &p) const;
+
+private:
+    const double PI = 3.1415;
+    const double theta = 0.5 * PI;
+    Vector<double> offset;
+};
+
+template<int dim>
+DomainMapping<dim>::DomainMapping() {
+    offset.reinit(dim);
+    for (unsigned int i = 0; i < dim; i++) {
+        offset(i) = 0;
+    }
+    Tensor<2, dim> scaling;
+    scaling[0][0] = 1;
+    scaling[1][1] = 2;
+    Tensor<2, dim> rotation;
+    rotation[0][0] = std::cos(theta);
+    rotation[0][1] = -std::sin(theta);
+    rotation[1][0] = std::cos(theta);
+    rotation[1][1] = std::sin(theta);
+    map_coef = rotation * scaling;
+
+    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef)));
+}
+
+template<int dim>
+Point <dim> DomainMapping<dim>::map(const Point <dim> &p) const {
+    return Point<dim>(map_coef * p);
+}
+
+template<int dim>
+class MappedTria : public Triangulation<dim> {
+public:
+    MappedTria(DomainMapping<dim> dm) : Triangulation<dim>(), dm(dm) {
+    }
+
+    void setup();
+
+    DomainMapping<dim> dm;
+
+    std::vector<Point < dim>> mapped_vertices;
+
+    const std::vector<Point < dim>> &
+
+    get_vertices() const;
+
 
 };
-template<int dim>
-void DomainMapping<dim>::init() {
-    FullMatrix<double> jacobian_(2,2);
-    FullMatrix<double> inv_jacobian_(2,2);
-    inv_jacobian.copy_from(jacobian_);
-    jacobian.copy_from(inv_jacobian_);
-    jacobian(0,0) = 0;
-    jacobian(0,1) = -2;
-    jacobian(1,0) = 1;
-    jacobian(1,1) = 0;
-
-    inv_jacobian(0,0) = 0;
-    inv_jacobian(0,1) = 1;
-    inv_jacobian(1,0) = -.5;
-    inv_jacobian(1,1) = 0;
-
-//    Vector<double> test_point(dim);
-//    Vector<double> test_out(dim);
-//    test_point(0) = 2;
-//    test_point(1) = 3;
-//    std::cout << "yo4";
-//
-//    test_out=0;
-//    std::cout << test_point << std::endl;
-//    std::cout << "After transformation" << std::endl;
-//    std::cout << "yo5";
-//
-//    inv_jacobian.vmult(test_out,test_point);
-//    std::cout << test_out << std::endl;
-}
 
 template<int dim>
-void DomainMapping<dim>::vector_value(const Point<dim> &p, Vector<double> &value) const {
-    Vector<double> temp(dim);
-    for (unsigned long i=0;i<dim;i++) {
-        temp(i)=p(i);
+void MappedTria<dim>::setup() {
+    auto orig_vertices = Triangulation<dim>::get_vertices();
+    mapped_vertices.reserve(orig_vertices.size());
+    for (const Point <dim> &p: orig_vertices) {
+        mapped_vertices.push_back(dm.map(p));
     }
-    AssertDimension(value.size(),dim);
-    jacobian.vmult(value,temp);
 }
 
+template<int dim>
+const std::vector<Point < dim>> &
 
+MappedTria<dim>::get_vertices() const {
+    return mapped_vertices;
+}
 
 template<int dim>
 class Solution : public Function<dim> {
 public:
     Solution() : Function<dim>() {}
 
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point <dim> &p, const unsigned int component = 0) const;
 
 };
 
 template<int dim>
-double Solution<dim>::value(const Point<dim> &p, const unsigned int) const {
-    return std::pow(p[0],3)/3 - std::pow(p[1],4)/4;
+double Solution<dim>::value(const Point <dim> &p, const unsigned int) const {
+    return std::pow(p[0], 3) / 3 - std::pow(p[1], 4) / 4;
 }
 
 class RobinSolver {
@@ -157,8 +178,6 @@ private:
     DomainMapping<2> dm;
     Vector<double> solution;
     Vector<double> system_rhs;
-    const double kappa = .5;
-    const double c = -7.75;
     int cycle;
     ConvergenceTable convergence_table;
 };
@@ -167,7 +186,6 @@ RobinSolver::RobinSolver() :
         fe(1),
         dof_handler(triangulation),
         cycle(0) {
-    dm.init();
     make_grid();
 
 }
@@ -178,6 +196,12 @@ void RobinSolver::make_grid() {
     std::cout << "Number of active cells: "
               << triangulation.n_active_cells()
               << std::endl;
+    auto mtria = MappedTria<2>(dm);
+    mtria.copy_triangulation(triangulation);
+    mtria.setup();
+    for (unsigned int i = 0; i < triangulation.get_vertices().size(); i++) {
+        std::cout << triangulation.get_vertices()[i] << " || " << mtria.get_vertices()[i] << std::endl;
+    }
 }
 
 void RobinSolver::refine() {
@@ -203,13 +227,13 @@ void RobinSolver::setup_system() {
 void RobinSolver::assemble_system() {
     int integration_order = 2;
     const int dim = 2;
-    QGauss<dim> quadrature_formula(integration_order);
-    QGauss<dim - 1> face_quadrature_formula(integration_order);
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_quadrature_points | update_gradients | update_JxW_values);
-    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
-                                     update_values | update_normal_vectors | update_quadrature_points |
-                                     update_JxW_values);
+    QGauss <dim> quadrature_formula(integration_order);
+    QGauss < dim - 1 > face_quadrature_formula(integration_order);
+    FEValues <dim> fe_values(fe, quadrature_formula,
+                             update_values | update_quadrature_points | update_gradients | update_JxW_values);
+    FEFaceValues <dim> fe_face_values(fe, face_quadrature_formula,
+                                      update_values | update_normal_vectors | update_quadrature_points |
+                                      update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
     const unsigned int n_q_face_points = face_quadrature_formula.size();
@@ -223,19 +247,15 @@ void RobinSolver::assemble_system() {
         cell_rhs = 0;
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-                const unsigned int component_i = fe.system_to_component_index(i).first;
                 for (unsigned int j = 0; j < dofs_per_cell; ++j) {
-                    const unsigned component_j = fe.system_to_component_index(j).first;
-                    // To do it right, check https://www.dealii.org/current/doxygen/deal.II/step_18.html
-                    cell_matrix(i, j) += (fe_values.shape_grad(j, q_index)[component_i] *
-                            fe_values.shape_grad(i, q_index)[component_j] +
-                            -fe_values.shape_grad(j, q_index)[component_j]/2 *
-                            fe_values.shape_grad(i, q_index)[component_i] *
-                            fe_values.JxW(q_index))*dm.inv_det_jac;
+                    cell_matrix(i, j) += (fe_values.shape_grad(j, q_index) *
+                                          dm.bilin_coef *
+                                          fe_values.shape_grad(j, q_index) *
+                                          fe_values.JxW(q_index));
                 }
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                rhs.value(dm.value(fe_values.quadrature_point(q_index))) *
-                                fe_values.JxW(q_index))*dm.inv_det_jac;
+                                rhs.value(fe_values.quadrature_point(q_index)) *
+                                fe_values.JxW(q_index));
             }
         }
         cell->get_dof_indices(local_dof_indices);
@@ -252,7 +272,7 @@ void RobinSolver::assemble_system() {
 
     }
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler,0,Solution<2>(),boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, Solution<2>(), boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
@@ -291,12 +311,29 @@ void RobinSolver::process_solution() {
 }
 
 void RobinSolver::output_results() {
-    DataOut<2> data_out;
-    data_out.attach_dof_handler(dof_handler);
-    data_out.add_data_vector(solution, "solution");
-    data_out.build_patches();
-    std::ofstream output("results/solution.gpl");
-    data_out.write_gnuplot(output);
+    {
+        DataOut<2> data_out;
+        data_out.attach_dof_handler(dof_handler);
+        data_out.add_data_vector(solution, "solution");
+        data_out.build_patches();
+        std::ofstream output("results/solution.gpl");
+        data_out.write_gnuplot(output);
+        output.close();
+    }
+    {
+        DataOut<2> data_out;
+        MappedTria<2> mtria(dm);
+        mtria.copy_triangulation(triangulation);
+        mtria.setup();
+        DoFHandler<2> mapped_dof_handler(mtria);
+        mapped_dof_handler.distribute_dofs(fe);
+        data_out.attach_dof_handler(mapped_dof_handler);
+        data_out.add_data_vector(solution, "solution");
+        data_out.build_patches();
+        std::ofstream output("results/solution2.gpl");
+        data_out.write_gnuplot(output);
+        output.close();
+    }
 
     convergence_table.set_precision("L2", 3);
     convergence_table.set_scientific("L2", true);
