@@ -17,12 +17,16 @@
  *          Guido Kanschat, 2011
  */
 #include <deal.II/grid/tria.h>
+#include <deal.II/base/tensor_function.h>
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
 #include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe.h>
 #include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/mapping_fe_field.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/base/quadrature_lib.h>
@@ -38,7 +42,6 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/base/convergence_table.h>
 
-#include <fstream>
 #include <iostream>
 
 using namespace dealii;
@@ -48,38 +51,90 @@ class RightHandSide : public Function<dim> {
 public:
     RightHandSide() : Function<dim>() {}
 
-    virtual double value(const Point <dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
 };
 
 template<int dim>
-double RightHandSide<dim>::value(const Point <dim> &p, const unsigned int) const {
+double RightHandSide<dim>::value(const Point<dim> &p, const unsigned int) const {
     return 3 * p[1] * p[1] - 2 * p[0];
 }
+
 
 template<int dim>
 class DomainMapping {
 public:
     DomainMapping();
 
-//    void kkt(const Point<dim> &p, SymmetricTensor<2,dim> &value) const;
     Tensor<2, dim> map_coef;
     SymmetricTensor<2, dim> bilin_coef;
-//    const double det_jac(const Point<dim> &p);
 
-    Point <dim> map(const Point <dim> &p) const;
+//    const double det_jac(const Point<dim> &p);
+    void get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt);
+
+    Point<dim> map(const Point<dim> &p) const;
 
 private:
-    const double PI = 3.1415;
-    const double theta = 0.5 * PI;
-    Vector<double> offset;
+    const double PI = 3.14159265358979323;
+    const double theta = 0.25 * PI;
+    Tensor<1, dim> offset;
+    const double scaling_x_factor = 2;
+    const double scaling_y_factor = 2;
 };
 
 template<int dim>
 DomainMapping<dim>::DomainMapping() {
-    offset.reinit(dim);
     for (unsigned int i = 0; i < dim; i++) {
-        offset(i) = 0;
+        offset[i] = 0;
+    }
+    Tensor<2, dim> scaling;
+    scaling[0][0] = scaling_x_factor;
+    scaling[1][1] = scaling_y_factor;
+    Tensor<2, dim> rotation;
+    rotation[0][0] = std::cos(theta);
+    rotation[0][1] = -std::sin(theta);
+    rotation[1][0] = std::sin(theta);
+    rotation[1][1] = std::cos(theta);
+    map_coef = rotation * scaling;
+    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef)));
+}
+
+template<int dim>
+Point<dim> DomainMapping<dim>::map(const Point<dim> &p) const {
+    return Point<dim>(map_coef * p + offset);
+}
+
+
+template<int dim>
+void DomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt) {
+    AssertDimension(kkt.dimension, bilin_coef.dimension);
+    AssertDimension(kkt.rank, bilin_coef.rank);
+    kkt = bilin_coef;
+}
+
+template<int dim>
+class NonLinDomainMapping {
+public:
+    NonLinDomainMapping();
+
+    Tensor<2, dim> map_coef;
+    SymmetricTensor<2, dim> bilin_coef;
+
+    void get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt);
+//    const double det_jac(const Point<dim> &p);
+
+    Point<dim> map(const Point<dim> &p) const;
+
+private:
+    const double PI = 3.14159265358979323;
+    const double theta = 0.25 * PI;
+    Tensor<1, dim> offset;
+};
+
+template<int dim>
+NonLinDomainMapping<dim>::NonLinDomainMapping() {
+    for (unsigned int i = 0; i < dim; i++) {
+        offset[i] = 0;
     }
     Tensor<2, dim> scaling;
     scaling[0][0] = 1;
@@ -87,51 +142,29 @@ DomainMapping<dim>::DomainMapping() {
     Tensor<2, dim> rotation;
     rotation[0][0] = std::cos(theta);
     rotation[0][1] = -std::sin(theta);
-    rotation[1][0] = std::cos(theta);
-    rotation[1][1] = std::sin(theta);
+    rotation[1][0] = std::sin(theta);
+    rotation[1][1] = std::cos(theta);
     map_coef = rotation * scaling;
-
     bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef)));
 }
 
 template<int dim>
-Point <dim> DomainMapping<dim>::map(const Point <dim> &p) const {
-    return Point<dim>(map_coef * p);
+void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt) {
+    AssertDimension(kkt.dimension, bilin_coef.dimension);
+    AssertDimension(kkt.rank, bilin_coef.rank);
+    Tensor<2, dim> x_part;
+    x_part[0][0] = 1. / (2 * p[0]);
+    x_part[1][1] = 1. / (2 * p[1]);
+    kkt = SymmetricTensor<2, dim>(x_part * bilin_coef * x_part);
 }
 
 template<int dim>
-class MappedTria : public Triangulation<dim> {
-public:
-    MappedTria(DomainMapping<dim> dm) : Triangulation<dim>(), dm(dm) {
+Point<dim> NonLinDomainMapping<dim>::map(const Point<dim> &p) const {
+    Point<dim> p2;
+    for (unsigned int i = 0; i < dim; i++) {
+        p2[i] = p[i] * p[i];
     }
-
-    void setup();
-
-    DomainMapping<dim> dm;
-
-    std::vector<Point < dim>> mapped_vertices;
-
-    const std::vector<Point < dim>> &
-
-    get_vertices() const;
-
-
-};
-
-template<int dim>
-void MappedTria<dim>::setup() {
-    auto orig_vertices = Triangulation<dim>::get_vertices();
-    mapped_vertices.reserve(orig_vertices.size());
-    for (const Point <dim> &p: orig_vertices) {
-        mapped_vertices.push_back(dm.map(p));
-    }
-}
-
-template<int dim>
-const std::vector<Point < dim>> &
-
-MappedTria<dim>::get_vertices() const {
-    return mapped_vertices;
+    return Point<dim>(map_coef * p2 + offset);
 }
 
 template<int dim>
@@ -139,12 +172,12 @@ class Solution : public Function<dim> {
 public:
     Solution() : Function<dim>() {}
 
-    virtual double value(const Point <dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
 };
 
 template<int dim>
-double Solution<dim>::value(const Point <dim> &p, const unsigned int) const {
+double Solution<dim>::value(const Point<dim> &p, const unsigned int) const {
     return std::pow(p[0], 3) / 3 - std::pow(p[1], 4) / 4;
 }
 
@@ -192,16 +225,10 @@ RobinSolver::RobinSolver() :
 
 void RobinSolver::make_grid() {
     GridGenerator::hyper_cube(triangulation);
-    triangulation.refine_global(4);
+    triangulation.refine_global(2);
     std::cout << "Number of active cells: "
               << triangulation.n_active_cells()
               << std::endl;
-    auto mtria = MappedTria<2>(dm);
-    mtria.copy_triangulation(triangulation);
-    mtria.setup();
-    for (unsigned int i = 0; i < triangulation.get_vertices().size(); i++) {
-        std::cout << triangulation.get_vertices()[i] << " || " << mtria.get_vertices()[i] << std::endl;
-    }
 }
 
 void RobinSolver::refine() {
@@ -227,16 +254,15 @@ void RobinSolver::setup_system() {
 void RobinSolver::assemble_system() {
     int integration_order = 2;
     const int dim = 2;
-    QGauss <dim> quadrature_formula(integration_order);
-    QGauss < dim - 1 > face_quadrature_formula(integration_order);
-    FEValues <dim> fe_values(fe, quadrature_formula,
-                             update_values | update_quadrature_points | update_gradients | update_JxW_values);
-    FEFaceValues <dim> fe_face_values(fe, face_quadrature_formula,
-                                      update_values | update_normal_vectors | update_quadrature_points |
-                                      update_JxW_values);
+    QGauss<dim> quadrature_formula(integration_order);
+    QGauss<dim - 1> face_quadrature_formula(integration_order);
+    FEValues<dim> fe_values(fe, quadrature_formula,
+                            update_values | update_quadrature_points | update_gradients | update_JxW_values);
+    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
+                                     update_values | update_normal_vectors | update_quadrature_points |
+                                     update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
-    const unsigned int n_q_face_points = face_quadrature_formula.size();
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     const RightHandSide<dim> rhs;
@@ -246,10 +272,12 @@ void RobinSolver::assemble_system() {
         cell_matrix = 0;
         cell_rhs = 0;
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
+            SymmetricTensor<2, dim> kkt;
+            dm.get_kkt(fe_values.quadrature_point(q_index), kkt);
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j) {
-                    cell_matrix(i, j) += (fe_values.shape_grad(j, q_index) *
-                                          dm.bilin_coef *
+                    cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
+                                          kkt *
                                           fe_values.shape_grad(j, q_index) *
                                           fe_values.JxW(q_index));
                 }
@@ -269,7 +297,6 @@ void RobinSolver::assemble_system() {
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
         }
-
     }
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler, 0, Solution<2>(), boundary_values);
@@ -321,18 +348,32 @@ void RobinSolver::output_results() {
         output.close();
     }
     {
+        const int dim = 2;
+        const int spacedim = 2;
         DataOut<2> data_out;
-        MappedTria<2> mtria(dm);
-        mtria.copy_triangulation(triangulation);
-        mtria.setup();
-        DoFHandler<2> mapped_dof_handler(mtria);
-        mapped_dof_handler.distribute_dofs(fe);
-        data_out.attach_dof_handler(mapped_dof_handler);
+        data_out.attach_dof_handler(dof_handler);
         data_out.add_data_vector(solution, "solution");
-        data_out.build_patches();
+        const FE_Q<dim, spacedim> feq(1);
+        const FESystem<dim, spacedim> fesystem(feq, spacedim);
+        DoFHandler<dim, spacedim> dhq(triangulation);
+        dhq.distribute_dofs(fesystem);
+        const ComponentMask mask(spacedim, true);
+        Vector<double> eulerq(dhq.n_dofs());
+        Vector<double> mappedq(dhq.n_dofs());
+        VectorTools::get_position_vector(dhq, eulerq, mask);
+        for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
+            const Point<2> p(eulerq[2 * i], eulerq[2 * i + 1]);
+            const auto mapped_point = dm.map(p);
+            mappedq[2 * i] = mapped_point[0];
+            mappedq[2 * i + 1] = mapped_point[1];
+
+        }
+        MappingFEField<dim, spacedim> map(dhq, mappedq, mask);
+        std::vector<Point<spacedim>> support_points(dhq.n_dofs());
+        DoFTools::map_dofs_to_support_points(map, dhq, support_points);
+        data_out.build_patches(map);
         std::ofstream output("results/solution2.gpl");
         data_out.write_gnuplot(output);
-        output.close();
     }
 
     convergence_table.set_precision("L2", 3);
@@ -358,8 +399,10 @@ void RobinSolver::run() {
 int main() {
     deallog.depth_console(2);
     RobinSolver poisson_problem;
-    poisson_problem.refine();
-    poisson_problem.run();
+    for (unsigned int i = 0; i < 4; i++) {
+        poisson_problem.refine();
+        poisson_problem.run();
+    }
     poisson_problem.output_results();
     return 0;
 }
