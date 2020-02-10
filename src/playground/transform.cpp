@@ -78,8 +78,8 @@ private:
     const double PI = 3.14159265358979323;
     const double theta = 0.25 * PI;
     Tensor<1, dim> offset;
-    const double scaling_x_factor = 2;
-    const double scaling_y_factor = 2;
+    const double scaling_x_factor = 0.7;
+    const double scaling_y_factor = 0.7;
 };
 
 template<int dim>
@@ -96,7 +96,7 @@ DomainMapping<dim>::DomainMapping() {
     rotation[1][0] = std::sin(theta);
     rotation[1][1] = std::cos(theta);
     map_coef = rotation * scaling;
-    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef)));
+    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef))) * determinant(map_coef);
 }
 
 template<int dim>
@@ -145,7 +145,7 @@ NonLinDomainMapping<dim>::NonLinDomainMapping() {
     rotation[1][0] = std::sin(theta);
     rotation[1][1] = std::cos(theta);
     map_coef = rotation * scaling;
-    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef)));
+    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef))) * determinant(map_coef);
 }
 
 template<int dim>
@@ -155,7 +155,7 @@ void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, d
     Tensor<2, dim> x_part;
     x_part[0][0] = 1. / (2 * p[0]);
     x_part[1][1] = 1. / (2 * p[1]);
-    kkt = SymmetricTensor<2, dim>(x_part * bilin_coef * x_part);
+    kkt = SymmetricTensor<2, dim>(x_part * bilin_coef * x_part) * determinant(x_part);
 }
 
 template<int dim>
@@ -258,9 +258,6 @@ void RobinSolver::assemble_system() {
     QGauss<dim - 1> face_quadrature_formula(integration_order);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_quadrature_points | update_gradients | update_JxW_values);
-    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
-                                     update_values | update_normal_vectors | update_quadrature_points |
-                                     update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
@@ -271,8 +268,8 @@ void RobinSolver::assemble_system() {
         fe_values.reinit(cell);
         cell_matrix = 0;
         cell_rhs = 0;
+        SymmetricTensor<2, dim> kkt;
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
-            SymmetricTensor<2, dim> kkt;
             dm.get_kkt(fe_values.quadrature_point(q_index), kkt);
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j) {
@@ -283,6 +280,7 @@ void RobinSolver::assemble_system() {
                 }
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
                                 rhs.value(fe_values.quadrature_point(q_index)) *
+                                determinant(dm.map_coef) *
                                 fe_values.JxW(q_index));
             }
         }
