@@ -76,16 +76,16 @@ public:
 
 private:
     const double PI = 3.14159265358979323;
-    const double theta = 0.25 * PI;
+    const double theta = 0.3 * PI;
     Tensor<1, dim> offset;
-    const double scaling_x_factor = 0.7;
-    const double scaling_y_factor = 0.7;
+    const double scaling_x_factor = 2.3;
+    const double scaling_y_factor = 0.5;
 };
 
 template<int dim>
 DomainMapping<dim>::DomainMapping() {
     for (unsigned int i = 0; i < dim; i++) {
-        offset[i] = 0;
+        offset[i] = i + 0.5;
     }
     Tensor<2, dim> scaling;
     scaling[0][0] = scaling_x_factor;
@@ -95,8 +95,12 @@ DomainMapping<dim>::DomainMapping() {
     rotation[0][1] = -std::sin(theta);
     rotation[1][0] = std::sin(theta);
     rotation[1][1] = std::cos(theta);
+    // Example linear map
     map_coef = rotation * scaling;
     bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef))) * determinant(map_coef);
+    std::cout << map_coef << std::endl;
+    std::cout << determinant(map_coef) << std::endl;
+    std::cout << bilin_coef << std::endl;
 }
 
 template<int dim>
@@ -112,65 +116,68 @@ void DomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &k
     kkt = bilin_coef;
 }
 
-template<int dim>
-class NonLinDomainMapping {
-public:
-    NonLinDomainMapping();
-
-    Tensor<2, dim> map_coef;
-    SymmetricTensor<2, dim> bilin_coef;
-
-    void get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt);
-//    const double det_jac(const Point<dim> &p);
-
-    Point<dim> map(const Point<dim> &p) const;
-
-private:
-    const double PI = 3.14159265358979323;
-    const double theta = 0.25 * PI;
-    Tensor<1, dim> offset;
-};
-
-template<int dim>
-NonLinDomainMapping<dim>::NonLinDomainMapping() {
-    for (unsigned int i = 0; i < dim; i++) {
-        offset[i] = 0;
-    }
-    Tensor<2, dim> scaling;
-    scaling[0][0] = 1;
-    scaling[1][1] = 2;
-    Tensor<2, dim> rotation;
-    rotation[0][0] = std::cos(theta);
-    rotation[0][1] = -std::sin(theta);
-    rotation[1][0] = std::sin(theta);
-    rotation[1][1] = std::cos(theta);
-    map_coef = rotation * scaling;
-    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef))) * determinant(map_coef);
-}
-
-template<int dim>
-void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt) {
-    AssertDimension(kkt.dimension, bilin_coef.dimension);
-    AssertDimension(kkt.rank, bilin_coef.rank);
-    Tensor<2, dim> x_part;
-    x_part[0][0] = 1. / (2 * p[0]);
-    x_part[1][1] = 1. / (2 * p[1]);
-    kkt = SymmetricTensor<2, dim>(x_part * bilin_coef * x_part) * determinant(x_part);
-}
-
-template<int dim>
-Point<dim> NonLinDomainMapping<dim>::map(const Point<dim> &p) const {
-    Point<dim> p2;
-    for (unsigned int i = 0; i < dim; i++) {
-        p2[i] = p[i] * p[i];
-    }
-    return Point<dim>(map_coef * p2 + offset);
-}
+//template<int dim>
+//class NonLinDomainMapping {
+//public:
+//    NonLinDomainMapping();
+//
+//    Tensor<2, dim> map_coef;
+//    SymmetricTensor<2, dim> bilin_coef;
+//
+//    void get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt);
+////    const double det_jac(const Point<dim> &p);
+//
+//    Point<dim> map(const Point<dim> &p) const;
+//
+//private:
+//    const double PI = 3.14159265358979323;
+//    const double theta = 0.25 * PI;
+//    Tensor<1, dim> offset;
+//};
+//
+//template<int dim>
+//NonLinDomainMapping<dim>::NonLinDomainMapping() {
+//    for (unsigned int i = 0; i < dim; i++) {
+//        offset[i] = 0;
+//    }
+//    Tensor<2, dim> scaling;
+//    scaling[0][0] = 1;
+//    scaling[1][1] = 2;
+//    Tensor<2, dim> rotation;
+//    rotation[0][0] = std::cos(theta);
+//    rotation[0][1] = -std::sin(theta);
+//    rotation[1][0] = std::sin(theta);
+//    rotation[1][1] = std::cos(theta);
+//    map_coef = rotation * scaling;
+//    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef))) * determinant(map_coef);
+//}
+//
+//template<int dim>
+//void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt) {
+//    AssertDimension(kkt.dimension, bilin_coef.dimension);
+//    AssertDimension(kkt.rank, bilin_coef.rank);
+//    Tensor<2, dim> x_part;
+//    x_part[0][0] = 1. / (2 * p[0]);
+//    x_part[1][1] = 1. / (2 * p[1]);
+//    kkt = SymmetricTensor<2, dim>(x_part * bilin_coef * x_part) * determinant(x_part);
+//}
+//
+//template<int dim>
+//Point<dim> NonLinDomainMapping<dim>::map(const Point<dim> &p) const {
+//    Point<dim> p2;
+//    for (unsigned int i = 0; i < dim; i++) {
+//        p2[i] = p[i] * p[i];
+//    }
+//    return Point<dim>(map_coef * p2 + offset);
+//}
 
 template<int dim>
 class Solution : public Function<dim> {
 public:
-    Solution() : Function<dim>() {}
+    Solution(bool map) : Function<dim>(), map(map) {}
+
+    bool map;
+    DomainMapping<dim> dm;
 
     virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
@@ -178,7 +185,12 @@ public:
 
 template<int dim>
 double Solution<dim>::value(const Point<dim> &p, const unsigned int) const {
-    return std::pow(p[0], 3) / 3 - std::pow(p[1], 4) / 4;
+    if (map) {
+        const Point<dim> mp = dm.map(p);
+        return std::pow(mp[0], 3) / 3 - std::pow(mp[1], 4) / 4;
+    } else {
+        return std::pow(p[0], 3) / 3 - std::pow(p[1], 4) / 4;
+    }
 }
 
 class RobinSolver {
@@ -225,7 +237,7 @@ RobinSolver::RobinSolver() :
 
 void RobinSolver::make_grid() {
     GridGenerator::hyper_cube(triangulation);
-    triangulation.refine_global(2);
+    triangulation.refine_global(1);
     std::cout << "Number of active cells: "
               << triangulation.n_active_cells()
               << std::endl;
@@ -255,7 +267,6 @@ void RobinSolver::assemble_system() {
     int integration_order = 2;
     const int dim = 2;
     QGauss<dim> quadrature_formula(integration_order);
-    QGauss<dim - 1> face_quadrature_formula(integration_order);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_quadrature_points | update_gradients | update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
@@ -279,7 +290,8 @@ void RobinSolver::assemble_system() {
                                           fe_values.JxW(q_index));
                 }
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                rhs.value(fe_values.quadrature_point(q_index)) *
+                                //                                rhs.value(fe_values.quadrature_point(q_index)) *
+                                rhs.value(dm.map(fe_values.quadrature_point(q_index))) *
                                 determinant(dm.map_coef) *
                                 fe_values.JxW(q_index));
             }
@@ -297,7 +309,7 @@ void RobinSolver::assemble_system() {
         }
     }
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, Solution<2>(), boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, Solution<2>(true), boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
@@ -313,7 +325,7 @@ void RobinSolver::process_solution() {
     Vector<float> difference_per_cell(triangulation.n_active_cells());
     VectorTools::integrate_difference(dof_handler,
                                       solution,
-                                      Solution<dim>(),
+                                      Solution<dim>(true),
                                       difference_per_cell,
                                       QGauss<dim>(3),
                                       VectorTools::L2_norm);
@@ -397,7 +409,7 @@ void RobinSolver::run() {
 int main() {
     deallog.depth_console(2);
     RobinSolver poisson_problem;
-    for (unsigned int i = 0; i < 4; i++) {
+    for (unsigned int i = 0; i < 5; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }

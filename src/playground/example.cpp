@@ -22,7 +22,10 @@
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
 #include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe.h>
 #include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/mapping_fe_field.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/base/quadrature_lib.h>
@@ -48,12 +51,12 @@ class RightHandSide : public Function<dim> {
 public:
     RightHandSide() : Function<dim>() {}
 
-    virtual double value(const Point <dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
 };
 
 template<int dim>
-double RightHandSide<dim>::value(const Point <dim> &p, const unsigned int) const {
+double RightHandSide<dim>::value(const Point<dim> &p, const unsigned int) const {
     double radius_sqrd = 0;
     for (unsigned int i = 0; i < dim; ++i) {
         radius_sqrd += p[i] * p[i];
@@ -67,12 +70,12 @@ class NeumannData : public Function<dim> {
 public:
     NeumannData() : Function<dim>() {}
 
-    virtual double value(const Point <dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
 };
 
 template<int dim>
-double NeumannData<dim>::value(const Point <dim> &p, const unsigned int) const {
+double NeumannData<dim>::value(const Point<dim> &p, const unsigned int) const {
     return -1.875;
 }
 
@@ -81,12 +84,12 @@ class Solution : public Function<dim> {
 public:
     Solution() : Function<dim>() {}
 
-    virtual double value(const Point <dim> &p, const unsigned int component = 0) const;
+    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
 
 };
 
 template<int dim>
-double Solution<dim>::value(const Point <dim> &p, const unsigned int) const {
+double Solution<dim>::value(const Point<dim> &p, const unsigned int) const {
     double radius_sqrd = 0;
     for (unsigned int i = 0; i < dim; ++i) {
         radius_sqrd += p[i] * p[i];
@@ -127,8 +130,8 @@ private:
     const double c = -7.75;
     int cycle;
     ConvergenceTable convergence_table;
-    const unsigned int NEUMANN_BOUNDARY=1;
-    const unsigned int ROBIN_BOUNDARY=2;
+    const unsigned int NEUMANN_BOUNDARY = 1;
+    const unsigned int ROBIN_BOUNDARY = 2;
 };
 
 DiskProblem::DiskProblem() :
@@ -142,13 +145,13 @@ void DiskProblem::make_grid() {
     const Point<2> center(0, 0);
     const double inner_radius = 0.5;
     const double outer_radius = 1.0;
-    std::cout << "do stuff" << std::endl;
-    GridGenerator::hyper_shell(triangulation,center, inner_radius, outer_radius,10);
+    GridGenerator::hyper_shell(triangulation, center, inner_radius, outer_radius, 10);
     triangulation.refine_global(4);
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<2>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary()) {
-                const double radius_sqrd = cell->face(face_number)->center()(0) * cell->face(face_number)->center()(0) + cell->face(face_number)->center()(1)* cell->face(face_number)->center()(1);
+                const double radius_sqrd = cell->face(face_number)->center()(0) * cell->face(face_number)->center()(0) +
+                                           cell->face(face_number)->center()(1) * cell->face(face_number)->center()(1);
                 if (radius_sqrd < 0.75 * 0.75) {
                     cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
                 } else {
@@ -176,13 +179,13 @@ void DiskProblem::setup_system() {
 void DiskProblem::assemble_system() {
     int integration_order = 2;
     const int dim = 2;
-    QGauss <dim> quadrature_formula(integration_order);
-    QGauss < dim - 1 > face_quadrature_formula(integration_order);
-    FEValues <dim> fe_values(fe, quadrature_formula,
-                             update_values | update_quadrature_points | update_gradients | update_JxW_values);
-    FEFaceValues <dim> fe_face_values(fe, face_quadrature_formula,
-                                      update_values | update_normal_vectors | update_quadrature_points |
-                                      update_JxW_values);
+    QGauss<dim> quadrature_formula(integration_order);
+    QGauss<dim - 1> face_quadrature_formula(integration_order);
+    FEValues<dim> fe_values(fe, quadrature_formula,
+                            update_values | update_quadrature_points | update_gradients | update_JxW_values);
+    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
+                                     update_values | update_normal_vectors | update_quadrature_points |
+                                     update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
     const unsigned int n_q_face_points = face_quadrature_formula.size();
@@ -190,7 +193,7 @@ void DiskProblem::assemble_system() {
     Vector<double> cell_rhs(dofs_per_cell);
     const RightHandSide<dim> rhs;
     const NeumannData<dim> neumann_data;
-    std::vector <types::global_dof_index> local_dof_indices(dofs_per_cell);
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     for (const DoFHandler<dim>::active_cell_iterator &cell:dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
@@ -224,9 +227,9 @@ void DiskProblem::assemble_system() {
                                 cell_rhs(i) += fe_face_values.shape_value(i, q_index) * kappa * c *
                                                fe_face_values.JxW(q_index);
                             } else {
-                                cell_rhs(i) +=  neumann_data.value(fe_face_values.quadrature_point(q_index)) *
-                                                fe_face_values.shape_value(i, q_index) *
-                                                fe_face_values.JxW(q_index);
+                                cell_rhs(i) += neumann_data.value(fe_face_values.quadrature_point(q_index)) *
+                                               fe_face_values.shape_value(i, q_index) *
+                                               fe_face_values.JxW(q_index);
                             }
                         }
                     }
@@ -282,12 +285,17 @@ void DiskProblem::process_solution() {
 }
 
 void DiskProblem::output_results() {
-    DataOut<2> data_out;
-    data_out.attach_dof_handler(dof_handler);
-    data_out.add_data_vector(solution, "solution");
-    data_out.build_patches();
-    std::ofstream output("results/solution.gpl");
-    data_out.write_gnuplot(output);
+    {
+        DataOut<2> data_out;
+        data_out.attach_dof_handler(dof_handler);
+        data_out.add_data_vector(solution, "solution");
+        data_out.build_patches();
+        std::ofstream output("results/solution.gpl");
+        data_out.write_gnuplot(output);
+    }
+    {
+
+    }
 
     convergence_table.set_precision("L2", 3);
     convergence_table.set_scientific("L2", true);
