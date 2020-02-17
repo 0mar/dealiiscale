@@ -57,7 +57,9 @@ public:
 
 template<int dim>
 double RightHandSide<dim>::value(const Point<dim> &p, const unsigned int) const {
-    return -600.0 / 6859.0 * (900 * p[0] + 395 * p[1] + 133) - 100.0 / 6859.0 * (980 * p[0] + 390 * p[1] + 209);
+    return -std::pow(-p[0] + p[1], -1.5) * std::pow(p[0] + p[1], -1.5) *
+           (-0.42044820762685731 * std::pow(-p[0] + p[1], 1.5) + 0.35355339059327384 * std::pow(-p[0] + p[1], 2.0) +
+            0.35355339059327384 * std::pow(p[0] + p[1], 2.0) - 0.29730177875068037 * std::pow(p[0] + p[1], 2.5));
 }
 
 
@@ -89,14 +91,6 @@ DomainMapping<dim>::DomainMapping() {
     for (unsigned int i = 0; i < dim; i++) {
         offset[i] = 0;
     }
-//    Tensor<2, dim> scaling;
-//    scaling[0][0] = scaling_x_factor;
-//    scaling[1][1] = scaling_y_factor;
-//    Tensor<2, dim> rotation;
-//    rotation[0][0] = std::cos(theta);
-//    rotation[0][1] = -std::sin(theta);
-//    rotation[1][0] = std::sin(theta);
-//    rotation[1][1] = std::cos(theta);
     // Example linear map
     map_coef[0][0] = -1.3;
     map_coef[0][1] = -0.2;
@@ -167,35 +161,35 @@ void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, d
 template<int dim>
 Point<dim> NonLinDomainMapping<dim>::map(const Point<dim> &p) const {
     Point<dim> p2;
-    p2[0] = p[0] * p[0] - p[1] * p[1] + p[0] * p[0] * p[0] / 3 - p[0] * p[1] * p[1] + p[0];
-    p2[1] = 2 * p[0] * p[1] - p[1] * p[1] * p[1] / 3 + p[0] * p[0] * p[1] + p[1];
+    p2[0] = (1.0 / 2.0) * M_SQRT2 * std::pow(p[0], 2) - 1.0 / 2.0 * M_SQRT2 * std::pow(p[1], 2);
+    p2[1] = (1.0 / 2.0) * M_SQRT2 * std::pow(p[0], 2) + (1.0 / 2.0) * M_SQRT2 * std::pow(p[1], 2);
     return p2;
 }
 
 template<int dim>
 double NonLinDomainMapping<dim>::det_jac(const Point<dim> &p) const {
     // Assuming anti-symmetrical tensor
-    return std::pow(gradient_11(p), 2) + std::pow(gradient_12(p), 2);
+    return gradient_11(p) * gradient_22(p) - gradient_12(p) * gradient_21(p);
 }
 
 template<int dim>
 double NonLinDomainMapping<dim>::gradient_11(const Point<dim> &p) const {
-    return p[0] * p[0] - p[1] * p[1] - 2 * p[0] + 1;
+    return p[0] * M_SQRT2;
 }
 
 template<int dim>
 double NonLinDomainMapping<dim>::gradient_12(const Point<dim> &p) const {
-    return -2 * p[1] - 2 * p[0] * p[1];
+    return -p[1] * M_SQRT2;
 }
 
 template<int dim>
 double NonLinDomainMapping<dim>::gradient_21(const Point<dim> &p) const {
-    return -gradient_12(p);
+    return p[0] * M_SQRT2;
 }
 
 template<int dim>
 double NonLinDomainMapping<dim>::gradient_22(const Point<dim> &p) const {
-    return gradient_11(p);
+    return p[1] * M_SQRT2;
 }
 
 template<int dim>
@@ -249,7 +243,7 @@ private:
     DoFHandler<2> dof_handler;
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
-    DomainMapping<2> dm;
+    NonLinDomainMapping<2> dm;
     Vector<double> solution;
     Vector<double> system_rhs;
     int cycle;
@@ -293,7 +287,7 @@ void RobinSolver::setup_system() {
 }
 
 void RobinSolver::assemble_system() {
-    int integration_order = 2;
+    const int integration_order = 8;
     const int dim = 2;
     QGauss<dim> quadrature_formula(integration_order);
     FEValues<dim> fe_values(fe, quadrature_formula,
@@ -357,7 +351,7 @@ void RobinSolver::process_solution() {
                                       solution,
                                       Solution<dim>(false),
                                       difference_per_cell,
-                                      QGauss<dim>(3),
+                                      QGauss<dim>(5),
                                       VectorTools::L2_norm);
     const double L2_error = difference_per_cell.l2_norm();
     const unsigned int n_active_cells = triangulation.n_active_cells();
@@ -388,9 +382,20 @@ void RobinSolver::output_results() {
         output.close();
     }
     {
+        DataOut<2> data_out;
+        data_out.attach_dof_handler(dof_handler);
+        Vector<double> interpolated_solution(dof_handler.n_dofs());
+        VectorTools::interpolate(dof_handler, Solution<2>(false), interpolated_solution);
+        data_out.add_data_vector(interpolated_solution, "solution");
+        data_out.build_patches();
+        std::ofstream output("results/exact_solution.gpl");
+        data_out.write_gnuplot(output);
+        output.close();
+    }
+    {
         Vector<double> error(dof_handler.n_dofs());
         Vector<double> interpolated_solution(dof_handler.n_dofs());
-        VectorTools::interpolate(dof_handler, Solution<2>(true), interpolated_solution);
+        VectorTools::interpolate(dof_handler, Solution<2>(false), interpolated_solution);
         DataOut<2> data_out;
         data_out.attach_dof_handler(dof_handler);
         error = 0;
