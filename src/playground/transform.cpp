@@ -58,8 +58,9 @@ public:
 template<int dim>
 double RightHandSide<dim>::value(const Point<dim> &p, const unsigned int) const {
     return -std::pow(-p[0] + p[1], -1.5) * std::pow(p[0] + p[1], -1.5) *
-           (-0.42044820762685731 * std::pow(-p[0] + p[1], 1.5) + 0.35355339059327384 * std::pow(-p[0] + p[1], 2.0) +
-            0.35355339059327384 * std::pow(p[0] + p[1], 2.0) - 0.29730177875068037 * std::pow(p[0] + p[1], 2.5));
+           (-2.5226892457611436 * std::pow(-p[0] + p[1], 1.5) + 1.0606601717798214 * std::pow(-p[0] + p[1], 2.0) -
+            0.84089641525371461 * std::pow(p[0] + p[1], 1.5) + 1.0606601717798214 * std::pow(p[0] + p[1], 2.0) -
+            0.29730177875068037 * std::pow(p[0] + p[1], 2.5));
 }
 
 
@@ -161,8 +162,8 @@ void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, d
 template<int dim>
 Point<dim> NonLinDomainMapping<dim>::map(const Point<dim> &p) const {
     Point<dim> p2;
-    p2[0] = (1.0 / 2.0) * M_SQRT2 * std::pow(p[0], 2) - 1.0 / 2.0 * M_SQRT2 * std::pow(p[1], 2);
-    p2[1] = (1.0 / 2.0) * M_SQRT2 * std::pow(p[0], 2) + (1.0 / 2.0) * M_SQRT2 * std::pow(p[1], 2);
+    p2[0] = (1.0 / 2.0) * M_SQRT2 * std::pow(p[0] + 1, 2) - 1.0 / 2.0 * M_SQRT2 * std::pow(p[1] + 1, 2);
+    p2[1] = (1.0 / 2.0) * M_SQRT2 * std::pow(p[0] + 1, 2) + (1.0 / 2.0) * M_SQRT2 * std::pow(p[1] + 1, 2);
     return p2;
 }
 
@@ -174,22 +175,22 @@ double NonLinDomainMapping<dim>::det_jac(const Point<dim> &p) const {
 
 template<int dim>
 double NonLinDomainMapping<dim>::gradient_11(const Point<dim> &p) const {
-    return p[0] * M_SQRT2;
+    return (p[0] + 1) * M_SQRT2;
 }
 
 template<int dim>
 double NonLinDomainMapping<dim>::gradient_12(const Point<dim> &p) const {
-    return -p[1] * M_SQRT2;
+    return -(p[1] + 1) * M_SQRT2;
 }
 
 template<int dim>
 double NonLinDomainMapping<dim>::gradient_21(const Point<dim> &p) const {
-    return p[0] * M_SQRT2;
+    return (p[0] + 1) * M_SQRT2;
 }
 
 template<int dim>
 double NonLinDomainMapping<dim>::gradient_22(const Point<dim> &p) const {
-    return p[1] * M_SQRT2;
+    return (p[1] + 1) * M_SQRT2;
 }
 
 template<int dim>
