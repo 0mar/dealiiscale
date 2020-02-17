@@ -79,12 +79,8 @@ public:
     Point<dim> map(const Point<dim> &p) const;
 
 private:
-    const double PI = 3.14159265358979323;
-    const double theta = 0.3 * PI;
     Tensor<1, dim> offset;
-    const double scaling_x_factor = 2.3;
     double _det_jac;
-    const double scaling_y_factor = 0.5;
 };
 
 template<int dim>
@@ -196,9 +192,8 @@ double NonLinDomainMapping<dim>::gradient_22(const Point<dim> &p) const {
 template<int dim>
 class Solution : public Function<dim> {
 public:
-    Solution(bool map) : Function<dim>(), map(map) {}
+    Solution() : Function<dim>() {}
 
-    bool map;
     DomainMapping<dim> dm;
 
     virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
@@ -207,13 +202,7 @@ public:
 
 template<int dim>
 double Solution<dim>::value(const Point<dim> &p, const unsigned int) const {
-    Point<dim> mp;
-    if (map) {
-        mp = dm.map(p);
-    } else {
-        mp = p;
-    }
-    return (1 - mp[0]) * mp[0] * (1 - mp[1]);
+    return (1 - p[0]) * p[0] * (1 - p[1]);
 }
 
 
@@ -307,7 +296,6 @@ void RobinSolver::assemble_system() {
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
             dm.get_kkt(fe_values.quadrature_point(q_index), kkt);
             const double det_jac = dm.det_jac(fe_values.quadrature_point(q_index));
-//            std::cout << "KKT" << std::endl << kkt << std::endl << "Jacobian determinant\n" << det_jac << std::endl;
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j) {
                     cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
@@ -334,7 +322,7 @@ void RobinSolver::assemble_system() {
         }
     }
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, Solution<2>(false), boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, Solution<2>(), boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
@@ -350,7 +338,7 @@ void RobinSolver::process_solution() {
     Vector<float> difference_per_cell(triangulation.n_active_cells());
     VectorTools::integrate_difference(dof_handler,
                                       solution,
-                                      Solution<dim>(false),
+                                      Solution<dim>(),
                                       difference_per_cell,
                                       QGauss<dim>(5),
                                       VectorTools::L2_norm);
@@ -386,7 +374,7 @@ void RobinSolver::output_results() {
         DataOut<2> data_out;
         data_out.attach_dof_handler(dof_handler);
         Vector<double> interpolated_solution(dof_handler.n_dofs());
-        VectorTools::interpolate(dof_handler, Solution<2>(false), interpolated_solution);
+        VectorTools::interpolate(dof_handler, Solution<2>(), interpolated_solution);
         data_out.add_data_vector(interpolated_solution, "solution");
         data_out.build_patches();
         std::ofstream output("results/exact_solution.gpl");
@@ -396,7 +384,7 @@ void RobinSolver::output_results() {
     {
         Vector<double> error(dof_handler.n_dofs());
         Vector<double> interpolated_solution(dof_handler.n_dofs());
-        VectorTools::interpolate(dof_handler, Solution<2>(false), interpolated_solution);
+        VectorTools::interpolate(dof_handler, Solution<2>(), interpolated_solution);
         DataOut<2> data_out;
         data_out.attach_dof_handler(dof_handler);
         error = 0;
