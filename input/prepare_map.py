@@ -9,34 +9,8 @@ def laplace(f, vars):
 def grad(f, vars):
     return [diff(f, i) for i in vars]
 
-def hessian(f, vars):
-    return [[diff(f,i,j) for j in vars] for i in vars]
-
-def inner(a,b):
-    return sum([a[i]*b[i] for i in range(len(a))])
-
-def hadamard(A,B):
-    rows,cols = len(A),len(A[0])
-    return [[A[i][j]*B[i][j] for j in range(cols)] for i in range(rows)]
-
-def jacobian(f,vars):
-    return [[diff(fi,j) for j in vars] for fi in f]
-
-def is_matrix(A):
-    return isinstance(A[0],list)
-
-def is_vector(A):
-    return not is_matrix(A)
-
-def divergence(A,vars):
-    rows = len(A)
-    if is_matrix(A):
-        return [sum([sp.diff(A[i][j],vars[i]) for i in range(len(vars))]) for j in range(rows)]
-    else:
-        return sum([sp.diff(A[i],vars[i]) for i in range(len(vars))])
-
 def mapped_laplace(u,map,vars):
-    mapped_u = u.subs({vars[i]:map[i] for i in range(len(vars))})
+    mapped_u = u.subs({vars[i]: map[i] for i in range(len(vars))}, simultaneous=True)
     return laplace(mapped_u,vars)
 
 def n_deriv(f, vars, normal):
@@ -80,6 +54,7 @@ def compute_solution_set(u, v, xvars, yvars, micro_integration='bulk'):
 
 
 def write_param_file(filename, funcs):
+    # Todo: write with cxxcode
     data = funcs.copy()
     data['micro_geometry'] = "[-1,1]x[-1,1]"
     data['macro_geometry'] = "[-1,1]x[-1,1]"
