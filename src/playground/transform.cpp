@@ -41,168 +41,121 @@
 #include <deal.II/lac/precondition.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/base/convergence_table.h>
-
+#include <deal.II/base/function_parser.h>
+#include <deal.II/base/parameter_handler.h>
 #include <iostream>
+#include <memory>
 
 using namespace dealii;
 
 template<int dim>
-class RightHandSide : public Function<dim> {
+class ParsedTensorFunction : TensorFunction<2, dim> {
 public:
-    RightHandSide() : Function<dim>() {}
+    ParsedTensorFunction(const FunctionParser<dim> &parsed_function)
+            : TensorFunction<2, dim>(), parsed_function(parsed_function) {}
 
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
+    virtual Tensor<2, dim> value(const Point<dim> &p) const;
+
+    virtual void value_list(const std::vector<Point<dim>> &points, std::vector<Tensor<2, dim>> &values) const;
+
+    const FunctionParser<dim> &parsed_function;
 
 };
 
 template<int dim>
-double RightHandSide<dim>::value(const Point<dim> &p, const unsigned int) const {
-    return -std::pow(-p[0] + p[1], -1.5) * std::pow(p[0] + p[1], -1.5) *
-           (-2.5226892457611436 * std::pow(-p[0] + p[1], 1.5) + 1.0606601717798214 * std::pow(-p[0] + p[1], 2.0) -
-            0.84089641525371461 * std::pow(p[0] + p[1], 1.5) + 1.0606601717798214 * std::pow(p[0] + p[1], 2.0) -
-            0.29730177875068037 * std::pow(p[0] + p[1], 2.5));
-}
-
-
-template<int dim>
-class DomainMapping {
-public:
-    DomainMapping();
-
-    Tensor<2, dim> map_coef;
-    SymmetricTensor<2, dim> bilin_coef;
-
-    double det_jac(Point<dim>) const;
-
-    void get_kkt(Point<dim>, SymmetricTensor<2, dim> &kkt);
-
-    Point<dim> map(const Point<dim> &p) const;
-
-private:
-    Tensor<1, dim> offset;
-    double _det_jac;
-};
-
-template<int dim>
-DomainMapping<dim>::DomainMapping() {
+Tensor<2, dim> ParsedTensorFunction<dim>::value(const Point<dim> &p) const {
+    Tensor<2, dim> tensor;
+    Vector<double> tmp(dim * dim);
+    parsed_function.vector_value(p, tmp);
     for (unsigned int i = 0; i < dim; i++) {
-        offset[i] = 0;
+        for (unsigned int j = 0; j < dim; j++) {
+            tensor[i][j] = tmp[i * dim + j];
+        }
     }
-    // Example linear map
-    map_coef[0][0] = -1.3;
-    map_coef[0][1] = -0.2;
-    map_coef[1][0] = 2;
-    map_coef[1][1] = 0.6;
-    bilin_coef = SymmetricTensor<2, dim>(invert(map_coef) * transpose(invert(map_coef))) * determinant(map_coef);
-    _det_jac = determinant(map_coef);
+    return tensor;
 }
 
 template<int dim>
-Point<dim> DomainMapping<dim>::map(const Point<dim> &p) const {
-    return Point<dim>(map_coef * p + offset);
+void ParsedTensorFunction<dim>::value_list(const std::vector<Point<dim>> &points,
+                                           std::vector<Tensor<2, dim>> &values) const {
+    AssertDimension(points.size(), values.size());
+    Vector<double> tmp(dim * dim);
+    for (unsigned int i = 0; i < points.size(); i++) {
+        parsed_function.vector_value(points[i], tmp);
+        for (unsigned int d1 = 0; d1 < dim; d1++) {
+            for (unsigned int d2 = 0; d2 < dim; d2++) {
+                values[i][d1][d2] = tmp[d1 * dim + d2];
+            }
+        }
+    }
 }
 
+template<int dim>
+class ProblemData {
+public:
+    ProblemData(const std::string &param_file);
+
+
+    FunctionParser<dim> solution;
+    FunctionParser<dim> rhs;
+    FunctionParser<dim> map;
+    FunctionParser<dim> map_jac_vector;
+    std::unique_ptr<ParsedTensorFunction<dim>> map_jac;
+    ParameterHandler params;
+
+
+};
 
 template<int dim>
-void DomainMapping<dim>::get_kkt(const Point<dim>, SymmetricTensor<2, dim> &kkt) {
-    AssertDimension(kkt.dimension, bilin_coef.dimension);
-    AssertDimension(kkt.rank, bilin_coef.rank);
-    kkt = bilin_coef;
-}
+ProblemData<dim>::ProblemData(const std::string &param_file) : map(dim), map_jac_vector(dim * dim) {
+    params.declare_entry("solution", "(1-x)*x*(1-y)", Patterns::Anything());
+    params.declare_entry("rhs", "125*(9*x + 2*y)/6144 - 25*(5*x + 10*y - 32)/4608",
+                         Patterns::Anything());
+    params.declare_entry("jac_mapping", "1.6; -1.6; 2.4; 2.4;", Patterns::Anything());
+    params.declare_entry("mapping", "1.6*x - 1.6*y; 2.4*x + 2.4*y", Patterns::Anything());
+    params.parse_input(param_file);
+    rhs.initialize(FunctionParser<dim>::default_variable_names(), params.get("rhs"),
+                   typename FunctionParser<dim>::ConstMap());
+    solution.initialize(FunctionParser<dim>::default_variable_names(), params.get("rhs"),
+                        typename FunctionParser<dim>::ConstMap());
+    map_jac_vector.initialize(FunctionParser<dim>::default_variable_names(), params.get("jac_mapping"),
+                              typename FunctionParser<dim>::ConstMap());
+    map_jac = std::make_unique<ParsedTensorFunction<dim>>(map_jac_vector);
+    map.initialize(FunctionParser<dim>::default_variable_names(), params.get("mapping"),
+                   typename FunctionParser<dim>::ConstMap());
 
-template<int dim>
-double DomainMapping<dim>::det_jac(const Point<dim>) const {
-    return _det_jac;
 }
 
 template<int dim>
 class NonLinDomainMapping {
 public:
-    NonLinDomainMapping();
+    NonLinDomainMapping(const ProblemData<dim> &solution_base) : solution_base(solution_base) {}
 
-    void get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt);
-
-    double det_jac(const Point<dim> &p) const;
+    void get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt, double &det_jac) const;
 
     Point<dim> map(const Point<dim> &p) const;
 
 private:
-    double gradient_11(const Point<dim> &p) const;
-
-    double gradient_12(const Point<dim> &p) const;
-
-    double gradient_21(const Point<dim> &p) const;
-
-    double gradient_22(const Point<dim> &p) const;
-
-    Tensor<1, dim> offset;
+    const ProblemData<dim> &solution_base;
 };
 
 template<int dim>
-NonLinDomainMapping<dim>::NonLinDomainMapping() {
-
-}
-
-template<int dim>
-void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt) {
-    Tensor<2, dim> inv_jacobian;
-    const double determinant = det_jac(p);
-    inv_jacobian[0][0] = gradient_22(p);
-    inv_jacobian[0][1] = -gradient_12(p);
-    inv_jacobian[1][0] = -gradient_21(p);
-    inv_jacobian[1][1] = gradient_11(p);
-    inv_jacobian /= determinant;
-    kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian)) * determinant;
+void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, dim> &kkt, double &det_jac) const {
+    Tensor<2, dim> jacobian = solution_base.map_jac->value(p);
+    Tensor<2, dim> inv_jacobian = invert(jacobian);
+    det_jac = determinant(jacobian);
+    kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
 }
 
 template<int dim>
 Point<dim> NonLinDomainMapping<dim>::map(const Point<dim> &p) const {
     Point<dim> p2;
-    p2[0] = (1.0 / 2.0) * M_SQRT2 * std::pow(p[0] + 1, 2) - 1.0 / 2.0 * M_SQRT2 * std::pow(p[1] + 1, 2);
-    p2[1] = (1.0 / 2.0) * M_SQRT2 * std::pow(p[0] + 1, 2) + (1.0 / 2.0) * M_SQRT2 * std::pow(p[1] + 1, 2);
+    Vector<double> mapped_point(dim);
+    solution_base.map.vector_value(p, mapped_point);
+    for (unsigned int i = 0; i < dim; i++) {
+        p2[i] = mapped_point(i);
+    }
     return p2;
-}
-
-template<int dim>
-double NonLinDomainMapping<dim>::det_jac(const Point<dim> &p) const {
-    // Assuming anti-symmetrical tensor
-    return gradient_11(p) * gradient_22(p) - gradient_12(p) * gradient_21(p);
-}
-
-template<int dim>
-double NonLinDomainMapping<dim>::gradient_11(const Point<dim> &p) const {
-    return (p[0] + 1) * M_SQRT2;
-}
-
-template<int dim>
-double NonLinDomainMapping<dim>::gradient_12(const Point<dim> &p) const {
-    return -(p[1] + 1) * M_SQRT2;
-}
-
-template<int dim>
-double NonLinDomainMapping<dim>::gradient_21(const Point<dim> &p) const {
-    return (p[0] + 1) * M_SQRT2;
-}
-
-template<int dim>
-double NonLinDomainMapping<dim>::gradient_22(const Point<dim> &p) const {
-    return (p[1] + 1) * M_SQRT2;
-}
-
-template<int dim>
-class Solution : public Function<dim> {
-public:
-    Solution() : Function<dim>() {}
-
-    DomainMapping<dim> dm;
-
-    virtual double value(const Point<dim> &p, const unsigned int component = 0) const;
-
-};
-
-template<int dim>
-double Solution<dim>::value(const Point<dim> &p, const unsigned int) const {
-    return (1 - p[0]) * p[0] * (1 - p[1]);
 }
 
 
@@ -230,6 +183,7 @@ private:
 
     Triangulation<2> triangulation;
     FE_Q<2> fe;
+    ProblemData<2> solution_base;
     DoFHandler<2> dof_handler;
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
@@ -240,12 +194,14 @@ private:
     ConvergenceTable convergence_table;
 };
 
+
 RobinSolver::RobinSolver() :
         fe(1),
+        solution_base("input/parsed_mapping.prm"),
         dof_handler(triangulation),
+        dm(solution_base),
         cycle(0) {
     make_grid();
-
 }
 
 void RobinSolver::make_grid() {
@@ -286,7 +242,6 @@ void RobinSolver::assemble_system() {
     const unsigned int n_q_points = quadrature_formula.size();
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
-    const RightHandSide<dim> rhs;
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     for (const DoFHandler<dim>::active_cell_iterator &cell:dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
@@ -294,17 +249,17 @@ void RobinSolver::assemble_system() {
         cell_rhs = 0;
         SymmetricTensor<2, dim> kkt;
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
-            dm.get_kkt(fe_values.quadrature_point(q_index), kkt);
-            const double det_jac = dm.det_jac(fe_values.quadrature_point(q_index));
+            double det_jac;
+            dm.get_kkt(fe_values.quadrature_point(q_index), kkt, det_jac);
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j) {
                     cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
                                           kkt *
                                           fe_values.shape_grad(j, q_index) *
-                                          fe_values.JxW(q_index));
+                                          fe_values.JxW(q_index)) * det_jac;
                 }
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
-                                rhs.value(dm.map(fe_values.quadrature_point(q_index))) *
+                                solution_base.rhs.value(dm.map(fe_values.quadrature_point(q_index))) *
                                 det_jac *
                                 fe_values.JxW(q_index));
             }
@@ -322,7 +277,7 @@ void RobinSolver::assemble_system() {
         }
     }
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, Solution<2>(), boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, solution_base.solution, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
@@ -338,7 +293,7 @@ void RobinSolver::process_solution() {
     Vector<float> difference_per_cell(triangulation.n_active_cells());
     VectorTools::integrate_difference(dof_handler,
                                       solution,
-                                      Solution<dim>(),
+                                      solution_base.solution,
                                       difference_per_cell,
                                       QGauss<dim>(5),
                                       VectorTools::L2_norm);
@@ -374,7 +329,7 @@ void RobinSolver::output_results() {
         DataOut<2> data_out;
         data_out.attach_dof_handler(dof_handler);
         Vector<double> interpolated_solution(dof_handler.n_dofs());
-        VectorTools::interpolate(dof_handler, Solution<2>(), interpolated_solution);
+        VectorTools::interpolate(dof_handler, solution_base.solution, interpolated_solution);
         data_out.add_data_vector(interpolated_solution, "solution");
         data_out.build_patches();
         std::ofstream output("results/exact_solution.gpl");
@@ -384,7 +339,7 @@ void RobinSolver::output_results() {
     {
         Vector<double> error(dof_handler.n_dofs());
         Vector<double> interpolated_solution(dof_handler.n_dofs());
-        VectorTools::interpolate(dof_handler, Solution<2>(), interpolated_solution);
+        VectorTools::interpolate(dof_handler, solution_base.solution, interpolated_solution);
         DataOut<2> data_out;
         data_out.attach_dof_handler(dof_handler);
         error = 0;
