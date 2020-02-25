@@ -1,20 +1,6 @@
 /* ---------------------------------------------------------------------
  *
- * Copyright (C) 1999 - 2015 by the deal.II authors
- *
- * This file is part of the deal.II library.
- *
- * The deal.II library is free software; you can use it, redistribute
- * it, and/or modify it under the terms of the GNU Lesser General
- * Public License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * The full text of the license can be found in the file LICENSE at
- * the top level of the deal.II distribution.
- *
- * ---------------------------------------------------------------------
- *
- * Authors: Wolfgang Bangerth, 1999,
- *          Guido Kanschat, 2011
+ * Author: Omar Richardson, 2020
  */
 #include <deal.II/grid/tria.h>
 #include <deal.II/base/tensor_function.h>
@@ -93,8 +79,6 @@ template<int dim>
 class ProblemData {
 public:
     ProblemData(const std::string &param_file);
-
-
     FunctionParser<dim> solution;
     FunctionParser<dim> rhs;
     FunctionParser<dim> map;
@@ -206,23 +190,14 @@ RobinSolver::RobinSolver() :
 void RobinSolver::make_grid() {
     GridGenerator::hyper_cube(triangulation);
     triangulation.refine_global(1);
-    std::cout << "Number of active cells: "
-              << triangulation.n_active_cells()
-              << std::endl;
 }
 
 void RobinSolver::refine() {
     triangulation.refine_global(1);
-    std::cout << "Refinement: Number of active cells: "
-              << triangulation.n_active_cells()
-              << std::endl;
 }
 
 void RobinSolver::setup_system() {
     dof_handler.distribute_dofs(fe);
-    std::cout << "Number of degrees of freedom: "
-              << dof_handler.n_dofs()
-              << std::endl;
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);

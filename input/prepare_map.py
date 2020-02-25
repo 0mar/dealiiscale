@@ -54,7 +54,6 @@ def compute_solution_set(u, v, xvars, yvars, micro_integration='bulk'):
 
 
 def write_param_file(filename, funcs):
-    # Todo: write with cxxcode
     data = funcs.copy()
     data['micro_geometry'] = "[-1,1]x[-1,1]"
     data['macro_geometry'] = "[-1,1]x[-1,1]"
