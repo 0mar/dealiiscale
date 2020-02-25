@@ -30,7 +30,6 @@
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/function.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/lac/vector.h>
@@ -144,7 +143,6 @@ void NonLinDomainMapping<dim>::get_kkt(const Point<dim> &p, SymmetricTensor<2, d
     Tensor<2, dim> jacobian = solution_base.map_jac->value(p);
     Tensor<2, dim> inv_jacobian = invert(jacobian);
     det_jac = determinant(jacobian);
-//    std::cout << "Jac " << jacobian << "\ninv_jac " << inv_jacobian << "\ndet " << det_jac << std::endl;
     kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
 }
 
@@ -252,21 +250,17 @@ void RobinSolver::assemble_system() {
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
             double det_jac;
             dm.get_kkt(fe_values.quadrature_point(q_index), kkt, det_jac);
-//            std::cout << kkt << std::endl;
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j) {
                     cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
                                           kkt *
                                           fe_values.shape_grad(j, q_index) *
                                           fe_values.JxW(q_index)) * det_jac;
-//                    std::cout << "matrix " << cell_matrix(i, j) << std::endl;
-
                 }
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
                                 solution_base.rhs.value(dm.map(fe_values.quadrature_point(q_index))) *
                                 det_jac *
                                 fe_values.JxW(q_index));
-//                std::cout << "rhs " << cell_rhs(i) << std::endl;
             }
         }
         cell->get_dof_indices(local_dof_indices);
@@ -281,7 +275,6 @@ void RobinSolver::assemble_system() {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
         }
     }
-//    exit(0);
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler, 0, solution_base.solution, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
