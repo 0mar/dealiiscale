@@ -1,7 +1,7 @@
 # deal.II implementation of multiscale PDE
 
-This repository contains a setup for a [deal.II][1] implementation for a two-scale system of equations.
-The target system is described in [this thesis][2], but the current status of the implementation is still a proof of concept.
+This repository contains a setup for a [deal.II][1] implementation for two-scale systems of equations.
+The main system is described in [this thesis][2], even though the implementation is more general and has a separate framework for elliptic-elliptic systems. A paper that showcases some of the initial results is forthcoming.
 A more detailed description of the mathematical framework behind this implementation is present in `latex/main.tex`.
 
 ## Requirements
