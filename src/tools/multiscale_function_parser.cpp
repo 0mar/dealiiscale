@@ -175,7 +175,7 @@ DEAL_II_NAMESPACE_OPEN
         // with the given seed
         double mu_rand_seed(double seed) {
             static Threads::Mutex rand_mutex;
-            Threads::Mutex::ScopedLock lock(rand_mutex);
+            std::lock_guard<std::mutex> lock(rand_mutex);
 
             static boost::random::uniform_real_distribution<> uniform_distribution(0, 1);
 
@@ -192,7 +192,7 @@ DEAL_II_NAMESPACE_OPEN
         // returns a random value in the range [0,1]
         double mu_rand() {
             static Threads::Mutex rand_mutex;
-            Threads::Mutex::ScopedLock lock(rand_mutex);
+            std::lock_guard<std::mutex> lock(rand_mutex);
             static boost::random::uniform_real_distribution<> uniform_distribution(0, 1);
             static boost::random::mt19937 rng(static_cast<unsigned long>(std::time(nullptr)));
             return uniform_distribution(rng);
@@ -217,11 +217,11 @@ DEAL_II_NAMESPACE_OPEN
 
             for (std::map<std::string, double>::const_iterator constant = constants.begin();
                  constant != constants.end(); ++constant) {
-                fp.get()[component]->DefineConst(constant->first.c_str(), constant->second);
+                fp.get()[component]->DefineConst(constant->first, constant->second);
             }
 
             for (unsigned int iv = 0; iv < var_names.size(); ++iv)
-                fp.get()[component]->DefineVar(var_names[iv].c_str(), &vars.get()[iv]);
+                fp.get()[component]->DefineVar(var_names[iv], &vars.get()[iv]);
 
             // define some compatibility functions:
             fp.get()[component]->DefineFun("if", internal::mu_if, true);
@@ -325,7 +325,7 @@ DEAL_II_NAMESPACE_OPEN
                 std::cerr << "Token:    <" << e.GetToken() << ">\n";
                 std::cerr << "Position: <" << e.GetPos() << ">\n";
                 std::cerr << "Errc:     <" << e.GetCode() << ">" << std::endl;
-                AssertThrow(false, ExcParseError(e.GetCode(), e.GetMsg().c_str()));
+                AssertThrow(false, ExcParseError(e.GetCode(), e.GetMsg()));
             }
         }
     }
@@ -368,7 +368,7 @@ DEAL_II_NAMESPACE_OPEN
             std::cerr << "Token:    <" << e.GetToken() << ">\n";
             std::cerr << "Position: <" << e.GetPos() << ">\n";
             std::cerr << "Errc:     <" << e.GetCode() << ">" << std::endl;
-            AssertThrow(false, ExcParseError(e.GetCode(), e.GetMsg().c_str()));
+            AssertThrow(false, ExcParseError(e.GetCode(), e.GetMsg()));
             return 0.0;
         }
     }

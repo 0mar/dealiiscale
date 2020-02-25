@@ -297,7 +297,7 @@ DEAL_II_NAMESPACE_OPEN
          * @{
          */
         DeclException2 (ExcParseError,
-                        int, char *,
+                        int,std::string,
                         << "Parsing Error at Column " << arg1
                                 << ". The parser said: " << arg2);
 
