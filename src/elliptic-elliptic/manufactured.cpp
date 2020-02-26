@@ -26,7 +26,7 @@ void run(const std::string &id) {
 
 int main(int argc, char *argv[]) {
     dealii::deallog.depth_console(0);
-    std::string id = "test1";
+    std::string id = "map_test";
     if (argc == 2) {
         id = argv[1];
     } else if (argc > 2) {
