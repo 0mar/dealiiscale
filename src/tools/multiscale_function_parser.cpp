@@ -392,6 +392,30 @@ DEAL_II_NAMESPACE_OPEN
     }
 
     template<int dim>
+    Point<dim> MultiscaleFunctionParser<dim>::mmap(const Point<dim> &px, const Point<dim> &py) const {
+        Point<dim> mapped_p;
+        Assert (initialized, ExcNotInitialized())
+        AssertDimension(dim, this->n_components)
+        if (fp.get().size() == 0) {
+            init_muparser();
+        }
+        for (unsigned int i = 0; i < dim; i++) {
+            vars.get()[i] = px(i);
+        }
+        for (unsigned int i = 0; i < dim; i++) {
+            vars.get()[dim + i] = py(i);
+        }
+        if (dim * 2 != n_vars) {
+            vars.get()[dim * 2] = this->get_time();
+        }
+        Tensor<2, dim> tensor;
+        for (unsigned int i = 0; i < dim; i++) {
+            mapped_p[i] = fp.get()[i]->Eval();
+        }
+        return mapped_p;
+    }
+
+    template<int dim>
     void MultiscaleFunctionParser<dim>::set_macro_point(const Point<dim> &point) {
         macro_point = point;
         macro_set = true;

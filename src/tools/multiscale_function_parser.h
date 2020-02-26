@@ -134,8 +134,10 @@ DEAL_II_NAMESPACE_OPEN
          */
         double mvalue(const Point<dim> &px, const Point<dim> &py, const unsigned int component = 0) const;
 
+        Point<dim> mmap(const Point<dim> &px, const Point<dim> &py) const;
+
         /**
-         * Return the vector value of a function with multiple components
+         * Return the tensor value of a function with dim*dim components
          * @param px macro point
          * @param py micro point
          * @param value vector with output
