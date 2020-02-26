@@ -79,13 +79,14 @@ template<int dim>
 class ProblemData {
 public:
     ProblemData(const std::string &param_file);
+
     FunctionParser<dim> solution;
     FunctionParser<dim> rhs;
     FunctionParser<dim> map;
-    FunctionParser<dim> map_jac_vector;
     std::unique_ptr<ParsedTensorFunction<dim>> map_jac;
     ParameterHandler params;
-
+private:
+    FunctionParser<dim> map_jac_vector;
 
 };
 
