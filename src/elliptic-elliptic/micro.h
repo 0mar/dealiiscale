@@ -128,6 +128,13 @@ private:
     void compute_macroscopic_contribution();
 
     /**
+     * Compute pullback objects
+     */
+
+    void get_pullback_objects(const Point<dim> &px, const Point<dim> &py, SymmetricTensor<2, dim> &kkt,
+                              double &det_jac) const;
+
+    /**
      * The level of refinement (every +1 means a bisection)
      */
     const unsigned int refine_level;

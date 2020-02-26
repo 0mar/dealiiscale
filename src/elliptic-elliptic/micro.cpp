@@ -14,7 +14,7 @@ MicroSolver<dim>::MicroSolver(MicroData<dim> &micro_data, unsigned int refine_le
                                                                                        macro_solution(nullptr),
                                                                                        macro_dof_handler(nullptr),
                                                                                        pde_data(micro_data) {
-    printf("Solving micro problem in %d space dimensions\n",dim);
+    printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
 }
 
@@ -29,13 +29,13 @@ template<int dim>
 void MicroSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
-    printf("%d active micro cells\n",triangulation.n_active_cells());
+    printf("%d active micro cells\n", triangulation.n_active_cells());
 }
 
 template<int dim>
 void MicroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-    printf("%d micro DoFs\n",dof_handler.n_dofs());
+    printf("%d micro DoFs\n", dof_handler.n_dofs());
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
@@ -60,6 +60,14 @@ void MicroSolver<dim>::setup_scatter() {
     }
 }
 
+template<int dim>
+void MicroSolver<dim>::get_pullback_objects(const Point<dim> &px, const Point<dim> &py, SymmetricTensor<2, dim> &kkt,
+                                            double &det_jac) const {
+    Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(px, py);
+    Tensor<2, dim> inv_jacobian = invert(jacobian);
+    det_jac = determinant(jacobian);
+    kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
+}
 
 template<int dim>
 void MicroSolver<dim>::set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler) {
@@ -91,39 +99,45 @@ void MicroSolver<dim>::assemble_system() {
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
-
     }
+    SymmetricTensor<2, dim> kkt;
+    double det_jac;
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
-        cell_matrix = 0;
-
         cell->get_dof_indices(local_dof_indices);
-        for (unsigned int i = 0; i < dofs_per_cell; i++) {
+        for (unsigned int k = 0; k < num_grids; k++) {
+            cell_matrix = 0;
             for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
-                for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                    cell_matrix(i, j) += fe_values.shape_grad(i, q_index)
-                                         * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index);
+                get_pullback_objects(grid_locations.at(k), fe_values.quadrature_point(q_index), kkt, det_jac);
+                for (unsigned int i = 0; i < dofs_per_cell; i++) {
+
+                    for (unsigned int j = 0; j < dofs_per_cell; j++) {
+                        cell_matrix(i, j) += fe_values.shape_grad(i, q_index) * kkt * det_jac
+                                             * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index);
+                    }
                 }
             }
-        }
-        for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-            for (unsigned int j = 0; j < dofs_per_cell; ++j) {
-                for (unsigned int k = 0; k < num_grids; k++) {
+            for (unsigned int i = 0; i < dofs_per_cell; ++i) {
+                for (unsigned int j = 0; j < dofs_per_cell; ++j) {
                     system_matrices.at(k).add(local_dof_indices[i],
                                               local_dof_indices[j],
                                               cell_matrix(i, j));
                 }
             }
-        }
-        for (unsigned int k = 0; k < num_grids; k++) {
             cell_rhs = 0;
-            for (unsigned int i = 0; i < dofs_per_cell; i++) {
-                for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+            for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+                const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
+                                                                  fe_values.quadrature_point(q_index));
+                double rhs_val = pde_data.rhs.mvalue(grid_locations.at(k), mapped_p);
+                for (unsigned int i = 0; i < dofs_per_cell; i++) {
                     cell_rhs(i) += ((*macro_solution)(k) +
-                                    pde_data.rhs.mvalue(grid_locations.at(k), fe_values.quadrature_point(q_index))) *
-                                   fe_values.shape_value(i, q_index) * fe_values.JxW(q_index);
+                                    rhs_val) *
+                                   fe_values.shape_value(i, q_index) * fe_values.JxW(q_index) * det_jac;
                 }
-                righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
+                for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                    righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
+                }
+
             }
         }
     }
