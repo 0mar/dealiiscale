@@ -27,157 +27,7 @@ DEAL_II_NAMESPACE_OPEN
 
 
 /**
- * This class implements a function object that gets its value by parsing a
- * string describing this function. It is a wrapper class for the muparser
- * library (see http://muparser.beltoforion.de/). This class lets you evaluate
- * strings such as "sqrt(1-x^2+y^2)" for given values of 'x' and 'y'.  Please
- * refer to the muparser documentation for more information.  This class is
- * used in the step-33 and step-36 tutorial programs (the latter being much
- * simpler to understand).
- *
- * In addition to the built-in functions of muparser, namely
- * @code
- * sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh,
- * atan2, log2, log10, log, ln, exp, sqrt, sign, rint, abs, min, max, sum, avg
- * @endcode
- * this class also supports:
- * - <tt>if(condition, then-value, else-value)</tt>
- * - <tt>|</tt> and <tt>&</tt> (logic or and and)
- * - <tt>int(x)</tt>, <tt>ceil(x)</tt>, <tt>floor(x)</tt> (rounding)
- * - <tt>cot(x)</tt>, <tt>csc(x)</tt>, <tt>sec(x)</tt>
- * - <tt>pow(x,n)</tt>, <tt>log(x)</tt>
- * - <tt>erfc(x)</tt>
- * - <tt>rand()</tt>, <tt>rand_seed(seed)</tt>
- *
- * The following examples shows how to use this class:
- * @code
- * // set up problem:
- * std::string variables = "x,y";
- * std::string expression = "cos(x)+sqrt(y)";
- * std::map<std::string,double> constants;
- *
- * // MultiscaleFunctionParser with 2 variables and 1 component:
- * MultiscaleFunctionParser<2> fp(1);
- * fp.initialize(variables,
- *               expression,
- *               constants);
- *
- * // Point at which we want to evaluate the function
- * Point<2> point(0.0, 4.0);
- *
- * // evaluate the expression at 'point':
- * double result = fp.value(point);
- *
- * deallog << "Function '" << expression << "'"
- *         << " @ " << point
- *         << " is " << result << std::endl;
- * @endcode
- * The second example is a bit more complex:
- * @code
- * // Define some constants that will be used by the function parser
- * std::map<std::string,double> constants;
- * constants["pi"] = numbers::PI;
- *
- * // Define the variables that will be used inside the expressions
- * std::string variables = "x,y,z";
- *
- * // Define the expressions of the individual components of a
- * // vector valued function with two components:
- * std::vector<std::string> expressions(2);
- * expressions[0] = "sin(2*pi*x)+sinh(pi*z)";
- * expressions[1] = "sin(2*pi*y)*exp(x^2)";
- *
- * // function parser with 3 variables and 2 components
- * MultiscaleFunctionParser<3> vector_function(2);
- *
- * // And populate it with the newly created objects.
- * vector_function.initialize(variables,
- *                            expressions,
- *                            constants);
- *
- * // Point at which we want to evaluate the function
- * Point<3> point(0.0, 1.0, 1.0);
- *
- * // This Vector will store the result
- * Vector<double> result(2);
- *
- * // Fill 'result' by evaluating the function
- * vector_function.vector_value(point, result);
- *
- * // We can also only evaluate the 2nd component:
- * const double c = vector_function.value(point, 1);
- *
- * // Output the evaluated function
- * deallog << "Function '" << expressions[0] << "," << expressions[1] << "'"
- *         << " at " << point
- *         << " is " << result << std::endl;
- * @endcode
- *
- * This class overloads the virtual methods value() and vector_value() of the
- * Function base class with the byte compiled versions of the expressions
- * given to the initialize() methods. Note that the class will not work unless
- * you first call the initialize() method that accepts the text description of
- * the function as an argument (among other things).
- *
- * The syntax to describe a function follows usual programming practice, and
- * is explained in detail at the homepage of the underlying muparser library
- * at http://muparser.beltoforion.de/ .
- *
- * For a wrapper of the MultiscaleFunctionParser class that supports ParameterHandler,
- * see ParsedFunction.
- *
- * Vector-valued functions can either be declared using strings where the
- * function components are separated by semicolons, or using a vector of
- * strings each defining one vector component.
- *
- * An example of time dependent scalar function is the following:
- * @code
- *    // Empty constants object
- *    std::map<std::string,double> constants;
- *
- *    // Variables that will be used inside the expressions
- *    std::string variables = "x,y,t";
- *
- *    // Define the expression of the scalar time dependent function.
- *    std::string expression = "exp(y*x)*exp(-t)";
- *
- *    // Generate an empty scalar function
- *    MultiscaleFunctionParser<2> function;
- *
- *    // And populate it with the newly created objects.
- *    function.initialize(variables,
- *                        expression,
- *                        constants,
- *                        true);        // This tells the parser that
- *                                      // it is a time-dependent function
- *                                      // and there is another variable
- *                                      // to be taken into account (t).
- * @endcode
- *
- * The following is another example of how to instantiate a vector valued
- * function by using a single string:
- * @code
- *    // Empty constants object
- *    std::map<std::string,double> constants;
- *
- *    // Variables that will be used inside the expressions
- *    std::string variables = "x,y";
- *
- *    // Define the expression of the vector valued  function.
- *    std::string expression = "cos(2*pi*x)*y^2; sin(2*pi*x)*exp(y)";
- *
- *    // Generate an empty vector valued function
- *    MultiscaleFunctionParser<2> function(2);
- *
- *    // And populate it with the newly created objects.
- *    function.initialize(variables,
- *                        expression,
- *                        constants);
- * @endcode
- *
- *
- * @ingroup functions
- * @author Luca Heltai, Timo Heister 2005, 2014
+ * This class has been lifted from the standard function parser
  */
     template<int dim>
     class MultiscaleFunctionParser : public AutoDerivativeFunction<dim> {
@@ -274,7 +124,7 @@ DEAL_II_NAMESPACE_OPEN
          * Required for (at least) the smooth evaluation of Dirichlet bcs.
          * @param point Point on the macroscopic grid.
          */
-        void set_macro_point(const Point <dim> &point);
+        void set_macro_point(const Point<dim> &point);
 
         /**
          * Return the value of the function at the given point. Unless there is only
@@ -282,7 +132,15 @@ DEAL_II_NAMESPACE_OPEN
          * component you want to have evaluated; it defaults to zero, i.e. the first
          * component.
          */
-        double mvalue(const Point <dim> &px, const Point <dim> &py, const unsigned int component = 0) const;
+        double mvalue(const Point<dim> &px, const Point<dim> &py, const unsigned int component = 0) const;
+
+        /**
+         * Return the vector value of a function with multiple components
+         * @param px macro point
+         * @param py micro point
+         * @param value vector with output
+         */
+        Tensor<2, dim> mtensor_value(const Point<dim> &px, const Point<dim> &py) const;
 
         /**
          * Return the value of the function at the given point. Unless there is only
@@ -290,7 +148,7 @@ DEAL_II_NAMESPACE_OPEN
          * component you want to have evaluated; it defaults to zero, i.e. the first
          * component.
          */
-        virtual double value(const Point <dim> &py, const unsigned int component = 0) const;
+        virtual double value(const Point<dim> &py, const unsigned int component = 0) const;
 
         /**
          * @addtogroup Exceptions

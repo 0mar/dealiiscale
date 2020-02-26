@@ -9,8 +9,9 @@
 #include <deal.II/base/function_parser.h>
 #include <deal.II/base/parameter_handler.h>
 #include <string>
-#include <stdlib.h>
+#include <cstdlib>
 #include "multiscale_function_parser.h"
+#include <memory>
 
 using namespace dealii;
 
@@ -41,15 +42,16 @@ struct MacroData {
  * the dimensions of the macroscale and microscale must be equal.
  */
 template<int dim>
-struct MicroData { // Rename to EllipticMicroData
+struct MicroData { // todo: Rename to EllipticMicroData
+    MicroData(ParameterHandler &params) : solution(), rhs(), bc(), mapping(dim), map_jac(dim * dim), params(params) {}
+
     MultiscaleFunctionParser<dim> solution;
     MultiscaleFunctionParser<dim> rhs;
     MultiscaleFunctionParser<dim> bc;
+    MultiscaleFunctionParser<dim> mapping;
+    MultiscaleFunctionParser<dim> map_jac;
     ParameterHandler &params;
 
-    MicroData(ParameterHandler &params) : solution(), rhs(), bc(), params(params) {
-        // Needed because this is a reference
-    }
 };
 
 template<int dim>

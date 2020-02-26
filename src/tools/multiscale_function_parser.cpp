@@ -1,18 +1,6 @@
-// ---------------------------------------------------------------------
 //
-// Copyright (C) 2005 - 2018 by the deal.II authors
+// Created by Omar Richardson on 2019-07-15.
 //
-// This file is part of the deal.II library.
-//
-// The deal.II library is free software; you can use it, redistribute
-// it, and/or modify it under the terms of the GNU Lesser General
-// Public License as published by the Free Software Foundation; either
-// version 2.1 of the License, or (at your option) any later version.
-// The full text of the license can be found in the file LICENSE at
-// the top level of the deal.II distribution.
-//
-// ---------------------------------------------------------------------
-
 
 #include "multiscale_function_parser.h"
 #include <deal.II/base/utilities.h>
@@ -20,7 +8,6 @@
 #include <deal.II/lac/vector.h>
 #include <cmath>
 #include <map>
-
 #include <boost/random.hpp>
 #include <boost/math/special_functions/erf.hpp>
 
@@ -356,9 +343,9 @@ DEAL_II_NAMESPACE_OPEN
         for (unsigned int i = 0; i < dim; i++) {
             vars.get()[dim + i] = py(i);
         }
-        if (dim * 2 != n_vars)
+        if (dim * 2 != n_vars) {
             vars.get()[dim * 2] = this->get_time();
-
+        }
         try {
             return fp.get()[component]->Eval();
         }
@@ -380,10 +367,36 @@ DEAL_II_NAMESPACE_OPEN
     }
 
     template<int dim>
+    Tensor<2, dim> MultiscaleFunctionParser<dim>::mtensor_value(const Point<dim> &px, const Point<dim> &py) const {
+        Assert (initialized, ExcNotInitialized())
+        AssertDimension(dim * dim, this->n_components)
+        if (fp.get().size() == 0) {
+            init_muparser();
+        }
+        for (unsigned int i = 0; i < dim; i++) {
+            vars.get()[i] = px(i);
+        }
+        for (unsigned int i = 0; i < dim; i++) {
+            vars.get()[dim + i] = py(i);
+        }
+        if (dim * 2 != n_vars) {
+            vars.get()[dim * 2] = this->get_time();
+        }
+        Tensor<2, dim> tensor;
+        for (unsigned int i = 0; i < dim; i++) {
+            for (unsigned int j = 0; j < dim; j++) {
+                tensor[i][j] = fp.get()[i * dim + j]->Eval();
+            }
+        }
+        return tensor;
+    }
+
+    template<int dim>
     void MultiscaleFunctionParser<dim>::set_macro_point(const Point<dim> &point) {
         macro_point = point;
         macro_set = true;
     }
+
 
 #else
 

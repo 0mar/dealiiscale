@@ -15,6 +15,10 @@ MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(param
     params.declare_entry("micro_solution", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
     params.declare_entry("micro_bc", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
 
+    params.declare_entry("mapping", "(1+x0+x1)*(1.6*y0 - 1.6*y1);(1+x0+x1)*(2.4*y0 + 2.4*y1);", Patterns::Anything());
+    params.declare_entry("jac_mapping", "1.6*(1+x0+x1);-1.6*(1+x0+x1);2.4*(1+x0+x1);2.4*(1+x0+x1)",
+                         Patterns::Anything());
+
     params.parse_input(param_file);
 
     std::map<std::string, double> constants;
@@ -26,6 +30,8 @@ MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(param
     micro.bc.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("micro_bc"), constants);
     micro.solution.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("micro_solution"),
                               constants);
+    micro.mapping.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("mapping"), constants);
+    micro.map_jac.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("jac_mapping"), constants);
 }
 
 
