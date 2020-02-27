@@ -122,23 +122,22 @@ void MicroSolver<dim>::assemble_system() {
                     system_matrices.at(k).add(local_dof_indices[i],
                                               local_dof_indices[j],
                                               cell_matrix(i, j));
-                    printf("%ud %ud %ud %.4f\n", k, local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
+                    printf("%u %u %u %.4f\n", k, local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
                 }
-            }
-            cell_rhs = 0;
-            for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-                const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
-                                                                  fe_values.quadrature_point(q_index));
-                double rhs_val = pde_data.rhs.mvalue(grid_locations.at(k), mapped_p);
-                for (unsigned int i = 0; i < dofs_per_cell; i++) {
+            }// todo: Rearrange for loop
+            for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                cell_rhs = 0;
+                for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+                    //Todo: only compute determinant here.
+                    get_pullback_objects(grid_locations.at(k), fe_values.quadrature_point(q_index), kkt, det_jac);
+                    const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
+                                                                      fe_values.quadrature_point(q_index));
+                    double rhs_val = pde_data.rhs.mvalue(grid_locations.at(k), mapped_p);
                     cell_rhs(i) += ((*macro_solution)(k) +
                                     rhs_val) *
                                    fe_values.shape_value(i, q_index) * fe_values.JxW(q_index) * det_jac;
                 }
-                for (unsigned int i = 0; i < dofs_per_cell; i++) {
-                    righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
-                }
-
+                righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
             }
         }
     }
