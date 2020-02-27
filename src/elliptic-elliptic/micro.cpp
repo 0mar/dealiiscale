@@ -122,7 +122,7 @@ void MicroSolver<dim>::assemble_system() {
                     system_matrices.at(k).add(local_dof_indices[i],
                                               local_dof_indices[j],
                                               cell_matrix(i, j));
-                    printf("%ud %ud %.2f\n", local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
+                    printf("%ud %ud %ud %.4f\n", k, local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
                 }
             }
             cell_rhs = 0;
