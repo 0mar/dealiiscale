@@ -122,6 +122,7 @@ void MicroSolver<dim>::assemble_system() {
                     system_matrices.at(k).add(local_dof_indices[i],
                                               local_dof_indices[j],
                                               cell_matrix(i, j));
+                    printf("%ud %ud %.2f\n", local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
                 }
             }
             cell_rhs = 0;
@@ -142,6 +143,7 @@ void MicroSolver<dim>::assemble_system() {
         }
     }
     for (unsigned int k = 0; k < num_grids; k++) {
+        std::cout << righthandsides.at(k) << std::endl;
         std::map<types::global_dof_index, double> boundary_values;
         pde_data.bc.set_macro_point(grid_locations.at(k));
         VectorTools::interpolate_boundary_values(dof_handler, 0, pde_data.bc, boundary_values);
