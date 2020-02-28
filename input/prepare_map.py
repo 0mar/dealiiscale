@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from sympy import *
 from sympy.parsing.sympy_parser import parse_expr
 
@@ -9,9 +9,9 @@ def laplace(f, vars):
 def grad(f, vars):
     return [diff(f, i) for i in vars]
 
-def mapped_laplace(u,map,vars):
-    mapped_u = u.subs({vars[i]: map[i] for i in range(len(vars))}, simultaneous=True)
-    return laplace(mapped_u,vars)
+
+def map_function(u, map, vars):
+    return u.subs({vars[i]: map[i] for i in range(len(vars))}, simultaneous=True)
 
 def n_deriv(f, vars, normal):
     return sum([grad(f, vars)[j] * normal[j] for j in range(len(vars))])
@@ -36,13 +36,15 @@ def bulk_integral(f, vars):
     return f
 
 
-def compute_solution_set(u, v, xvars, yvars, micro_integration='bulk'):
+def compute_solution_set(u, v, chi_inv, xvars, yvars, micro_integration='bulk'):
     del_u = laplace(u, xvars)
-    del_v = laplace(v, yvars)
+    map_v = map_function(v, chi_inv, yvars)
+    del_map_v = laplace(map_v, yvars)
+
     if micro_integration == 'flux':
-        integral_v = boundary_integral(v, yvars)
+        integral_v = boundary_integral(map_v, yvars)
     elif micro_integration == 'bulk':
-        integral_v = bulk_integral(v, yvars)
+        integral_v = bulk_integral(map_v, yvars)
     else:
         raise ValueError("Choose micro_integration to be either 'bulk' or 'flux', not %s" % micro_integration)
     macro_rhs = - integral_v - del_u
@@ -64,12 +66,13 @@ def write_param_file(filename, funcs):
             param_file.write("set %s = %s\n" % (key, formatted_val))
 
 
-def create_new_case(name, u_def, v_def):
+def create_new_case(name, u_def, v_def, chi_def, chi_inv_def):
     xvars = symbols('x0 x1')
     yvars = symbols('y0 y1')
     u = parse_expr(u_def)
     v = parse_expr(v_def)
-    funcs = compute_solution_set(u, v, xvars, yvars)
+    chi_inv = parse_expr(chi_inv_def)
+    funcs = compute_solution_set(u, v, chi, chi_inv, xvars, yvars)
     write_param_file(name, funcs)
 
 
@@ -80,10 +83,13 @@ if __name__ == '__main__':
           "and y0,...,yd for the micro variable.", flush=True)
     u = input("Supply macro function. u(x0,...,xd) = ")
     v = input("Supply micro function. v(x0,...,xd,y0,...,yd) = ")
-    if not u or not v:
+    chi = input("Supply mapping function. chi(x0,...,xd,y0,...,yd) = ")
+    chi_inv = input("Supply inverse mapping function. chi^-1(x0,...,xd,y0,...,yd) = ")
+    if not (u and v and chi and chi_inv):
         print("Going for default sets", flush=True)
         u = "sin(x0*x1) + cos(x0 + x1)"
         v = "exp(x0**2 + x1**2) + (1-y0**2)*(1-y1**2)"
+        chi = "y0,y1"  # fixme
     name = input("Supply solution set name: ")
     print("u(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (u, v, name), flush=True)
     input("If happy, press enter, else Ctrl-C: ")
