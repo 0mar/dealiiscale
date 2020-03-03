@@ -98,7 +98,9 @@ DEAL_II_NAMESPACE_OPEN
         void initialize(const std::string &vars,
                         const std::vector<std::string> &expressions,
                         const ConstMap &constants,
-                        const bool time_dependent = false);
+                        MultiscaleFunctionParser<dim> *mapper = nullptr,
+                        const bool time_dependent = false
+        );
 
         /**
          * Initialize the function. Same as above, but accepts a string rather than
@@ -110,7 +112,9 @@ DEAL_II_NAMESPACE_OPEN
         void initialize(const std::string &vars,
                         const std::string &expression,
                         const ConstMap &constants,
-                        const bool time_dependent = false);
+                        MultiscaleFunctionParser<dim> *mapper = nullptr,
+                        const bool time_dependent = false
+        );
 
         /**
          * A function that returns default names for variables, to be used in the
@@ -232,6 +236,8 @@ DEAL_II_NAMESPACE_OPEN
          * Assert that we touched the macro before using `value`. Not necessary for computations, just a security check.
          */
         bool macro_set;
+
+        MultiscaleFunctionParser<dim> *mapper; // Todo: make const (object, not pointer)
 
         /**
          * Number of variables. If this is also a function of time, then the number

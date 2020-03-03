@@ -37,6 +37,7 @@ DEAL_II_NAMESPACE_OPEN
             AutoDerivativeFunction<dim>(h, n_components, initial_time),
             initialized(false),
             macro_set(false),
+            mapper(nullptr),
             n_vars(0) {}
 
 
@@ -53,9 +54,11 @@ DEAL_II_NAMESPACE_OPEN
     void MultiscaleFunctionParser<dim>::initialize(const std::string &variables,
                                                    const std::vector<std::string> &expressions,
                                                    const std::map<std::string, double> &constants,
+                                                   MultiscaleFunctionParser<dim> *mapper,
                                                    const bool time_dependent) {
         this->fp.clear(); // this will reset all thread-local objects
 
+        this->mapper = mapper;
         this->constants = constants;
         this->var_names = Utilities::split_string_list(variables, ',');
         this->expressions = expressions;
@@ -70,6 +73,9 @@ DEAL_II_NAMESPACE_OPEN
         AssertThrow(this->n_components == expressions.size(),
                     ExcInvalidExpressionSize(this->n_components,
                                              expressions.size()));
+        if (mapper != nullptr) {
+            AssertThrow(mapper->n_components == dim, ExcMessage("Please provide a dim -> dim function as mapping"))
+        }
 
         // Now we define how many variables
         // we expect to read in.  We
@@ -322,9 +328,10 @@ DEAL_II_NAMESPACE_OPEN
     void MultiscaleFunctionParser<dim>::initialize(const std::string &vars,
                                                    const std::string &expression,
                                                    const std::map<std::string, double> &constants,
+                                                   MultiscaleFunctionParser<dim> *mapper,
                                                    const bool time_dependent) {
         initialize(vars, Utilities::split_string_list(expression, ';'),
-                   constants, time_dependent);
+                   constants, mapper, time_dependent);
     }
 
     template<int dim>
@@ -332,7 +339,12 @@ DEAL_II_NAMESPACE_OPEN
                                                  const unsigned int component) const {
         Assert (initialized, ExcNotInitialized())
         Assert (component < this->n_components, ExcIndexRange(component, 0, this->n_components))
-
+        Point<dim> point_y;
+        if (mapper != nullptr) {
+            point_y = mapper->mmap(px, py);
+        } else {
+            point_y = py;
+        }
         // initialize the parser if that hasn't happened yet on the current thread
         if (fp.get().size() == 0)
             init_muparser();
@@ -341,7 +353,7 @@ DEAL_II_NAMESPACE_OPEN
             vars.get()[i] = px(i);
         }
         for (unsigned int i = 0; i < dim; i++) {
-            vars.get()[dim + i] = py(i);
+            vars.get()[dim + i] = point_y(i);
         }
         if (dim * 2 != n_vars) {
             vars.get()[dim * 2] = this->get_time();
@@ -370,6 +382,7 @@ DEAL_II_NAMESPACE_OPEN
     Tensor<2, dim> MultiscaleFunctionParser<dim>::mtensor_value(const Point<dim> &px, const Point<dim> &py) const {
         Assert (initialized, ExcNotInitialized())
         AssertDimension(dim * dim, this->n_components)
+        Assert(mapper == nullptr, ExcMessage("You are computing a mapped tensor. This should not be a use case."))
         if (fp.get().size() == 0) {
             init_muparser();
         }
@@ -394,6 +407,7 @@ DEAL_II_NAMESPACE_OPEN
     template<int dim>
     Point<dim> MultiscaleFunctionParser<dim>::mmap(const Point<dim> &px, const Point<dim> &py) const {
         Point<dim> mapped_p;
+        Assert(mapper == nullptr, ExcMessage("You are computing a mapped map. This should not be a use case."))
         Assert (initialized, ExcNotInitialized())
         AssertDimension(dim, this->n_components)
         if (fp.get().size() == 0) {

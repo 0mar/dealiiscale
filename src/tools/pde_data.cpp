@@ -25,13 +25,13 @@ MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(param
     std::map<std::string, double> constants;
     macro.rhs.initialize(MultiscaleData < dim > ::macro_variables(), params.get("macro_rhs"), constants);
     macro.bc.initialize(MultiscaleData < dim > ::macro_variables(), params.get("macro_bc"), constants);
-    macro.solution.initialize(MultiscaleData < dim > ::macro_variables(), params.get("macro_solution"), constants);
-
-    micro.rhs.initialize(MultiscaleData < dim > ::multiscale_variables(), params.get("micro_rhs"), constants);
-    micro.bc.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("micro_bc"), constants);
-    micro.solution.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("micro_solution"),
-                              constants);
+    macro.solution.initialize(MultiscaleData<dim>::macro_variables(), params.get("macro_solution"), constants);
     micro.mapping.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("mapping"), constants);
+
+    micro.rhs.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("micro_rhs"), constants);
+    micro.bc.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("micro_bc"), constants, &micro.mapping);
+    micro.solution.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("micro_solution"),
+                              constants, &micro.mapping);
     micro.map_jac.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("jac_mapping"), constants);
 }
 
@@ -77,14 +77,16 @@ TwoPressureData<dim>::TwoPressureData(const std::string &param_file) : macro(par
     macro.bc.initialize(TwoPressureData<dim>::macro_variables(), params.get("macro_bc"), constants, true);
     macro.solution.initialize(TwoPressureData<dim>::macro_variables(), params.get("macro_solution"), constants, true);
 
-    micro.rhs.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_rhs"), constants, true);
+    micro.rhs.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_rhs"), constants, nullptr,
+                         true);
     micro.neumann_bc.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_bc_neumann"), constants,
-                                true);
+                                nullptr, true);
     micro.robin_bc.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_bc_robin"), constants,
-                              true);
+                              nullptr, true);
     micro.solution.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_solution"), constants,
-                              true);
-    micro.init_rho.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("init_rho"), constants, false);
+                              nullptr, true);
+    micro.init_rho.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("init_rho"), constants, nullptr,
+                              false);
 }
 
 template<int dim>
