@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(test_functions)
     void load_function(MultiscaleFunctionParser<dim> &function, const std::string &definition) {
         std::map<std::string, double> constants;
         constants["pi"] = numbers::PI;
-        function.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), definition, constants, false);
+        function.initialize(MultiscaleFunctionParser<dim>::default_variable_names(), definition, constants);
     }
 
     BOOST_AUTO_TEST_CASE(test_function_mvalue) {
