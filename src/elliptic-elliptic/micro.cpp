@@ -82,7 +82,7 @@ void MicroSolver<dim>::compute_macroscopic_contribution() {
 
 template<int dim>
 void MicroSolver<dim>::assemble_system() {
-    QGauss<dim> quadrature_formula(2);
+    QGauss<dim> quadrature_formula(8);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
@@ -112,8 +112,9 @@ void MicroSolver<dim>::assemble_system() {
                 for (unsigned int i = 0; i < dofs_per_cell; i++) {
 
                     for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                        cell_matrix(i, j) += fe_values.shape_grad(i, q_index) * kkt * det_jac
-                                             * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index);
+                        cell_matrix(i, j) += fe_values.shape_grad(i, q_index) * kkt
+                                             * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index) * det_jac;
+//                        std::cout << "matrix "<< cell_matrix(i, j)  << " or " << fe_values.shape_grad(i, q_index) * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index) << std::endl;
                     }
                 }
             }
@@ -170,11 +171,11 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
         const unsigned int n_active = triangulation.n_active_cells();
         Vector<double> difference_per_cell(n_active);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
-                                          QGauss<dim>(3),
+                                          QGauss<dim>(8),
                                           VectorTools::L2_norm);
         double micro_l2_error = difference_per_cell.l2_norm();
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
-                                          QGauss<dim>(3),
+                                          QGauss<dim>(8),
                                           VectorTools::H1_seminorm);
         double micro_h1_error = difference_per_cell.l2_norm();
         macro_domain_l2_error(k) = micro_l2_error;
@@ -182,7 +183,7 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     }
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
-                                      macro_integral, QGauss<dim>(3), VectorTools::L2_norm);
+                                      macro_integral, QGauss<dim>(8), VectorTools::L2_norm);
     l2_error = macro_integral.l2_norm();
     h1_error = macro_integral.l2_norm();
 }

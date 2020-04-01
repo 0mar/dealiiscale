@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from sympy import *
 from sympy.parsing.sympy_parser import parse_expr
 
@@ -39,6 +39,7 @@ def compute_solution_set(u, v, xvars, yvars, micro_integration='bulk'):
     del_v = laplace(v, yvars)
     if micro_integration == 'flux':
         integral_v = boundary_integral(v, yvars)
+        print("boundary integral ", integral_v)
     elif micro_integration == 'bulk':
         integral_v = bulk_integral(v, yvars)
     else:

@@ -93,12 +93,37 @@ void Manager::patch_and_write_solutions() {
     macro_data_out.build_patches();
     std::ofstream macro_output("results/macro-solution.gpl");
     macro_data_out.write_gnuplot(macro_output);
+    {
+        DataOut<MICRO_DIMENSIONS> micro_data_out;
+        micro_data_out.attach_dof_handler(micro_solver.dof_handler);
+        const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
+        micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
+        micro_data_out.build_patches();
+        std::ofstream micro_output("results/micro-computed.gpl");
+        micro_data_out.write_gnuplot(micro_output);
+    }
+    {
+        DataOut<MICRO_DIMENSIONS> micro_data_out;
+        micro_data_out.attach_dof_handler(micro_solver.dof_handler);
+        const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
+        Vector<double> error(micro_solver.dof_handler.n_dofs());
+        error += micro_solver.solutions[some_int];
+        micro_solver.set_exact_solution();
+        error -= micro_solver.solutions[some_int];
+        micro_data_out.add_data_vector(error, "solution");
+        micro_data_out.build_patches();
+        std::ofstream micro_output("results/micro-error.gpl");
+        micro_data_out.write_gnuplot(micro_output);
+    }
+    {
+        DataOut<MICRO_DIMENSIONS> micro_data_out;
+        micro_data_out.attach_dof_handler(micro_solver.dof_handler);
+        micro_solver.set_exact_solution(); // Superfluous but okay
+        const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
+        micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
+        micro_data_out.build_patches();
+        std::ofstream micro_output("results/micro-exact.gpl");
+        micro_data_out.write_gnuplot(micro_output);
+    }
 
-    DataOut<MICRO_DIMENSIONS> micro_data_out;
-    micro_data_out.attach_dof_handler(micro_solver.dof_handler);
-    const unsigned int some_int = 0;//(int)(micro_solver.get_num_grids()/2);
-    micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
-    micro_data_out.build_patches();
-    std::ofstream micro_output("results/micro-solution.gpl");
-    micro_data_out.write_gnuplot(micro_output);
 }

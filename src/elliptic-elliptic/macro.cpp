@@ -57,7 +57,7 @@ Vector<double> MacroSolver<dim>::get_exact_solution() const {
 
 template<int dim>
 void MacroSolver<dim>::assemble_system() {
-    QGauss<dim> quadrature_formula(2);
+    QGauss<dim> quadrature_formula(8);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
@@ -119,10 +119,10 @@ template<int dim>
 void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     const unsigned int n_active = triangulation.n_active_cells();
     Vector<double> difference_per_cell(n_active);
-    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
+    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(8),
                                       VectorTools::L2_norm);
     l2_error = difference_per_cell.l2_norm();
-    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(3),
+    VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(8),
                                       VectorTools::H1_seminorm);
     h1_error = difference_per_cell.l2_norm();
 }
@@ -138,7 +138,7 @@ template<int dim>
 double MacroSolver<dim>::get_micro_bulk(unsigned int cell_index) const {
     // manufactured as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
-    QGauss<dim> quadrature_formula(2);
+    QGauss<dim> quadrature_formula(8);
     FEValues<dim> fe_values(micro_dof_handler->get_fe(), quadrature_formula,
                             update_values | update_quadrature_points | update_JxW_values);
     const unsigned int dofs_per_cell = micro_dof_handler->get_fe().dofs_per_cell;
@@ -160,7 +160,7 @@ double MacroSolver<dim>::get_micro_bulk(unsigned int cell_index) const {
 template<int dim>
 double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
     // Computed as: f(x) = \int_\Gamma_R \nabla_y \rho(x,y) \cdot n_y d_\sigma_y
-    const int integration_order = 3;
+    const int integration_order = 8;
     double integral = 0;
     QGauss<dim - 1> quadrature_formula(integration_order); // Not necessarily the same dim
     FEFaceValues<dim> fe_face_values(micro_dof_handler->get_fe(),
