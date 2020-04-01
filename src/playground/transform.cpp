@@ -81,6 +81,7 @@ public:
     ProblemData(const std::string &param_file);
 
     FunctionParser<dim> solution;
+    FunctionParser<dim> ref_solution;
     FunctionParser<dim> rhs;
     FunctionParser<dim> map;
     std::unique_ptr<ParsedTensorFunction<dim>> map_jac;
@@ -95,6 +96,9 @@ ProblemData<dim>::ProblemData(const std::string &param_file) : map(dim), map_jac
     params.declare_entry("solution", "(1-x)*x*(1-y)", Patterns::Anything());
     params.declare_entry("rhs", "125*(9*x + 2*y)/6144 - 25*(5*x + 10*y - 32)/4608",
                          Patterns::Anything());
+    params.declare_entry("ref_solution",
+                         "(2 - sqrt(-sqrt(2)*x/2 + sqrt(2)*y/2))*(2 - sqrt(sqrt(2)*x/2 + sqrt(2)*y/2))*(sqrt(sqrt(2)*x/2 + sqrt(2)*y/2) - 1)",
+                         Patterns::Anything());
     params.declare_entry("jac_mapping", "1.6; -1.6; 2.4; 2.4;", Patterns::Anything());
     params.declare_entry("mapping", "1.6*x - 1.6*y; 2.4*x + 2.4*y", Patterns::Anything());
     params.parse_input(param_file);
@@ -102,6 +106,8 @@ ProblemData<dim>::ProblemData(const std::string &param_file) : map(dim), map_jac
                    typename FunctionParser<dim>::ConstMap());
     solution.initialize(FunctionParser<dim>::default_variable_names(), params.get("solution"),
                         typename FunctionParser<dim>::ConstMap());
+    ref_solution.initialize(FunctionParser<dim>::default_variable_names(), params.get("ref_solution"),
+                            typename FunctionParser<dim>::ConstMap());
     map_jac_vector.initialize(FunctionParser<dim>::default_variable_names(), params.get("jac_mapping"),
                               typename FunctionParser<dim>::ConstMap());
     map_jac = std::make_unique<ParsedTensorFunction<dim>>(map_jac_vector);
@@ -181,7 +187,7 @@ private:
 
 RobinSolver::RobinSolver() :
         fe(1),
-        solution_base("input/parsed_mapping.prm"),
+        solution_base("input/simple_parsed_mapping.prm"),
         dof_handler(triangulation),
         dm(solution_base),
         cycle(0) {
@@ -252,7 +258,7 @@ void RobinSolver::assemble_system() {
         }
     }
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, solution_base.solution, boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, 0, solution_base.ref_solution, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
@@ -268,7 +274,7 @@ void RobinSolver::process_solution() {
     Vector<float> difference_per_cell(triangulation.n_active_cells());
     VectorTools::integrate_difference(dof_handler,
                                       solution,
-                                      solution_base.solution,
+                                      solution_base.ref_solution,
                                       difference_per_cell,
                                       QGauss<dim>(5),
                                       VectorTools::L2_norm);
@@ -304,7 +310,7 @@ void RobinSolver::output_results() {
         DataOut<2> data_out;
         data_out.attach_dof_handler(dof_handler);
         Vector<double> interpolated_solution(dof_handler.n_dofs());
-        VectorTools::interpolate(dof_handler, solution_base.solution, interpolated_solution);
+        VectorTools::interpolate(dof_handler, solution_base.ref_solution, interpolated_solution);
         data_out.add_data_vector(interpolated_solution, "solution");
         data_out.build_patches();
         std::ofstream output("results/exact_solution.gpl");
@@ -314,7 +320,7 @@ void RobinSolver::output_results() {
     {
         Vector<double> error(dof_handler.n_dofs());
         Vector<double> interpolated_solution(dof_handler.n_dofs());
-        VectorTools::interpolate(dof_handler, solution_base.solution, interpolated_solution);
+        VectorTools::interpolate(dof_handler, solution_base.ref_solution, interpolated_solution);
         DataOut<2> data_out;
         data_out.attach_dof_handler(dof_handler);
         error = 0;
@@ -378,7 +384,7 @@ void RobinSolver::run() {
 int main() {
     deallog.depth_console(2);
     RobinSolver poisson_problem;
-    for (unsigned int i = 0; i < 5; i++) {
+    for (unsigned int i = 2; i < 3; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }
