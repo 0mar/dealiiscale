@@ -30,7 +30,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/numerics/error_estimator.h>
-#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 
 #include <fstream>
 #include <iostream>
@@ -170,7 +170,7 @@ private:
     unsigned int h_inv;
     double diffusion_coefficient;
     double max_support;
-    ConstraintMatrix constraints;
+    AffineConstraints<double> constraints;
     int count = 0; //debug
 
 };
