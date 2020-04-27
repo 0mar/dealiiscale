@@ -151,7 +151,7 @@ Point<dim> NonLinDomainMapping<dim>::map(const Point<dim> &p) const {
 
 class RobinSolver {
 public:
-    RobinSolver();
+    RobinSolver(const std::string &id);
 
     void run();
 
@@ -185,9 +185,9 @@ private:
 };
 
 
-RobinSolver::RobinSolver() :
+RobinSolver::RobinSolver(const std::string &id) :
         fe(1),
-        solution_base("input/simple_parsed_mapping.prm"),
+        solution_base("input/" + id + ".prm"),
         dof_handler(triangulation),
         dm(solution_base),
         cycle(0) {
@@ -381,10 +381,14 @@ void RobinSolver::run() {
     process_solution();
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     deallog.depth_console(2);
-    RobinSolver poisson_problem;
-    for (unsigned int i = 2; i < 3; i++) {
+    std::string id =  "parsed_mapping";
+    if (argc == 2) {
+        id = argv[1];
+    }
+    RobinSolver poisson_problem(id);
+    for (unsigned int i = 2; i < 5; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }

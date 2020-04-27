@@ -48,7 +48,7 @@ def compute_solution_set(u, v, chi_inv, xvars, yvars, micro_integration='bulk'):
     else:
         raise ValueError("Choose micro_integration to be either 'bulk' or 'flux', not %s" % micro_integration)
     macro_rhs = - integral_v - del_u
-    micro_rhs = - u - del_v
+    micro_rhs = - u - del_map_v # I think?
     funcs = {"macro_rhs": macro_rhs, "micro_rhs": micro_rhs,
              "macro_bc": u, "micro_bc": v,
              "macro_solution": u, "micro_solution": v}
