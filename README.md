@@ -7,7 +7,7 @@ A more detailed description of the mathematical framework behind this implementa
 ## Requirements
 
  - `cmake`, preferable version 3.1, but lower versions should work too, if you adapt `CMakeLists.txt`.
- - deal.II, version 9.0. Please note that both lower versions (e.g. 8.5) and higher versions (e.g. 9.1) will not be compatible. See below for installation hints.
+ - deal.II, version 9.1.1. Please note that lower versions (e.g. 8.5 or even 9.0) will not be compatible. See below for installation hints.
 
 ## Installation for macOS
 
@@ -16,36 +16,26 @@ Other options are available as well and should work, but the rest of this README
 
 ## Installation for Linux (Ubuntu)
 
-Most popular distros have deal.II available in their repos. For Ubuntu, deal.II is installed using
+Most popular distros have deal.II available in their repos. For Ubuntu (20.04), deal.II is installed using
 
 ```bash
 sudo apt install libdeal.ii-dev
 ``` 
 
-*Caveat*: On the latest Ubuntu LTS (18.04), at the time of writing, the deal.II version available is 8.5.
-Unfortunately, some of the (even basic) tutorial programs are not backwards compatible with this version.
-In order to install deal.II 9.0.0, either compile from source (recommended) or add the `universe` component of the 18.10 edition of Ubuntu to `apt`:
-
-```bash
-echo 'deb http://archive.ubuntu.com/ubuntu/ cosmic main universe' | sudo tee -a /etc/apt/sources.list
-sudo apt update
-```
-But be aware that this last option will update all of software from the repository to its 18.10 version, which might be more than you want.
-
 ## Docker installation
 
 Alternatively, if you can't/don't want to install a global version of deal.II, you can use [Docker](https://www.docker.com/).
 
-After installing Docker (guides are available online, should be quite easy), pull the `dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease`
+After installing Docker (guides are available online, should be quite easy), pull the `dealii/dealii:v9.1.1-gcc-mpi-fulldepscandi-debugrelease`
 image (more info [here](https://hub.docker.com/r/dealii/base/)), mount the `dealiiscale` directory and compile the code. If run in a docker container, the `CMakeLists.txt` file assumes this image.
 
 A complete workflow looks as follows (where `/path/to/dealiiscale` is the absolute path of the cloned repo).
 
 ```bash
 git clone git@github.com:0mar/dealiiscale.git # Clone the source code
-docker pull dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease # Pull the docker image with deal.II installed
+docker pull dealii/dealii:v9.1.1-gcc-mpi-fulldepscandi-debugrelease # Pull the docker image with deal.II installed
 # Now start the container and mount the source directory and drop in
-docker run --name dealii -v /path/to/dealiiscale:/home/dealii/dealiiscale -i -t dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease
+docker run --name dealii -v /path/to/dealiiscale:/home/dealii/dealiiscale -i -t dealii/dealii:v9.1.1-gcc-mpi-fulldepscandi-debugrelease
 cd dealiiscale # Enter the source directory (inside the container) 
 mkdir build # Create a build folder
 cd build
@@ -61,11 +51,11 @@ For some reason, this app takes quite some time to load, and its structure does 
 
 Luckily, we do not need to open the deal.II app to compile our programs, since we can point CMake to the installation.
 
-After installation of version `9.0.0`, add the following lines to your CMake:
+After installation of version `9.1.1`, add the following lines to your CMake:
 
 ```cmake
-set(deal.II_DIR /Applications/deal.II-9.0.0.app/Contents/Resources/lib/cmake/deal.II)
-FIND_PACKAGE(deal.II 9.0.0 QUIET HINTS ${deal.II_DIR} ${DEAL_II_DIR} $ENV{DEAL_II_DIR})
+set(deal.II_DIR /Applications/deal.II-9.1.1.app/Contents/Resources/lib/cmake/deal.II)
+FIND_PACKAGE(deal.II 9.1.1 QUIET HINTS ${deal.II_DIR} ${DEAL_II_DIR} $ENV{DEAL_II_DIR})
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 ```
 
@@ -103,7 +93,7 @@ make test
 ``` 
 ## Solver gallery
 
-deal.II comes with many examples, located in `/Applications/deal.II-9.0.0.app/Contents/Resources/examples`, also found in a more legible format on the [tutorial page][5].
+deal.II comes with many examples, located in `/Applications/deal.II-9.1.1.app/Contents/Resources/examples`, also found in a more legible format on the [tutorial page][5].
 
 This repo has a number of working implementations, most of which are used to test the performance of certain deal.II characteristics.
 Currently, the working implementations are:
