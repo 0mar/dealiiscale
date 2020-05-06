@@ -14,7 +14,7 @@ A more detailed description of the mathematical framework behind this implementa
 A bundled package in the form of an app is available [here][3]. Installing it provides your Mac with the deal.II library files.
 Other options are available as well and should work, but the rest of this README assumes the app installation.
 
-## Installation for Linux (Ubuntu)
+## Installation for Linux (Ubuntu/Debian)
 
 Most popular distros have deal.II available in their repos. For Ubuntu (20.04), deal.II is installed using
 
@@ -45,8 +45,10 @@ make # Compile all sources
 
 ## Configuring CMake for deal.II
 
-deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, it is easily installed using [Homebrew][4] (Mac).
-Opening the deal.II app will open a shell with preset environment variables that make compilation of your programs 'easy'. 
+deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, it is easily installed using [Homebrew][4] (Mac) or `apt-get` (Debian/Ubuntu).
+
+
+For Mac, Opening the OS X deal.II app will open a shell with preset environment variables that make compilation of your programs 'easy'. 
 For some reason, this app takes quite some time to load, and its structure does not (by default) allow for the use of IDEs or other shells/terminals.
 
 Luckily, we do not need to open the deal.II app to compile our programs, since we can point CMake to the installation.
@@ -59,7 +61,7 @@ FIND_PACKAGE(deal.II 9.1.1 QUIET HINTS ${deal.II_DIR} ${DEAL_II_DIR} $ENV{DEAL_I
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 ```
 
-For default installations on Linux systems, the first line can be changed to
+For default installations on Ubuntu/Debian systems, the first line can be changed to
 ```cmake
 set(deal.II_DIR /usr/share/cmake/deal.II)
 ```
@@ -103,11 +105,12 @@ Currently, the working implementations are:
 - `elliptic-parabolic`
     * `solve_parabolic`, a multiscale elliptic-parabolic solver (work in progress, main target of this exercise).
 - `playground` (collection of separate tests and implementations)
-    * `demo`, a verbatim copy of a tutorial (step 3) to check if the installation works.
     * `dirichlet`, a Poisson problem in a circular domain. 
     * `robin`, a Poisson problem with Robin boundary conditions.
     * `simple`, a (deprecated) working start for the target system.
     * `integration`, an example/convergence test on how to compute bulk and flux integrals.
+    * `parsing`, a demo on interpreting functions from a parameter file and using them to construct and solve a PDE
+    * `transform`, a toy elliptic PDE that uses a mapping to solve a PDE on a pulled-back domain
 
 
 ## Report
@@ -120,7 +123,7 @@ cd results
 make
 ``` 
 
-This will post-process the output of the binaries into the latex report and compile it (requires `pdftex`)
+This will post-process the output of the binaries into a (slightly outdated) latex report and compile it (requires `pdftex`)
 
 ## Disclaimer
 
