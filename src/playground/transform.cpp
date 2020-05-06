@@ -170,7 +170,6 @@ private:
 
     void process_solution();
 
-
     Triangulation<2> triangulation;
     FE_Q<2> fe;
     ProblemData<2> solution_base;
