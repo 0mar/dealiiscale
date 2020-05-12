@@ -1,0 +1,5 @@
+set solution = x0*sin(x1)*5
+set jac_mapping = 2;0;0;3;
+set mapping = 2*x0;3*x1
+set rhs = x0*sin(x1)*5
+set ref_solution = 2*x0*sin(3*x1)*5
