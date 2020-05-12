@@ -109,6 +109,9 @@ void MicroSolver<dim>::assemble_system() {
             cell_matrix = 0;
             for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
                 get_pullback_objects(grid_locations.at(k), fe_values.quadrature_point(q_index), kkt, det_jac);
+                if (k == 1) {
+//                    std::cout << kkt << "\t" << det_jac << std::endl;
+                }
                 for (unsigned int i = 0; i < dofs_per_cell; i++) {
 
                     for (unsigned int j = 0; j < dofs_per_cell; j++) {
@@ -125,22 +128,28 @@ void MicroSolver<dim>::assemble_system() {
                                               cell_matrix(i, j));
                 }
             }// todo: Rearrange for loop
+            cell_rhs = 0;
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
-                cell_rhs = 0;
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
                     //Todo: only compute determinant here.
                     get_pullback_objects(grid_locations.at(k), fe_values.quadrature_point(q_index), kkt, det_jac);
                     const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
                                                                       fe_values.quadrature_point(q_index));
                     double rhs_val = pde_data.rhs.mvalue(grid_locations.at(k), mapped_p);
+//                    double debug_info = (*macro_solution)(k) + rhs_val;
+//                    if (k==1) std::cout << i << "\t" << q_index << "\t" << debug_info << std::endl;
                     cell_rhs(i) += ((*macro_solution)(k) +
                                     rhs_val) *
                                    fe_values.shape_value(i, q_index) * fe_values.JxW(q_index) * det_jac;
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
+                if (k==1) {
+                    std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
+                }
             }
         }
     }
+    std::cout << righthandsides.at(1) << std::endl;
     for (unsigned int k = 0; k < num_grids; k++) {
         std::map<types::global_dof_index, double> boundary_values;
         pde_data.bc.set_macro_point(grid_locations.at(k));

@@ -194,7 +194,7 @@ RobinSolver::RobinSolver(const std::string &id) :
 }
 
 void RobinSolver::make_grid() {
-    GridGenerator::hyper_cube(triangulation);
+    GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(1);
 }
 
@@ -231,13 +231,17 @@ void RobinSolver::assemble_system() {
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
             double det_jac;
             dm.get_kkt(fe_values.quadrature_point(q_index), kkt, det_jac);
+//            std::cout << kkt << "\t" << det_jac << std::endl;
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 for (unsigned int j = 0; j < dofs_per_cell; ++j) {
                     cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
                                           kkt *
                                           fe_values.shape_grad(j, q_index) *
                                           fe_values.JxW(q_index)) * det_jac;
+//                    std::cout << cell_matrix(i,j) << std::endl;
                 }
+//                double debug_info = solution_base.rhs.value(dm.map(fe_values.quadrature_point(q_index)));
+//                std::cout << i << "\t" << q_index << "\t" << debug_info << std::endl;
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
                                 solution_base.rhs.value(dm.map(fe_values.quadrature_point(q_index))) *
                                 det_jac *
@@ -254,8 +258,10 @@ void RobinSolver::assemble_system() {
         }
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
+        std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
         }
     }
+    std::cout << system_rhs << std::endl;
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler, 0, solution_base.ref_solution, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
@@ -382,12 +388,12 @@ void RobinSolver::run() {
 
 int main(int argc, char *argv[]) {
     deallog.depth_console(2);
-    std::string id =  "parsed_mapping";
+    std::string id = "parsed_mapping";
     if (argc == 2) {
         id = argv[1];
     }
     RobinSolver poisson_problem(id);
-    for (unsigned int i = 2; i < 5; i++) {
+    for (unsigned int i = 2; i < 3; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }

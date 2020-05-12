@@ -374,7 +374,7 @@ DEAL_II_NAMESPACE_OPEN
 
     template<int dim>
     double MultiscaleFunctionParser<dim>::value(const Point<dim> &py, const unsigned int component) const {
-        Assert(macro_set, ExcEmptyObject("Macro point not initialized yet. This most likely leads to erronous values"))
+        Assert(macro_set, ExcEmptyObject("Macro point not initialized yet. This most likely leads to wrong values"))
         return this->mvalue(macro_point, py, component);
     }
 
