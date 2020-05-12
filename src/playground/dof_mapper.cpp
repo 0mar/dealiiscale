@@ -162,7 +162,6 @@ void DoFMapper::assemble_system() {
                                      update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
-    const unsigned int n_q_face_points = face_quadrature_formula.size();
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     const RightHandSide<dim> rhs;
@@ -177,10 +176,12 @@ void DoFMapper::assemble_system() {
                     cell_matrix(i, j) += (fe_values.shape_grad(i, q_index) *
                                           fe_values.shape_grad(j, q_index) *
                                           fe_values.JxW(q_index));
+//                    std::cout << cell_matrix(i,j) << std::endl;
                 }
                 cell_rhs(i) += (fe_values.shape_value(i, q_index) *
                                 rhs.value(fe_values.quadrature_point(q_index)) *
                                 fe_values.JxW(q_index));
+//                std::cout << cell_rhs(i) << std::endl;
             }
         }
         cell->get_dof_indices(local_dof_indices);
