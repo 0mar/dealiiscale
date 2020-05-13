@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
         id = argv[1];
     }
     RobinSolver poisson_problem(id);
-    for (unsigned int i = 2; i < 3; i++) {
+    for (unsigned int i = 2; i < 6; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }

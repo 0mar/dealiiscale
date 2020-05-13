@@ -18,7 +18,7 @@ void run(const std::string &id) {
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
     for (unsigned int i = 2; i < 5; i++) {
-        Manager manager(2, i, input_path, output_path);
+        Manager manager(i-1, i, input_path, output_path);
         manager.setup();
         manager.run();
     }

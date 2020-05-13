@@ -143,13 +143,13 @@ void MicroSolver<dim>::assemble_system() {
                                    fe_values.shape_value(i, q_index) * fe_values.JxW(q_index) * det_jac;
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
-                if (k==1) {
-                    std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
-                }
+//                if (k==1) {
+//                    std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
+//                }
             }
         }
     }
-    std::cout << righthandsides.at(1) << std::endl;
+//    std::cout << righthandsides.at(1) << std::endl;
     for (unsigned int k = 0; k < num_grids; k++) {
         std::map<types::global_dof_index, double> boundary_values;
         pde_data.bc.set_macro_point(grid_locations.at(k));
@@ -194,6 +194,8 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(8), VectorTools::L2_norm);
     l2_error = macro_integral.l2_norm();
+    VectorTools::integrate_difference(*macro_dof_handler, macro_domain_h1_error, Functions::ZeroFunction<dim>(),
+                                      macro_integral, QGauss<dim>(8), VectorTools::L2_norm);
     h1_error = macro_integral.l2_norm();
 }
 

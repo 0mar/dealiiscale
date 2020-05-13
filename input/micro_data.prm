@@ -1,4 +1,0 @@
-set geometry = [-1,1]x[-1,1]
-set rhs = 0
-set solution = cos(x0)*cos(x1)*(y0*y0+y1*y1)
-set bc = cos(x0)*cos(x1)*(y0*y0+y1*y1)
