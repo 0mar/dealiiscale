@@ -238,7 +238,7 @@ void RobinSolver::assemble_system() {
                                           kkt *
                                           fe_values.shape_grad(j, q_index) *
                                           fe_values.JxW(q_index)) * det_jac;
-//                    std::cout << cell_matrix(i,j) << std::endl;
+                    std::cout << cell_matrix(i,j) << std::endl;
                 }
 //                double debug_info = solution_base.rhs.value(dm.map(fe_values.quadrature_point(q_index)));
 //                std::cout << i << "\t" << q_index << "\t" << debug_info << std::endl;
@@ -258,7 +258,7 @@ void RobinSolver::assemble_system() {
         }
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
-        std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
+//        std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
         }
     }
     std::cout << system_rhs << std::endl;
@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
         id = argv[1];
     }
     RobinSolver poisson_problem(id);
-    for (unsigned int i = 2; i < 6; i++) {
+    for (unsigned int i = 2; i < 3; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }
