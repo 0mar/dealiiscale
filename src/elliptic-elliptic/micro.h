@@ -131,22 +131,36 @@ private:
      * Compute pullback objects
      */
 
+    void compute_pullback_objects();
+
+
     void get_pullback_objects(const Point<dim> &px, const Point<dim> &py, SymmetricTensor<2, dim> &kkt,
                               double &det_jac) const;
 
-    /**
-     * The level of refinement (every +1 means a bisection)
-     */
+    // The level of refinement (every +1 means a bisection)
     const unsigned int refine_level;
+    unsigned int fem_quadrature;
     const FE_Q<dim> fe;
+    // Number of microscopic grids
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
+    // Pointer to the solution of the macroscopic equation (readonly)
     const Vector<double> *macro_solution;
+    // Macroscopic contribution to the microscopic equation [unused]
     Vector<double> macro_contribution;
+    // Macroscopic degree of freedom handler
     const DoFHandler<dim> *macro_dof_handler;
+    // System matrices for each microscopic domain
     std::vector<SparseMatrix<double>> system_matrices;
+    // Right hand side vectors for each microscopic domain
     std::vector<Vector<double>> righthandsides;
+    // Macroscopic locations of individual microscopic domains
     std::vector<Point<dim>> grid_locations;
+    // Precomputed inverse jacobians of mappings for each microscopic and macroscopic degree of freedom
+    std::vector<std::vector<SymmetricTensor<2,dim>>> kkts;
+    // Precomputed determinants of the jacobians for each microscopic and macroscopic degree of freedom
+    std::vector<std::vector<double>> det_jacs;
+    // Object containing microscopic problem data
     MicroData<dim> &pde_data;
 };
 
