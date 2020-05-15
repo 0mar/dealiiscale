@@ -11,10 +11,10 @@
 #include <sstream>
 
 using namespace dealii;
-template <int micro_dim>
-using KKT = SymmetricTensor<2,micro_dim>;
+template<int micro_dim>
+using KKT = SymmetricTensor<2, micro_dim>;
 
-template <int macro_dim, int micro_dim>
+template<int macro_dim, int micro_dim>
 /**
  * Object that stores information on the mapping for each point in the micro and macro domain.
  * In lieu of a descriptive name, I chose for a funny one. Apologies.
@@ -50,7 +50,7 @@ public:
      * @param det_jac Value of the determinant of the Jacobian [output]
      * @param kkt Symmetric inverse Jacobian tensor [output]
      */
-    void get(const Point<macro_dim> &px, const Point<micro_dim>&py, double &det_jac, KKT <micro_dim> &kkt);
+    void get(const Point<macro_dim> &px, const Point<micro_dim> &py, double &det_jac, KKT<micro_dim> &kkt);
 
     /**
      * Get determinant of the Jacobian of the mapping. Although usually this information is used in conjunction with the
@@ -61,6 +61,9 @@ public:
      * @param det_jac Value of the determinant of the Jacobian [output]
      */
     void get_det_jac(const Point<macro_dim> &px, const Point<micro_dim> &py, double &det_jac);
+
+    unsigned long size();
+
 private:
     /**
      * Internally, we are not able to use a Point as a key for a map, let alone a combination of them.
@@ -74,7 +77,7 @@ private:
      * @param py Microscopic point
      * @param repr representation: "px1,...,pxn;py1,...,pyn" [output]
      */
-    void to_string(const Point<macro_dim> &px,const Point<micro_dim> &py, std::string &repr);
+    void to_string(const Point<macro_dim> &px, const Point<micro_dim> &py, std::string &repr);
 
     /**
      * Convert the string representation of the points product back to points.
@@ -89,4 +92,5 @@ private:
     std::map<std::string, double> determinant_map;
 
 };
+
 #endif //DEALIISCALE_MAPPING_H
