@@ -48,11 +48,11 @@ set(PARABOLIC_DIR src/elliptic-parabolic)
 set(TOOLS_DIR src/tools)
 set(DEMO_DIR src/playground)
 set(TEST_DIR tests)
-add_executable(test_tools ${TEST_DIR}/test_tools.cpp ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h)
+add_executable(test_tools ${TEST_DIR}/test_tools.cpp ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h ${TOOLS_DIR}/mapping.h ${TOOLS_DIR}/mapping.cpp)
 deal_II_setup_target(test_tools)
 target_link_libraries(test_tools ${Boost_LIBRARIES})
 
-add_library(tools ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h)
+add_library(tools ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h ${TOOLS_DIR}/mapping.cpp ${TOOLS_DIR}/mapping.h)
 deal_II_setup_target(tools)
 
 add_library(elliptic ${ELLIPTIC_DIR}/manager.h ${ELLIPTIC_DIR}/manager.cpp ${ELLIPTIC_DIR}/micro.h ${ELLIPTIC_DIR}/micro.cpp ${ELLIPTIC_DIR}/macro.h ${ELLIPTIC_DIR}/macro.cpp)
