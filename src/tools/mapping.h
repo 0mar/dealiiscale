@@ -62,6 +62,15 @@ public:
      */
     void get_det_jac(const Point<macro_dim> &px, const Point<micro_dim> &py, double &det_jac) const ;
 
+    /**
+     * Print the coordinates and the corresponding mapping objects present in the map.
+     */
+    void list_all() const;
+
+    /**
+     * Return the number of maps present
+     * @return number of computed maps
+     */
     unsigned long size() const;
 
 private:

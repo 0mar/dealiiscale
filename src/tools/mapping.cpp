@@ -69,6 +69,14 @@ template<int macro_dim, int micro_dim>
 }
 
 template<int macro_dim, int micro_dim>
+void MapMap<macro_dim, micro_dim>::list_all() const {
+    for (const auto pair: determinant_map) {
+        std::cout << pair.first << "\t" << pair.second << "\t" << tensor_map.at(pair.first) << std::endl;
+    }
+
+}
+
+template<int macro_dim, int micro_dim>
  unsigned long MapMap<macro_dim, micro_dim>::size() const{
     return tensor_map.size();
 }
