@@ -50,7 +50,7 @@ public:
      * @param det_jac Value of the determinant of the Jacobian [output]
      * @param kkt Symmetric inverse Jacobian tensor [output]
      */
-    void get(const Point<macro_dim> &px, const Point<micro_dim> &py, double &det_jac, KKT<micro_dim> &kkt);
+     void get(const Point<macro_dim> &px, const Point<micro_dim> &py, double &det_jac, KKT<micro_dim> &kkt) const;
 
     /**
      * Get determinant of the Jacobian of the mapping. Although usually this information is used in conjunction with the
@@ -60,9 +60,9 @@ public:
      * @param py Microscopic point
      * @param det_jac Value of the determinant of the Jacobian [output]
      */
-    void get_det_jac(const Point<macro_dim> &px, const Point<micro_dim> &py, double &det_jac);
+    void get_det_jac(const Point<macro_dim> &px, const Point<micro_dim> &py, double &det_jac) const ;
 
-    unsigned long size();
+    unsigned long size() const;
 
 private:
     /**
@@ -77,7 +77,7 @@ private:
      * @param py Microscopic point
      * @param repr representation: "px1,...,pxn;py1,...,pyn" [output]
      */
-    void to_string(const Point<macro_dim> &px, const Point<micro_dim> &py, std::string &repr);
+    void to_string(const Point<macro_dim> &px, const Point<micro_dim> &py, std::string &repr) const;
 
     /**
      * Convert the string representation of the points product back to points.
@@ -86,7 +86,7 @@ private:
      * @param px Macroscopic point
      * @param py Microscopic point
      */
-    void from_string(const std::string &repr, Point<micro_dim> &px, Point<macro_dim> &py);
+    void from_string(const std::string &repr, Point<micro_dim> &px, Point<macro_dim> &py) const;
 
     std::map<std::string, KKT<micro_dim>> tensor_map;
     std::map<std::string, double> determinant_map;
