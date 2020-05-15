@@ -229,6 +229,7 @@ void MicroSolver<dim>::set_exact_solution() {
         for (unsigned int i = 0; i < solutions.at(k).size(); i++) {
             solutions.at(k)(i) = pde_data.solution.mvalue(grid_locations.at(k), locations.at(i));
         }
+//        VectorTools::project(mapping,dof_handler,AffineConstraints<double>(),QGauss<dim>(fem_quadrature), pde_data.solution,solutions.at(k));
     }
 }
 
