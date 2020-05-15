@@ -133,7 +133,7 @@ void MacroSolver<dim>::set_micro_objects(std::vector<Vector<double>> *_solutions
                                          MapMap<dim, dim> *_micro_mapmap) {
     this->micro_solutions = _solutions;
     this->micro_dof_handler = _dof_handler;
-    this->micro_mapmap = micro_mapmap;
+    this->micro_mapmap = _micro_mapmap;
 
 }
 
