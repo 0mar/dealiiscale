@@ -14,7 +14,7 @@ MacroSolver<dim>::MacroSolver(MacroData<dim> &macro_data, unsigned int refine_le
                                                                                      micro_dof_handler(nullptr),
                                                                                      micro_solutions(nullptr),
                                                                                      refine_level(refine_level) {
-    printf("Solving macro problem in %d space dimensions\n",dim);
+    printf("Solving macro problem in %d space dimensions\n", dim);
 }
 
 template<int dim>
@@ -27,13 +27,13 @@ template<int dim>
 void MacroSolver<dim>::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
-    printf("%d active macro cells\n",triangulation.n_active_cells());
+    printf("%d active macro cells\n", triangulation.n_active_cells());
 }
 
 template<int dim>
 void MacroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
-    printf("%d macro DoFs\n",dof_handler.n_dofs());
+    printf("%d macro DoFs\n", dof_handler.n_dofs());
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
@@ -41,6 +41,7 @@ void MacroSolver<dim>::setup_system() {
     solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     micro_contribution.reinit(dof_handler.n_dofs());
+    get_dof_locations(micro_grid_locations);
 }
 
 template<int dim>
@@ -112,7 +113,7 @@ void MacroSolver<dim>::solve() {
     SolverControl solver_control(1000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
-    printf("\t %d CG iterations to convergence (macro)\n",solver_control.last_step());
+    printf("\t %d CG iterations to convergence (macro)\n", solver_control.last_step());
 }
 
 template<int dim>
@@ -128,9 +129,11 @@ void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
 }
 
 template<int dim>
-void MacroSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler) {
+void MacroSolver<dim>::set_micro_objects(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler,
+                                         MapMap<dim, dim> *_micro_mapmap) {
     this->micro_solutions = _solutions;
     this->micro_dof_handler = _dof_handler;
+    this->micro_mapmap = micro_mapmap;
 
 }
 
@@ -150,7 +153,10 @@ double MacroSolver<dim>::get_micro_bulk(unsigned int cell_index) const {
         std::vector<double> interp_solution(n_q_points);
         fe_values.get_function_values(micro_solutions->at(cell_index), interp_solution);
         for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-            integral += interp_solution[q_index] * fe_values.JxW(q_index);
+            double det_jac;
+            micro_mapmap->get_det_jac(micro_grid_locations.at(cell_index), fe_values.quadrature_point(q_index),
+                                      det_jac);
+            integral += interp_solution[q_index] / det_jac * fe_values.JxW(q_index);
         }
     }
     return integral;
@@ -175,8 +181,12 @@ double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
                 fe_face_values.reinit(cell, face_number);
                 fe_face_values.get_function_gradients(micro_solutions->at(micro_index), solution_gradient);
                 for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
+                    double det_jac;
+                    Assert(false,ExcNotImplemented("Flux integrals with mappings not implemented yet"))
+                    micro_mapmap->get_det_jac(micro_grid_locations.at(micro_index), fe_face_values.quadrature_point(q_index),
+                                              det_jac);
                     double neumann = solution_gradient[q_index] * fe_face_values.normal_vector(q_index);
-                    integral += neumann * fe_face_values.JxW(q_index);
+                    integral += neumann / det_jac * fe_face_values.JxW(q_index);
                 }
             }
         }

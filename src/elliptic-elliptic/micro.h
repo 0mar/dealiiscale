@@ -39,6 +39,7 @@
 #include <deal.II/base/logstream.h>
 #include "../tools/multiscale_function_parser.h"
 #include "../tools/pde_data.h"
+#include "../tools/mapping.h"
 using namespace dealii;
 
 
@@ -91,6 +92,7 @@ public:
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
+    MapMap<dim,dim> mapmap;
 private:
 
     /**

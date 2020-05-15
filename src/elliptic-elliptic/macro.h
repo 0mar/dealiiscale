@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <deal.II/base/logstream.h>
 #include "../tools/pde_data.h"
+#include "../tools/mapping.h"
 
 using namespace dealii;
 
@@ -77,7 +78,7 @@ public:
      * @param _solutions Pointer to a vector of microscopic solution vectors.
      * @param _dof_handler Pointer to the microscopic DoF handler.
      */
-    void set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler);
+    void set_micro_objects(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler, MapMap<dim,dim> *_micro_mapmap);
 
     /**
      * Compute the exact solution value based on the analytic solution present in the boundary condition
@@ -142,11 +143,12 @@ private:
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
     const DoFHandler<dim> *micro_dof_handler;
+    const MapMap<dim,dim> *micro_mapmap;
     Vector<double> system_rhs;
     Vector<double> micro_contribution;
     const std::vector<Vector<double>> *micro_solutions;
     const int refine_level;
-
+    std::vector<Point<dim>> micro_grid_locations;
 };
 
 #endif //MACRO_H

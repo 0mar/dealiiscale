@@ -24,6 +24,7 @@ void MicroSolver<dim>::setup() {
     make_grid();
     setup_system();
     setup_scatter();
+    compute_pullback_objects();
 }
 
 template<int dim>
@@ -62,31 +63,22 @@ void MicroSolver<dim>::setup_scatter() {
 }
 
 template<int dim>
-void MicroSolver<dim>::get_pullback_objects(const Point<dim> &px, const Point<dim> &py, SymmetricTensor<2, dim> &kkt,
-                                            double &det_jac) const {
-    Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(px, py);
-    Tensor<2, dim> inv_jacobian = invert(jacobian);
-    det_jac = determinant(jacobian);
-    kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
-}
-
-template<int dim>
 void MicroSolver<dim>::compute_pullback_objects() {
     QGauss<dim> quadrature_formula(fem_quadrature);
     FEValues<dim> fe_values(fe, quadrature_formula, update_quadrature_points);
-    const unsigned int n_q_points = quadrature_formula.size();
-
     std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
     SymmetricTensor<2, dim> kkt;
     double det_jac;
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         for (unsigned int k = 0; k < num_grids; k++) {
-            Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(px, py);
-            Tensor<2, dim> inv_jacobian = invert(jacobian);
-            det_jac = determinant(jacobian);
-            kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
-
+            for (unsigned int q_index = 0;q_index < quadrature_formula.size();q_index++) {
+                Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(grid_locations.at(k), fe_values.quadrature_point(q_index));
+                Tensor<2, dim> inv_jacobian = invert(jacobian);
+                det_jac = determinant(jacobian);
+                kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
+                mapmap.set(grid_locations.at(k),fe_values.quadrature_point(q_index),det_jac,kkt);
+            }
         }
     }
 }
@@ -130,7 +122,7 @@ void MicroSolver<dim>::assemble_system() {
         for (unsigned int k = 0; k < num_grids; k++) {
             cell_matrix = 0;
             for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
-                get_pullback_objects(grid_locations.at(k), fe_values.quadrature_point(q_index), kkt, det_jac);
+                mapmap.get(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac, kkt);
                 if (k == 1) {
 //                    std::cout << kkt << "\t" << det_jac << std::endl;
                 }
@@ -154,7 +146,7 @@ void MicroSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
                     //Todo: only compute determinant here.
-                    get_pullback_objects(grid_locations.at(k), fe_values.quadrature_point(q_index), kkt, det_jac);
+                    mapmap.get_det_jac(grid_locations.at(k),fe_values.quadrature_point(q_index),det_jac);
                     const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
                                                                       fe_values.quadrature_point(q_index));
                     double rhs_val = pde_data.rhs.mvalue(grid_locations.at(k), mapped_p);
