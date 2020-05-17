@@ -226,10 +226,13 @@ void MicroSolver<dim>::set_exact_solution() {
     MappingQ1<dim> mapping;
     DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
     for (unsigned int k = 0; k < num_grids; k++) {
-        for (unsigned int i = 0; i < solutions.at(k).size(); i++) {
-            solutions.at(k)(i) = pde_data.solution.mvalue(grid_locations.at(k), locations.at(i));
-        }
-//        VectorTools::project(mapping,dof_handler,AffineConstraints<double>(),QGauss<dim>(fem_quadrature), pde_data.solution,solutions.at(k));
+//        for (unsigned int i = 0; i < solutions.at(k).size(); i++) {
+//            solutions.at(k)(i) = pde_data.solution.mvalue(grid_locations.at(k), locations.at(i));
+//        }
+        pde_data.solution.set_macro_point(grid_locations.at(k));
+        AffineConstraints<double> constraints;
+        constraints.close();
+        VectorTools::project(mapping,dof_handler,constraints,QGauss<dim>(fem_quadrature), pde_data.solution,solutions.at(k));
     }
 }
 
