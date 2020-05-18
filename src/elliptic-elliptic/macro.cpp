@@ -122,10 +122,10 @@ void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> difference_per_cell(n_active);
     VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(8),
                                       VectorTools::L2_norm);
-    l2_error = difference_per_cell.l2_norm();
+    l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::L2_norm);
     VectorTools::integrate_difference(dof_handler, solution, pde_data.solution, difference_per_cell, QGauss<dim>(8),
                                       VectorTools::H1_seminorm);
-    h1_error = difference_per_cell.l2_norm();
+    h1_error = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::H1_seminorm);
 }
 
 template<int dim>

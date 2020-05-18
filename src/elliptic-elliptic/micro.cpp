@@ -72,12 +72,13 @@ void MicroSolver<dim>::compute_pullback_objects() {
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         for (unsigned int k = 0; k < num_grids; k++) {
-            for (unsigned int q_index = 0;q_index < quadrature_formula.size();q_index++) {
-                Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(grid_locations.at(k), fe_values.quadrature_point(q_index));
+            for (unsigned int q_index = 0; q_index < quadrature_formula.size(); q_index++) {
+                Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(grid_locations.at(k),
+                                                                         fe_values.quadrature_point(q_index));
                 Tensor<2, dim> inv_jacobian = invert(jacobian);
                 det_jac = determinant(jacobian);
                 kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
-                mapmap.set(grid_locations.at(k),fe_values.quadrature_point(q_index),det_jac,kkt);
+                mapmap.set(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac, kkt);
             }
         }
     }
@@ -146,7 +147,7 @@ void MicroSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
                     //Todo: only compute determinant here.
-                    mapmap.get_det_jac(grid_locations.at(k),fe_values.quadrature_point(q_index),det_jac);
+                    mapmap.get_det_jac(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac);
                     const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
                                                                       fe_values.quadrature_point(q_index));
                     double rhs_val = pde_data.rhs.mvalue(grid_locations.at(k), mapped_p);
@@ -196,21 +197,25 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
                                           QGauss<dim>(fem_quadrature),
                                           VectorTools::L2_norm);
-        double micro_l2_error = difference_per_cell.l2_norm();
+        double micro_l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                  VectorTools::L2_norm);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
                                           QGauss<dim>(fem_quadrature),
                                           VectorTools::H1_seminorm);
-        double micro_h1_error = difference_per_cell.l2_norm();
+        double micro_h1_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                  VectorTools::H1_seminorm);
         macro_domain_l2_error(k) = micro_l2_error;
         macro_domain_h1_error(k) = micro_h1_error;
     }
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(fem_quadrature), VectorTools::L2_norm);
-    l2_error = macro_integral.l2_norm();
+    l2_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
+                                                 VectorTools::L2_norm);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_h1_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(fem_quadrature), VectorTools::L2_norm);
-    h1_error = macro_integral.l2_norm();
+    h1_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
+                                                 VectorTools::L2_norm); //todo: Not sure about this norm, although output is consistent
 }
 
 template<int dim>
@@ -226,13 +231,13 @@ void MicroSolver<dim>::set_exact_solution() {
     MappingQ1<dim> mapping;
     DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
     for (unsigned int k = 0; k < num_grids; k++) {
-//        for (unsigned int i = 0; i < solutions.at(k).size(); i++) {
-//            solutions.at(k)(i) = pde_data.solution.mvalue(grid_locations.at(k), locations.at(i));
-//        }
-        pde_data.solution.set_macro_point(grid_locations.at(k));
-        AffineConstraints<double> constraints;
-        constraints.close();
-        VectorTools::project(mapping,dof_handler,constraints,QGauss<dim>(fem_quadrature), pde_data.solution,solutions.at(k));
+        for (unsigned int i = 0; i < solutions.at(k).size(); i++) {
+            solutions.at(k)(i) = pde_data.solution.mvalue(grid_locations.at(k), locations.at(i));
+        }
+//        pde_data.solution.set_macro_point(grid_locations.at(k));
+//        AffineConstraints<double> constraints;
+//        constraints.close();
+//        VectorTools::project(mapping,dof_handler,constraints,QGauss<dim>(fem_quadrature), pde_data.solution,solutions.at(k));
     }
 }
 
