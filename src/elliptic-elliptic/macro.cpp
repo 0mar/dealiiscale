@@ -46,13 +46,12 @@ void MacroSolver<dim>::setup_system() {
 
 template<int dim>
 Vector<double> MacroSolver<dim>::get_exact_solution() const {
+    std::cout << "Exact macro-solution set" << std::endl;
     Vector<double> exact_values(dof_handler.n_dofs());
     MappingQ1<dim> mapping;
-    std::vector<Point<dim>> dof_locations(dof_handler.n_dofs());
-    DoFTools::map_dofs_to_support_points(mapping, dof_handler, dof_locations);
-    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
-        exact_values[i] = pde_data.solution.value(dof_locations[i]);
-    }
+    AffineConstraints<double> constraints;
+    constraints.close();
+    VectorTools::project(mapping, dof_handler, constraints, QGauss<dim>(8), pde_data.solution, exact_values);
     return exact_values;
 }
 
@@ -182,8 +181,9 @@ double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
                 fe_face_values.reinit(cell, face_number);
                 fe_face_values.get_function_gradients(micro_solutions->at(micro_index), solution_gradient);
                 for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
-                    Assert(false,ExcNotImplemented("Flux integrals with mappings not implemented yet"))
-                    micro_mapmap->get_det_jac(micro_grid_locations.at(micro_index), fe_face_values.quadrature_point(q_index),
+                    Assert(false, ExcNotImplemented("Flux integrals with mappings not implemented yet"))
+                    micro_mapmap->get_det_jac(micro_grid_locations.at(micro_index),
+                                              fe_face_values.quadrature_point(q_index),
                                               det_jac);
                     double neumann = solution_gradient[q_index] * fe_face_values.normal_vector(q_index);
                     integral += neumann / det_jac * fe_face_values.JxW(q_index);
