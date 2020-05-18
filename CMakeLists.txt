@@ -105,6 +105,5 @@ enable_testing()
 add_definitions(-DBOOST_TEST_DYN_LINK)
 add_test(test_tools test_tools)
 
-# Run everytime we make: symlink input and result directory
-add_custom_command(TARGET solve_elliptic solve_parabolic transform POST_BUILD
-        COMMAND ${CMAKE_SOURCE_DIR}/populate.sh "${CMAKE_SOURCE_DIR}" "${CMAKE_BINARY_DIR}" )
+# Symlink input and result directory into build directory
+execute_process(COMMAND ${CMAKE_SOURCE_DIR}/populate.sh "${CMAKE_SOURCE_DIR}" "${CMAKE_BINARY_DIR}")
