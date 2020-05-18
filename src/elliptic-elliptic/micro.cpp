@@ -226,12 +226,11 @@ void MicroSolver<dim>::run() {
 template<int dim>
 void MicroSolver<dim>::set_exact_solution() {
     std::cout << "Exact micro-solution set" << std::endl;
-    std::vector<Point<dim>> locations(dof_handler.n_dofs());
     MappingQ1<dim> mapping;
+    AffineConstraints<double> constraints; // Object that is necessary to use `Vectortools::project`
+    constraints.close();
     for (unsigned int k = 0; k < num_grids; k++) {
         pde_data.solution.set_macro_point(grid_locations.at(k));
-        AffineConstraints<double> constraints;
-        constraints.close();
         VectorTools::project(mapping, dof_handler, constraints, QGauss<dim>(fem_quadrature), pde_data.solution,
                              solutions.at(k));
     }

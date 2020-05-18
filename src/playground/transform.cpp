@@ -159,6 +159,8 @@ public:
 
     void refine();
 
+    void set_exact_solution();
+
 private:
     void make_grid();
 
@@ -238,7 +240,7 @@ void RobinSolver::assemble_system() {
                                           kkt *
                                           fe_values.shape_grad(j, q_index) *
                                           fe_values.JxW(q_index)) * det_jac;
-                    std::cout << cell_matrix(i,j) << std::endl;
+//                    std::cout << cell_matrix(i,j) << std::endl;
                 }
 //                double debug_info = solution_base.rhs.value(dm.map(fe_values.quadrature_point(q_index)));
 //                std::cout << i << "\t" << q_index << "\t" << debug_info << std::endl;
@@ -261,7 +263,7 @@ void RobinSolver::assemble_system() {
 //        std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
         }
     }
-    std::cout << system_rhs << std::endl;
+//    std::cout << system_rhs << std::endl;
     std::map<types::global_dof_index, double> boundary_values;
     VectorTools::interpolate_boundary_values(dof_handler, 0, solution_base.ref_solution, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
@@ -272,6 +274,15 @@ void RobinSolver::solve() {
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs,
                  PreconditionIdentity());
+    set_exact_solution();
+}
+
+
+void RobinSolver::set_exact_solution() {
+    MappingQ1<2> mapping;
+    AffineConstraints<double> constraints;
+    constraints.close();
+    VectorTools::project(mapping, dof_handler, constraints, QGauss<2>(5), solution_base.ref_solution, solution);
 }
 
 void RobinSolver::process_solution() {
@@ -393,7 +404,7 @@ int main(int argc, char *argv[]) {
         id = argv[1];
     }
     RobinSolver poisson_problem(id);
-    for (unsigned int i = 2; i < 3; i++) {
+    for (unsigned int i = 2; i < 7; i++) {
         poisson_problem.refine();
         poisson_problem.run();
     }
