@@ -11,5 +11,9 @@ SOURCE="$1"
 BUILD="$2"
 for script in "$SOURCE"/{input,results}
 do
-    ln -fs $(readlink -f "$script") "$BUILD/$(basename $script)"
+    LINK="$BUILD/$(basename $script)"
+    if  [[ ! -L "$LINK" ]]
+    then
+        ln -fs $(readlink -f "$script") "$LINK"
+    fi
 done
