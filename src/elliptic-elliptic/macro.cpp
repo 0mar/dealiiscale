@@ -155,7 +155,7 @@ double MacroSolver<dim>::get_micro_bulk(unsigned int cell_index) const {
         for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
             micro_mapmap->get_det_jac(micro_grid_locations.at(cell_index), fe_values.quadrature_point(q_index),
                                       det_jac);
-            integral += interp_solution[q_index] / det_jac * fe_values.JxW(q_index);
+            integral += interp_solution[q_index] * fe_values.JxW(q_index);
         }
     }
     return integral;
