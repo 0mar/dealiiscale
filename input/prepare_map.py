@@ -91,8 +91,8 @@ def write_param_file(filename, funcs):
 def create_new_case(name, u_def, v_def, chi_def):
     xvars = symbols('x0 x1')
     yvars = symbols('y0 y1')
-    u = parse_expr(u_def.replace('^','**'))
-    v = parse_expr(v_def.replace('^','**'))
+    u = parse_expr(u_def.replace('^', '**'))
+    v = parse_expr(v_def.replace('^', '**'))
     chi = parse_mapping(chi_def.replace('^', '**'))
     funcs = compute_solution_set(u, v, chi, xvars, yvars)
     write_param_file(name, funcs)
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         if not name:
             name = "test"
         print("u(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nchi(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (
-        u, v, chi, name), flush=True)
+            u, v, chi, name), flush=True)
         input("If happy, press enter, else Ctrl-C: ")
         create_new_case(name, u, v, chi)
         print("Successfully written new parameter set")
