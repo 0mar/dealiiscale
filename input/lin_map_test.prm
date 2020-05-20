@@ -1,11 +1,10 @@
-set macro_geometry = [-1,1]x[-1,1]
-set macro_rhs = 0
-set macro_solution = 5
+set macro_rhs = -5.34314115520290
+set micro_rhs = 5*y0*sin(y1) - 5
 set macro_bc = 5
-
-set micro_solution = y0*sin(y1)* 5
-set micro_bc =  y0*sin(y1) * 5
-set micro_rhs = y0*sin(y1)*5 - 5
+set micro_bc = 5*y0*sin(y1)
+set macro_solution = 5
+set micro_solution = 5*y0*sin(y1)
+set mapping = 1.5*y0 + 0.7*y1;-0.2*y0 + 2.3*y1
+set jac_mapping = 1.50000000000000;0.700000000000000;-0.200000000000000;2.30000000000000
 set micro_geometry = [-1,1]x[-1,1]
-set mapping = 2.3*y0 - 0.2*y1;-0.2*y0 + 2.3 * y1
-set jac_mapping = 2.3;-0.2;-0.2;2.3
+set macro_geometry = [-1,1]x[-1,1]
