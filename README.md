@@ -20,7 +20,9 @@ Most popular distros have deal.II available in their repos. For Ubuntu (20.04), 
 
 ```bash
 sudo apt install libdeal.ii-dev
-``` 
+```
+
+For older versions, backports can be installed from [this](https://launchpad.net/~ginggs/+archive/ubuntu/deal.ii-backports) repo.
 
 ## Docker installation
 
@@ -36,19 +38,19 @@ git clone git@github.com:0mar/dealiiscale.git # Clone the source code
 docker pull dealii/dealii:v9.1.1-gcc-mpi-fulldepscandi-debugrelease # Pull the docker image with deal.II installed
 # Now start the container and mount the source directory and drop in
 docker run --name dealii -v /path/to/dealiiscale:/home/dealii/dealiiscale -i -t dealii/dealii:v9.1.1-gcc-mpi-fulldepscandi-debugrelease
-cd dealiiscale # Enter the source directory (inside the container) 
+cd dealiiscale # Enter the source directory (inside the container)
 mkdir build # Create a build folder
 cd build
 cmake .. # Setup the compilation structure (debug by default)
 make # Compile all sources
-``` 
+```
 
 ## Configuring CMake for deal.II
 
 deal.II uses CMake for its compilation process, as does this repo. If for some reason CMake is not present on your system, it is easily installed using [Homebrew][4] (Mac) or `apt-get` (Debian/Ubuntu).
 
 
-For Mac, Opening the OS X deal.II app will open a shell with preset environment variables that make compilation of your programs 'easy'. 
+For Mac, Opening the OS X deal.II app will open a shell with preset environment variables that make compilation of your programs 'easy'.
 For some reason, this app takes quite some time to load, and its structure does not (by default) allow for the use of IDEs or other shells/terminals.
 
 Luckily, we do not need to open the deal.II app to compile our programs, since we can point CMake to the installation.
@@ -69,30 +71,31 @@ For a full (but not minimal) example of a deal.II CMake file, check the reposito
 
 ## Compiling the source code
 
-To build and install the binaries in directory `bin` with a functioning CMake file, one can run the following commands:
+To build and install the binaries in directory `build` with a functioning CMake file, one can run the following commands:
 
 ```bash
 git clone git@github.com:0mar/dealiiscale.git # if you haven't cloned the repository yet
-mkdir bin
-cd bin
-cmake ..
+mkdir build
+cd build
+cmake .. # debug version
 make
-``` 
+```
 
 This builds a debug version of the code. One can then run any of the created binaries, e.g. `manufactured`, like this:
 
 ```bash
-cd bin
-./manufactured
-``` 
+cd build
+./solve_elliptic
+```
 ## Tests
 
-This framework has tests (present in `tests`) that use Boost's test framework. This might need to be installed, but since deal.II itself also uses the Boost testing suite, this is no extra prerequisite.
-Run tests with 
+This framework has some unit tests (present in `tests`) that use Boost's test framework. This might need to be installed, but since deal.II itself also uses the Boost testing suite, this is no extra prerequisite.
+Run tests with
 ```bash
 cd bin
 make test
-``` 
+```
+Currently, tests are only present for self-developed extensions of the deal.II library.
 ## Solver gallery
 
 deal.II comes with many examples, located in `/Applications/deal.II-9.1.1.app/Contents/Resources/examples`, also found in a more legible format on the [tutorial page][5].
@@ -105,7 +108,7 @@ Currently, the working implementations are:
 - `elliptic-parabolic`
     * `solve_parabolic`, a multiscale elliptic-parabolic solver (work in progress, main target of this exercise).
 - `playground` (collection of separate tests and implementations)
-    * `dirichlet`, a Poisson problem in a circular domain. 
+    * `dirichlet`, a Poisson problem in a circular domain.
     * `robin`, a Poisson problem with Robin boundary conditions.
     * `simple`, a (deprecated) working start for the target system.
     * `integration`, an example/convergence test on how to compute bulk and flux integrals.
@@ -121,7 +124,7 @@ To test and create a report for the `elliptic-elliptic` implementations (current
 ./separated
 cd results
 make
-``` 
+```
 
 This will post-process the output of the binaries into a (slightly outdated) latex report and compile it (requires `pdftex`)
 
