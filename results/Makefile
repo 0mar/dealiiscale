@@ -1,6 +1,6 @@
-report.pdf: report.tex plot*.pdf
-	pdflatex report.tex && \
-		pdflatex report.tex
+ell-par.pdf: ell-par.tex plot*.pdf
+	pdflatex ell-par.tex && \
+		pdflatex ell-par.tex
 
 plot*.pdf: plot_convergence.py *-convergence.txt
 	python3 plot_convergence.py
