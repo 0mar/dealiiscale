@@ -2,6 +2,9 @@
 import sympy
 from sympy.parsing.sympy_parser import parse_expr
 import re
+import sys
+from configparser import ConfigParser
+
 
 def laplace(f, vars):
     return sum([sympy.diff(f, i, i) for i in vars])
@@ -65,7 +68,7 @@ def compute_solution_set(pi, rho, xvars, yvars, t, consts, nonlinear):
     del_rho = laplace(rho, yvars)
     macro_rhs = - macro_functional(pi, rho, yvars, consts, nonlinear) - consts['A'] * del_pi
     micro_rhs = time_deriv(rho, t) - consts['D'] * del_rho
-    VERTICAL, HORIZONTAL= 0, 1
+    VERTICAL, HORIZONTAL = 0, 1
     neumann_rhs = consts['D'] * boundary_flux(rho, yvars, HORIZONTAL)
     robin_rhs = consts['D'] * boundary_flux(rho, yvars, VERTICAL) - consts['kappa'] * (
             pi + consts['p_F'] - consts['R'] * rho)
@@ -109,7 +112,7 @@ def create_new_case(name, pi_def, rho_def, nonlinear):
     write_param_file(name, funcs, const_vals)
 
 
-if __name__ == '__main__':
+def parabolic_wizard():
     print("Manufactured function creator.\n"
           "We solve an elliptic-parabolic system.\n"
           "Dimensions 2, use x0,...,xd for the macro variable, "
@@ -122,7 +125,7 @@ if __name__ == '__main__':
         rho = "exp(-2*D*t)*cos(y0)*cos(y1)"
 
     nonlinear = input("Running nonlinear version? [1/0]: ")
-    nonlinear = nonlinear not in {'n','0','','N'}
+    nonlinear = nonlinear not in {'n', '0', '', 'N'}
     print("Nonlinearity set to %s" % nonlinear)
     name = input("Supply solution set name: ")
     print("pi(x0,...,xd) = %s\nv(x0,...,xd,y0,...,yd) = %s\nStoring in '%s.prm'" % (pi, rho, name), flush=True)
@@ -130,13 +133,27 @@ if __name__ == '__main__':
     create_new_case(name, pi, rho, nonlinear)
     print("Successfully written new parameter set")
 
-# u = sin(x0*x1) + cos(x0 + x1)
-# v = exp(y0**2 + y1**2) + x0**2 + x1**2
-# a,b = symbols('a b', nonzero=True)
-# w = exp(a*x0+b*x1)
-#
-# del_u = laplace(u,[x0,x1])
-# del_v = laplace(v,[y0,y1])
-#
-# print(grad(w,[x0,x1]))
-# print(boundary_integral(w,[x0,x1]))
+
+def read_functions(config_file):
+    config = ConfigParser()
+    config.read(config_file)
+    try:
+        name = re.search(r'(.*/)?([^/]+)\.ini', config_file).group(2)
+    except AttributeError:
+        raise ValueError("Make sure config file ends with '.ini'")
+    pi = config.get('functions', 'pi')
+    rho = config.get('functions', 'rho')
+    nonlinear = config.getboolean('functions', 'nonlinear')
+    create_new_case(name, pi, rho, nonlinear)
+    print("Successfully written new parameter set")
+
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        print("Manufactured system creation wizard")
+        parabolic_wizard()
+    elif len(sys.argv) == 2:
+        filename = sys.argv[1]
+        raise NotImplementedError("Does not read from files yet")
+    else:
+        raise ValueError("Too many arguments")

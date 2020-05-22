@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from sympy import *
 from sympy.parsing.sympy_parser import parse_expr
-import sys
+import sys, re
+from configparser import ConfigParser
 
 
 def laplace(f, vars):
@@ -120,12 +121,26 @@ def elliptic_wizard():
     print("Successfully written new parameter set")
 
 
+def read_functions(config_file):
+    config = ConfigParser()
+    config.read(config_file)
+    try:
+        name = re.search(r'(.*/)?([^/]+)\.ini', config_file).group(2)
+    except AttributeError:
+        raise ValueError("Make sure config file ends with '.ini'")
+    u = config.get('functions', 'u')
+    v = config.get('functions', 'v')
+    chi = config.get('functions', 'chi')
+    create_new_elliptic_case(name, u, v, chi)
+    print("Successfully written new parameter set")
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print("Manufactured system creation wizard")
         elliptic_wizard()
     elif len(sys.argv) == 2:
         filename = sys.argv[1]
-        raise NotImplementedError("Does not read from files yet")
+        read_functions(filename)
     else:
         raise ValueError("Too many arguments")
