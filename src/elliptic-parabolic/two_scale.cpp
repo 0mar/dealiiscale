@@ -3,6 +3,7 @@
  */
 
 #include <deal.II/base/logstream.h>
+#include <regex>
 #include "time_manager.h"
 #include <cmath>
 #include <cstdio>
@@ -12,8 +13,11 @@
  * @return 0
  */
 
-void run(const std::string &id) {
-    const std::string input_path = "input/" + id + ".prm";
+void run(const std::string &input_path) {
+    const std::regex r("input/(.+).prm");
+    std::smatch m;
+    std::regex_search(input_path,m,r);
+    const std::string id = m[1];
     const std::string output_path = "results/" + id + "_" + "convergence_table.txt";
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
@@ -28,8 +32,11 @@ void run(const std::string &id) {
     }
 }
 
-void plot(const std::string &id) {
-    const std::string input_path = "input/" + id + ".prm";
+void plot(const std::string &input_path) {
+    const std::regex r("input/(.+).prm");
+    std::smatch m;
+    std::regex_search(input_path,m,r);
+    const std::string id = m[1];
     const std::string output_path = "/dev/null";
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
@@ -69,17 +76,17 @@ void plot(const std::string &id) {
 
 int main(int argc, char *argv[]) {
     dealii::deallog.depth_console(0);
-    std::string id = "full_nonlinear";
+    const std::string input_path = "input/full_nonlinear.prm";
     if (argc == 2) {
-        id = argv[1];
+        input_path = argv[1];
     } else if (argc > 2) {
         std::cout << "Too many arguments" << std::endl;
         return 1;
     }
-    if (id == "paper_plot") {
-        plot(id);
+    if (input_path == "input/paper_plot.prm") {
+        plot(input_path);
     } else {
-        run(id);
+        run(input_path);
     }
 
     return 0;

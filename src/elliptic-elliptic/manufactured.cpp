@@ -4,15 +4,17 @@
 
 #include <deal.II/base/logstream.h>
 #include "manager.h"
-#include <cmath>
-
+#include <regex>
 /**
  * Run that solver
  * @return 0
  */
 
-void run(const std::string &id) {
-    const std::string input_path = "input/" + id + ".prm";
+void run(const std::string &input_path) {
+    const std::regex r("input/(.+).prm");
+    std::smatch m;
+    std::regex_search(input_path,m,r);
+    const std::string id = m[1];
     const std::string output_path = "results/" + id + "_" + "convergence_table.txt";
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
@@ -26,7 +28,7 @@ void run(const std::string &id) {
 
 int main(int argc, char *argv[]) {
     dealii::deallog.depth_console(0);
-    std::string id = "map_test";
+    std::string id = "input/map_test.prm";
     if (argc == 2) {
         id = argv[1];
     } else if (argc > 2) {
