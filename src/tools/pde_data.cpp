@@ -23,8 +23,8 @@ MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(param
     params.parse_input(param_file);
 
     std::map<std::string, double> constants;
-    macro.rhs.initialize(MultiscaleData < dim > ::macro_variables(), params.get("macro_rhs"), constants);
-    macro.bc.initialize(MultiscaleData < dim > ::macro_variables(), params.get("macro_bc"), constants);
+    macro.rhs.initialize(MultiscaleData<dim>::macro_variables(), params.get("macro_rhs"), constants);
+    macro.bc.initialize(MultiscaleData<dim>::macro_variables(), params.get("macro_bc"), constants);
     macro.solution.initialize(MultiscaleData<dim>::macro_variables(), params.get("macro_solution"), constants);
     micro.mapping.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("mapping"), constants);
 
@@ -102,6 +102,15 @@ void TwoPressureData<dim>::set_time(const double time) {
 }
 
 // Explicit instantiation
+
+template
+struct MicroFEMObjects<1>;
+
+template
+struct MicroFEMObjects<2>;
+
+template
+struct MicroFEMObjects<3>;
 
 template
 struct MacroData<1>;

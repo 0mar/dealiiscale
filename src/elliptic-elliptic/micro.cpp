@@ -8,12 +8,16 @@
 using namespace dealii;
 
 template<int dim>
-MicroSolver<dim>::MicroSolver(MicroData <dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
-                                                                                        refine_level(refine_level),
-                                                                                        fe(1),
-                                                                                        macro_solution(nullptr),
-                                                                                        macro_dof_handler(nullptr),
-                                                                                        pde_data(micro_data) {
+MicroSolver<dim>::MicroSolver(MicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
+                                                                                       refine_level(refine_level),
+                                                                                       fe(1),
+                                                                                       macro_solution(nullptr),
+                                                                                       macro_dof_handler(nullptr),
+                                                                                       pde_data(micro_data),
+                                                                                       fem_objects{&solutions,
+                                                                                                   &dof_handler,
+                                                                                                   &mapmap,
+                                                                                                   &fem_quadrature} {
     printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
     fem_quadrature = 8;
@@ -64,9 +68,9 @@ void MicroSolver<dim>::setup_scatter() {
 
 template<int dim>
 void MicroSolver<dim>::compute_pullback_objects() {
-    QGauss <dim> quadrature_formula(fem_quadrature);
-    FEValues <dim> fe_values(fe, quadrature_formula, update_quadrature_points);
-    std::vector <types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
+    QGauss<dim> quadrature_formula(fem_quadrature);
+    FEValues<dim> fe_values(fe, quadrature_formula, update_quadrature_points);
+    std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
     SymmetricTensor<2, dim> kkt;
     double det_jac;
     for (const auto &cell: dof_handler.active_cell_iterators()) {
@@ -85,7 +89,7 @@ void MicroSolver<dim>::compute_pullback_objects() {
 }
 
 template<int dim>
-void MicroSolver<dim>::set_macro_solution(Vector<double> *_solution, DoFHandler <dim> *_dof_handler) {
+void MicroSolver<dim>::set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler) {
     this->macro_solution = _solution;
     this->macro_dof_handler = _dof_handler;
 }
@@ -97,10 +101,10 @@ void MicroSolver<dim>::compute_macroscopic_contribution() {
 
 template<int dim>
 void MicroSolver<dim>::assemble_system() {
-    QGauss <dim> quadrature_formula(fem_quadrature);
-    FEValues <dim> fe_values(fe, quadrature_formula,
-                             update_values | update_gradients |
-                             update_quadrature_points | update_JxW_values);
+    QGauss<dim> quadrature_formula(fem_quadrature);
+    FEValues<dim> fe_values(fe, quadrature_formula,
+                            update_values | update_gradients |
+                            update_quadrature_points | update_JxW_values);
 
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
@@ -109,7 +113,7 @@ void MicroSolver<dim>::assemble_system() {
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
 
-    std::vector <types::global_dof_index> local_dof_indices(dofs_per_cell);
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     for (unsigned int k = 0; k < num_grids; k++) {
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
@@ -147,8 +151,8 @@ void MicroSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
                     mapmap.get_det_jac(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac);
-                    const Point <dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
-                                                                       fe_values.quadrature_point(q_index));
+                    const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
+                                                                      fe_values.quadrature_point(q_index));
                     double rhs_val = pde_data.rhs.mvalue(grid_locations.at(k), mapped_p);
 //                    double debug_info = (*macro_solution)(k) + rhs_val;
 //                    if (k==1) std::cout << i << "\t" << q_index << "\t" << debug_info << std::endl;
@@ -242,7 +246,7 @@ unsigned int MicroSolver<dim>::get_num_grids() const {
 }
 
 template<int dim>
-void MicroSolver<dim>::set_grid_locations(const std::vector <Point<dim>> &locations) {
+void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations) {
     grid_locations = locations;
     num_grids = locations.size();
 }

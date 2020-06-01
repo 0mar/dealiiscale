@@ -11,8 +11,6 @@ using namespace dealii;
 template<int dim>
 MacroSolver<dim>::MacroSolver(MacroData<dim> &macro_data, unsigned int refine_level):dof_handler(triangulation),
                                                                                      pde_data(macro_data), fe(1),
-                                                                                     micro_dof_handler(nullptr),
-                                                                                     micro_solutions(nullptr),
                                                                                      refine_level(refine_level) {
     printf("Solving macro problem in %d space dimensions\n", dim);
 }
@@ -128,32 +126,28 @@ void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
 }
 
 template<int dim>
-void MacroSolver<dim>::set_micro_objects(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler,
-                                         MapMap<dim, dim> *_micro_mapmap) {
-    this->micro_solutions = _solutions;
-    this->micro_dof_handler = _dof_handler;
-    this->micro_mapmap = _micro_mapmap;
-
+void MacroSolver<dim>::set_micro_objects(const MicroFEMObjects<dim> &micro_fem_objects) {
+    this->micro = micro_fem_objects;
 }
 
 template<int dim>
 double MacroSolver<dim>::get_micro_bulk(unsigned int cell_index) const {
     // manufactured as: f(x) = \int_Y \rho(x,y)dy
     double integral = 0;
-    QGauss<dim> quadrature_formula(8); //fixme: This is obviously a function of the micro. Should be micro.quadrature
-    FEValues<dim> fe_values(micro_dof_handler->get_fe(), quadrature_formula,
+    QGauss<dim> quadrature_formula(*(micro.q_degree));
+    FEValues<dim> fe_values(micro.dof_handler->get_fe(), quadrature_formula,
                             update_values | update_quadrature_points | update_JxW_values);
-    const unsigned int dofs_per_cell = micro_dof_handler->get_fe().dofs_per_cell;
+    const unsigned int dofs_per_cell = micro.dof_handler->get_fe().dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     double det_jac;
-    for (const auto &cell: micro_dof_handler->active_cell_iterators()) {
+    for (const auto &cell: micro.dof_handler->active_cell_iterators()) {
         fe_values.reinit(cell);
         cell->get_dof_indices(local_dof_indices);
         std::vector<double> interp_solution(n_q_points);
-        fe_values.get_function_values(micro_solutions->at(cell_index), interp_solution);
+        fe_values.get_function_values(micro.solutions->at(cell_index), interp_solution);
         for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-            micro_mapmap->get_det_jac(micro_grid_locations.at(cell_index), fe_values.quadrature_point(q_index),
+            micro.mapmap->get_det_jac(micro_grid_locations.at(cell_index), fe_values.quadrature_point(q_index),
                                       det_jac);
             integral += interp_solution[q_index] * fe_values.JxW(q_index);
         }
@@ -165,24 +159,23 @@ double MacroSolver<dim>::get_micro_bulk(unsigned int cell_index) const {
 template<int dim>
 double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
     // Computed as: f(x) = \int_\Gamma_R \nabla_y \rho(x,y) \cdot n_y d_\sigma_y
-    const int integration_order = 8;
     double integral = 0;
-    QGauss<dim - 1> quadrature_formula(integration_order); // Not necessarily the same dim
-    FEFaceValues<dim> fe_face_values(micro_dof_handler->get_fe(),
+    QGauss<dim - 1> quadrature_formula(*(micro.q_degree)); // Not necessarily the same dim
+    FEFaceValues<dim> fe_face_values(micro.dof_handler->get_fe(),
                                      quadrature_formula,
                                      update_values | update_quadrature_points | update_JxW_values |
                                      update_normal_vectors | update_gradients);
     const unsigned int n_q_face_points = quadrature_formula.size();
     std::vector<Tensor<1, dim>> solution_gradient(n_q_face_points);
     double det_jac;
-    for (const auto &cell: micro_dof_handler->active_cell_iterators()) {
+    for (const auto &cell: micro.dof_handler->active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary()) {
                 fe_face_values.reinit(cell, face_number);
-                fe_face_values.get_function_gradients(micro_solutions->at(micro_index), solution_gradient);
+                fe_face_values.get_function_gradients(micro.solutions->at(micro_index), solution_gradient);
                 for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                     Assert(false, ExcNotImplemented("Flux integrals with mappings not implemented yet"))
-                    micro_mapmap->get_det_jac(micro_grid_locations.at(micro_index),
+                    micro.mapmap->get_det_jac(micro_grid_locations.at(micro_index),
                                               fe_face_values.quadrature_point(q_index),
                                               det_jac);
                     double neumann = solution_gradient[q_index] * fe_face_values.normal_vector(q_index);

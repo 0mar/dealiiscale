@@ -35,11 +35,12 @@
 #include <iostream>
 #include <string>
 #include <cmath>
-#include <stdlib.h>
+#include <cstdlib>
 #include <deal.II/base/logstream.h>
 #include "../tools/multiscale_function_parser.h"
 #include "../tools/pde_data.h"
 #include "../tools/mapping.h"
+
 using namespace dealii;
 
 
@@ -67,7 +68,7 @@ public:
      * @param _solution Pointer to the macroscopic solution (so that the content is always up to date).
      * @param _dof_handler pointer to the DoF handler.
      */
-    void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler); // todo: make reference here.
+    void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler);
 
     /**
      * Post-process the solution (write convergence estimates and other stuff)
@@ -80,7 +81,9 @@ public:
      */
     unsigned int get_num_grids() const;
 
-    /** debug **/
+    /**
+     * Used for debugging purposes and convergence testing
+     */
     void set_exact_solution();
 
     /**
@@ -92,7 +95,7 @@ public:
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
-    MapMap<dim,dim> mapmap;
+    MapMap<dim, dim> mapmap;
 private:
 
     /**
@@ -130,14 +133,10 @@ private:
     void compute_macroscopic_contribution();
 
     /**
-     * Compute pullback objects
+     * Compute objects required for the pullback of the PDE to the reference domain.
+     * This means mapping, its Jacobian, and its determinant.
      */
-
     void compute_pullback_objects();
-
-
-    void get_pullback_objects(const Point<dim> &px, const Point<dim> &py, SymmetricTensor<2, dim> &kkt,
-                              double &det_jac) const;
 
     // The level of refinement (every +1 means a bisection)
     const unsigned int refine_level;
@@ -159,11 +158,14 @@ private:
     // Macroscopic locations of individual microscopic domains
     std::vector<Point<dim>> grid_locations;
     // Precomputed inverse jacobians of mappings for each microscopic and macroscopic degree of freedom
-    std::vector<std::vector<SymmetricTensor<2,dim>>> kkts;
+    std::vector<std::vector<SymmetricTensor<2, dim>>> kkts;
     // Precomputed determinants of the jacobians for each microscopic and macroscopic degree of freedom
     std::vector<std::vector<double>> det_jacs;
     // Object containing microscopic problem data
     MicroData<dim> &pde_data;
+
+public:
+    MicroFEMObjects<dim> fem_objects;
 };
 
 #endif //MICRO_H

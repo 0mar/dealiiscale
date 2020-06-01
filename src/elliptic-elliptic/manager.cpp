@@ -23,7 +23,7 @@ void Manager::setup() {
     micro_solver.setup();
     // Couple the macro structures with the micro structures.
     micro_solver.set_macro_solution(&macro_solver.solution, &macro_solver.dof_handler);
-    macro_solver.set_micro_objects(&micro_solver.solutions, &micro_solver.dof_handler, &micro_solver.mapmap);
+    macro_solver.set_micro_objects(micro_solver.fem_objects);
 //    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
 //                                               "micro_convergence.txt"};
 //    for (const std::string &out_file_name: out_file_names) {

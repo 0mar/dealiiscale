@@ -8,12 +8,22 @@
 
 #include <deal.II/base/function_parser.h>
 #include <deal.II/base/parameter_handler.h>
+#include <deal.II/dofs/dof_accessor.h>
 #include <string>
 #include <cstdlib>
 #include "multiscale_function_parser.h"
+#include "mapping.h"
 #include <memory>
 
 using namespace dealii;
+
+template<int dim>
+struct MicroFEMObjects { // Can be moved to a different file if imports would give trouble at some point
+    const std::vector<Vector<double>> *solutions;
+    const DoFHandler<dim> *dof_handler;
+    const MapMap<dim, dim> *mapmap;
+    const unsigned int *q_degree;
+};
 
 /**
  * Struct containing all the macroscopic functions and parameters
