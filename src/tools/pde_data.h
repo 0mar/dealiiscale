@@ -52,8 +52,8 @@ struct MacroData {
  * the dimensions of the macroscale and microscale must be equal.
  */
 template<int dim>
-struct MicroData { // todo: Rename to EllipticMicroData
-    MicroData(ParameterHandler &params) : solution(), rhs(), bc(), mapping(dim), map_jac(dim * dim), params(params) {}
+struct EllipticMicroData {
+    EllipticMicroData(ParameterHandler &params) : solution(), rhs(), bc(), mapping(dim), map_jac(dim * dim), params(params) {}
 
     MultiscaleFunctionParser<dim> solution;
     MultiscaleFunctionParser<dim> rhs;
@@ -91,7 +91,7 @@ public:
 
     ParameterHandler params;
     MacroData<dim> macro;
-    MicroData<dim> micro;
+    EllipticMicroData<dim> micro;
 
     static std::string multiscale_variables();
 

@@ -51,7 +51,7 @@ public:
     /**
      * Create a Microsolver that resolves the microscopic systems.
      */
-    MicroSolver(MicroData<dim> &micro_data, unsigned int refine_level);
+    MicroSolver(EllipticMicroData<dim> &micro_data, unsigned int refine_level);
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -162,7 +162,7 @@ private:
     // Precomputed determinants of the jacobians for each microscopic and macroscopic degree of freedom
     std::vector<std::vector<double>> det_jacs;
     // Object containing microscopic problem data
-    MicroData<dim> &pde_data;
+    EllipticMicroData<dim> &pde_data;
 
 public:
     MicroFEMObjects<dim> fem_objects;

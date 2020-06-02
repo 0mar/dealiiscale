@@ -120,11 +120,11 @@ template
 struct MacroData<3>;
 
 template
-struct MicroData<1>;
+struct EllipticMicroData<1>;
 template
-struct MicroData<2>;
+struct EllipticMicroData<2>;
 template
-struct MicroData<3>;
+struct EllipticMicroData<3>;
 
 
 template

@@ -237,7 +237,7 @@ DEAL_II_NAMESPACE_OPEN
          */
         bool macro_set;
 
-        MultiscaleFunctionParser<dim> *mapper; // Todo: make const (object, not pointer)
+        const MultiscaleFunctionParser<dim> *mapper;
 
         /**
          * Number of variables. If this is also a function of time, then the number

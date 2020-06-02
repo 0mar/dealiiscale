@@ -8,13 +8,13 @@
 using namespace dealii;
 
 template<int dim>
-MicroSolver<dim>::MicroSolver(MicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
-                                                                                       refine_level(refine_level),
-                                                                                       fe(1),
-                                                                                       macro_solution(nullptr),
-                                                                                       macro_dof_handler(nullptr),
-                                                                                       pde_data(micro_data),
-                                                                                       fem_objects{&solutions,
+MicroSolver<dim>::MicroSolver(EllipticMicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
+                                                                                               refine_level(refine_level),
+                                                                                               fe(1),
+                                                                                               macro_solution(nullptr),
+                                                                                               macro_dof_handler(nullptr),
+                                                                                               pde_data(micro_data),
+                                                                                               fem_objects{&solutions,
                                                                                                    &dof_handler,
                                                                                                    &mapmap,
                                                                                                    &fem_quadrature} {
@@ -129,14 +129,12 @@ void MicroSolver<dim>::assemble_system() {
             for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
                 mapmap.get(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac, kkt);
                 if (k == 1) {
-//                    std::cout << kkt << "\t" << det_jac << std::endl;
                 }
                 for (unsigned int i = 0; i < dofs_per_cell; i++) {
 
                     for (unsigned int j = 0; j < dofs_per_cell; j++) {
                         cell_matrix(i, j) += fe_values.shape_grad(i, q_index) * kkt
                                              * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index) * det_jac;
-//                        std::cout << "matrix "<< cell_matrix(i, j)  << " or " << fe_values.shape_grad(i, q_index) * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index) << std::endl;
                     }
                 }
             }
@@ -146,7 +144,7 @@ void MicroSolver<dim>::assemble_system() {
                                               local_dof_indices[j],
                                               cell_matrix(i, j));
                 }
-            }// todo: Rearrange for loop
+            }
             cell_rhs = 0;
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
@@ -154,20 +152,14 @@ void MicroSolver<dim>::assemble_system() {
                     const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
                                                                       fe_values.quadrature_point(q_index));
                     double rhs_val = pde_data.rhs.mvalue(grid_locations.at(k), mapped_p);
-//                    double debug_info = (*macro_solution)(k) + rhs_val;
-//                    if (k==1) std::cout << i << "\t" << q_index << "\t" << debug_info << std::endl;
                     cell_rhs(i) += ((*macro_solution)(k) +
                                     rhs_val) *
                                    fe_values.shape_value(i, q_index) * fe_values.JxW(q_index) * det_jac;
                 }
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
-//                if (k==1) {
-//                    std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
-//                }
             }
         }
     }
-//    std::cout << righthandsides.at(1) << std::endl;
     for (unsigned int k = 0; k < num_grids; k++) {
         std::map<types::global_dof_index, double> boundary_values;
         pde_data.bc.set_macro_point(grid_locations.at(k));
