@@ -1,5 +1,7 @@
-set solution = (1-x)*x*(1-y)
-set jac_mapping = sqrt(2)*(2*x + 2)/2;-sqrt(2)*(2*y + 2)/2;sqrt(2)*(2*x + 2)/2;sqrt(2)*(2*y + 2)/2;
-set mapping = sqrt(2)*(x + 1)^2/2 - sqrt(2)*(y + 1)^2/2;sqrt(2)*(x + 1)^2/2 + sqrt(2)*(y + 1)^2/2;
-set rhs = -2*(y - 1)
-set ref_solution = (sqrt(2)*(x + 1)^2/2 - sqrt(2)*(y + 1)^2/2)*(-sqrt(2)*(x + 1)^2/2 - sqrt(2)*(y + 1)^2/2 + 1)*(-sqrt(2)*(x + 1)^2/2 + sqrt(2)*(y + 1)^2/2 + 1)
+set solution = sin(x)*y
+set jac_mapping = sqrt(2)*(2*x + 11/5)/2;-sqrt(2)*(2*y + 2)/2;sqrt(2)*(2*x + 2)/2;sqrt(2)*(2*y + 11/5)/2
+set mapping = sqrt(2)*(x + 11/10)^2/2 - sqrt(2)*(y + 1)^2/2;sqrt(2)*(x + 11/10)^2/2 + sqrt(2)*(y + 1)^2/2
+set rhs = sin(x)*y
+set neumann = sin(x)*y
+set robin = x*y*cos(x) + y*sin(x)
+set ref_solution = (sqrt(2)*(x + 1)^2/2 + sqrt(2)*(y + 11/10)^2/2)*sin(sqrt(2)*(x + 11/10)^2/2 - sqrt(2)*(y + 1)^2/2)

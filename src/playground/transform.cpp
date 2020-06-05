@@ -84,6 +84,8 @@ public:
     FunctionParser<dim> ref_solution;
     FunctionParser<dim> rhs;
     FunctionParser<dim> map;
+    FunctionParser<dim> robin;
+    FunctionParser<dim> neumann;
     std::unique_ptr<ParsedTensorFunction<dim>> map_jac;
     ParameterHandler params;
 private:
@@ -93,14 +95,20 @@ private:
 
 template<int dim>
 ProblemData<dim>::ProblemData(const std::string &param_file) : map(dim), map_jac_vector(dim * dim) {
-    params.declare_entry("solution", "(1-x)*x*(1-y)", Patterns::Anything());
-    params.declare_entry("rhs", "125*(9*x + 2*y)/6144 - 25*(5*x + 10*y - 32)/4608",
+    params.declare_entry("solution", "sin(x)*y", Patterns::Anything());
+    params.declare_entry("rhs", "sin(x)*y",
                          Patterns::Anything());
     params.declare_entry("ref_solution",
-                         "(2 - sqrt(-sqrt(2)*x/2 + sqrt(2)*y/2))*(2 - sqrt(sqrt(2)*x/2 + sqrt(2)*y/2))*(sqrt(sqrt(2)*x/2 + sqrt(2)*y/2) - 1)",
+                         " (sqrt(2)*(x + 1)^2/2 + sqrt(2)*(y + 1)^2/2)*sin(sqrt(2)*(x + 1)^2/2 - sqrt(2)*(y + 1)^2/2)",
                          Patterns::Anything());
-    params.declare_entry("jac_mapping", "1.6; -1.6; 2.4; 2.4;", Patterns::Anything());
-    params.declare_entry("mapping", "1.6*x - 1.6*y; 2.4*x + 2.4*y", Patterns::Anything());
+    params.declare_entry("jac_mapping",
+                         "sqrt(2)*(2*x + 2)/2;-sqrt(2)*(2*y + 2)/2;sqrt(2)*(2*x + 2)/2;sqrt(2)*(2*y + 2)/2",
+                         Patterns::Anything());
+    params.declare_entry("mapping",
+                         "sqrt(2)*(x + 1)^2/2 - sqrt(2)*(y + 1)^2/2;sqrt(2)*(x + 1)^2/2 + sqrt(2)*(y + 1)^2/2",
+                         Patterns::Anything());
+    params.declare_entry("robin", "y^2*cos(x) + y*sin(x)", Patterns::Anything());
+    params.declare_entry("neumann", "x*sin(x)", Patterns::Anything());
     params.parse_input(param_file);
     rhs.initialize(FunctionParser<dim>::default_variable_names(), params.get("rhs"),
                    typename FunctionParser<dim>::ConstMap());
@@ -111,6 +119,10 @@ ProblemData<dim>::ProblemData(const std::string &param_file) : map(dim), map_jac
     map_jac_vector.initialize(FunctionParser<dim>::default_variable_names(), params.get("jac_mapping"),
                               typename FunctionParser<dim>::ConstMap());
     map_jac = std::make_unique<ParsedTensorFunction<dim>>(map_jac_vector);
+    robin.initialize(FunctionParser<dim>::default_variable_names(), params.get("robin"),
+                            typename FunctionParser<dim>::ConstMap());
+    neumann.initialize(FunctionParser<dim>::default_variable_names(), params.get("neumann"),
+                            typename FunctionParser<dim>::ConstMap());
     map.initialize(FunctionParser<dim>::default_variable_names(), params.get("mapping"),
                    typename FunctionParser<dim>::ConstMap());
 
@@ -183,6 +195,8 @@ private:
     Vector<double> system_rhs;
     int cycle;
     ConvergenceTable convergence_table;
+    const unsigned int NEUMANN_BOUNDARY = 0;
+    const unsigned int ROBIN_BOUNDARY = 1;
 };
 
 
@@ -198,6 +212,19 @@ RobinSolver::RobinSolver(const std::string &id) :
 void RobinSolver::make_grid() {
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(1);
+    const double EPS = 1E-4;
+    for (const auto &cell: triangulation.active_cell_iterators()) {
+        for (unsigned int face_number = 0; face_number < GeometryInfo<2>::faces_per_cell; face_number++) {
+            if (cell->face(face_number)->at_boundary()) {
+                const double x_abs = std::fabs(cell->face(face_number)->center()(0));
+                if (std::fabs(x_abs - 1) < EPS) {
+                    cell->face(face_number)->set_boundary_id(ROBIN_BOUNDARY);
+                } else {
+                    cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
+                }
+            }
+        }
+    }
 }
 
 void RobinSolver::refine() {
@@ -218,20 +245,27 @@ void RobinSolver::assemble_system() {
     const int integration_order = 8;
     const int dim = 2;
     QGauss<dim> quadrature_formula(integration_order);
+    QGauss<dim - 1> face_quadrature_formula(integration_order);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_quadrature_points | update_gradients | update_JxW_values);
+    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
+                                     update_values | update_normal_vectors | update_quadrature_points |
+                                     update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
+    const unsigned int n_q_face_points = face_quadrature_formula.size();
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+    std::vector<double> neumann_function(n_q_face_points);
+    std::vector<double> robin_function(n_q_face_points);
+    double det_jac;
+    SymmetricTensor<2, dim> kkt;
     for (const DoFHandler<dim>::active_cell_iterator &cell:dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
         cell_rhs = 0;
-        SymmetricTensor<2, dim> kkt;
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
-            double det_jac;
             dm.get_kkt(fe_values.quadrature_point(q_index), kkt, det_jac);
 //            std::cout << kkt << "\t" << det_jac << std::endl;
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
@@ -257,16 +291,41 @@ void RobinSolver::assemble_system() {
                                   local_dof_indices[j],
                                   cell_matrix(i, j));
             }
-        }
-        for (unsigned int i = 0; i < dofs_per_cell; ++i) {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
-//        std::cout << i << "\t" << local_dof_indices[i] << "\t" << cell_rhs(i) << std::endl;
+        }
+        for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+            if (cell->face(face_number)->at_boundary()) {
+                fe_face_values.reinit(cell, face_number);
+                cell_rhs = 0;
+                cell_matrix = 0;
+                for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
+                    dm.get_kkt(fe_face_values.quadrature_point(q_index), kkt, det_jac);
+                    Point<dim> mapped_point = dm.map(fe_face_values.quadrature_point(q_index));
+                    for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                        if (cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
+                            for (unsigned int j = 0; j < dofs_per_cell; j++) {
+                                cell_matrix(i, j) += fe_face_values.shape_value(i, q_index) *
+                                                     fe_face_values.shape_value(j, q_index) * det_jac *
+                                                     fe_face_values.JxW(q_index);
+                            }
+                            cell_rhs(i) += solution_base.robin.value(mapped_point) * det_jac *
+                                           fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index);
+                        } else if (cell->face(face_number)->boundary_id() == NEUMANN_BOUNDARY) {
+                            cell_rhs(i) += solution_base.neumann.value(mapped_point) *
+                                           fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index);
+                        }
+                    }
+                }
+                for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                    for (unsigned int j = 0; j < dofs_per_cell; j++) {
+                        system_matrix.add(local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
+                    }
+                    system_rhs(local_dof_indices[i]) += cell_rhs(i);
+                }
+            }
         }
     }
 //    std::cout << system_rhs << std::endl;
-    std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, 0, solution_base.ref_solution, boundary_values);
-    MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
 void RobinSolver::solve() {
@@ -274,7 +333,6 @@ void RobinSolver::solve() {
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs,
                  PreconditionIdentity());
-    set_exact_solution();
 }
 
 
