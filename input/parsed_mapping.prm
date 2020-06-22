@@ -1,7 +1,8 @@
 set solution = sin(x)*y
 set jac_mapping = sqrt(2)*(2*x + 11/5)/2;-sqrt(2)*(2*y + 2)/2;sqrt(2)*(2*x + 2)/2;sqrt(2)*(2*y + 11/5)/2
 set mapping = sqrt(2)*(x + 11/10)^2/2 - sqrt(2)*(y + 1)^2/2;sqrt(2)*(x + 11/10)^2/2 + sqrt(2)*(y + 1)^2/2
-set rhs = sin(x)*y
-set neumann = sin(x)*y
-set robin = x*y*cos(x) + y*sin(x)
-set ref_solution = (sqrt(2)*(x + 1)^2/2 + sqrt(2)*(y + 11/10)^2/2)*sin(sqrt(2)*(x + 11/10)^2/2 - sqrt(2)*(y + 1)^2/2)
+set left_robin = 0
+set right_robin = 0
+set up_neumann = 0
+set down_neumann = 0
+set ref_solution = (sqrt(2)*(x + 11/10)^2/2 + sqrt(2)*(y + 1)^2/2)*sin(sqrt(2)*(x + 11/10)^2/2 - sqrt(2)*(y + 1)^2/2)
