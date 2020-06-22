@@ -48,7 +48,7 @@ This report contains a summary on the activities during a five week-research vis
 This report is structured as follows. Section~\ref{sec:problem} describes the problem under consideration.
 Section~\ref{sec:wellposedness} describes how the weak formulation is discretized, as well as how the domain mapping is defined.
 Section~\ref{sec:dealii} contains details on the implementation of the PDE system.
-In Section~\ref{sec:manufactured}, we describe the formulation of a toy problem that we use to benchmark the implementation, as well as the issues that arise.
+In Section~\ref{sec:manufactured}, we describe the formulation of a toy problem that we use to benchmark the implementation.
 Finally, Section~\ref{sec:next} describes the future steps in this project.
 
 \section{Problem description}
@@ -237,6 +237,69 @@ Evaluation happens as follows:
 \end{itemize}
 
 During assembly of the microscopic linear system, $K$ and $J$ are recalled to compute \eqref{eq:discrete_weak_micro} on $Z$.
+
+\subsection{Mapping the domain boundary}
+\label{sec:boundary_mapping}
+
+Creating manufactured systems for arbitrary mappings can prove difficult for boundary conditions that are not Dirichlet.
+For this reason we devote this subsection to an explanation of how one can obtain automated manufactured solutions for arbitrary mappings.
+
+The challenge arises from the fact that using a standard reference domain $\bar{\Gamma}$ and an arbitrary map $\chi$ leads to an arbitrary deformed domain $\Gamma$.
+For the interior of the domain, all functions correspond to this deformation, so no extra care is needed, apart from knowing the quantities derived from $\nabla \chi$.
+
+However, if we want to use Neumann and Robin boundary conditions, we require the normal $n_{\bar{\Gamma}}$, which is not as trivial as $n_{\Gamma}$.
+
+The procedure to obtain an explicit formulation for $n_{\Gamma}$ is detailed here.
+
+\subsubsection{Parameterizing the boundary}
+
+First, we require a parameterization for $n_{\bar{\Gamma}}$. In our examples, $\bar{Y} = [0,1]^2$, giving rise to the following boundary parametrization
+
+\begin{equation}
+    \begin{split}
+        \bar{\Gamma}_N(t) = \begin{cases}
+            x(t) = 1 - 2t\\
+            y(t) = 1
+        \end{cases} \\
+        \bar{\Gamma}_E(t)= \begin{cases}
+            x(t) = 1\\
+            y(t) = 2t - 1
+        \end{cases} \\
+        \bar{\Gamma}_W(t) = \begin{cases}
+            x(t) = -1\\
+            y(t) = 1 - 2t
+        \end{cases} \\
+        \bar{\Gamma}_S(t) = \begin{cases}
+            x(t) = 2t - 1\\
+            y(t) = -1
+        \end{cases}
+    \end{split}
+\end{equation}
+
+This uses a counter-clockwise parameterisation where $t \in [0,1]$ for each boundary.
+
+\subsubsection{Mapping the parameterized normal}
+
+Let $\bar{\bar{\Gamma}} \in  \left\{ \bar{\Gamma}_N, \bar{\Gamma}_W, \bar{\Gamma}_E, \bar{\Gamma}_S  \right\}$. Then the parameterization of deformed boundary $\Gamma$ is
+\begin{equation}
+    \Gamma(t) = \left(\bar{\Gamma} \circ \chi \right)(t)
+\end{equation}
+
+and the normal $n_\Gamma(t)$ can be expressed by computing the normal of the tangent:
+\begin{equation}
+    n_\Gamma(t) = Q \left(\bar{\Gamma} \circ \chi \right)'(t)
+\end{equation}
+with rotation matrix $Q$
+\begin{equation}
+    Q = \begin{pmatrix}
+        \cos( - \frac{1}{2} \pi) &- \sin ( - \frac{1}{2} \pi) \\
+        \sin( - \frac{1}{2} \pi) & \cos ( - \frac{1}{2} \pi)
+    \end{pmatrix} =
+    \begin{pmatrix}
+        0 & 1 \\
+        -1 & 0
+    \end{pmatrix}
+\end{equation}
 \section{Manufactured problem with solutions}
 \label{sec:manufactured}
 In this section we propose a multiscale PDE with two-way coupling of which we know the exact solution. We use this system to test our implementation and see if the scheme we use converges with the desired order.
@@ -271,7 +334,6 @@ Repeat this process until the difference in subsequent solution approximations n
 \subsection{Convergence results}
 
 In this section, we discuss the results for two cases: a linear mapping and a non-linear mapping.
-We test both since it seems that convergence behaviour is affected by the linearity of the map.
 Problem $(P_L)$ is formulated as \eqref{eq:manu_macro}-\eqref{eq:manu_micro_bc} with the following data:
 \begin{equation}
     \begin{split}
@@ -299,7 +361,7 @@ and the problem $P_{N}$ is formulated with data:
     \end{split}
 \end{equation}
 
-The convergence results are presented in Figure~\ref{fig:benchmark}. The linear mapping shows expected convergence results, but for the nonlinear mapping, macroscopic convergence is less than expected.
+The convergence results are presented in Figure~\ref{fig:benchmark}. The mappings show expected convergence results.
 \begin{figure}[h!]
     \centering
     \begin{minipage}{.45\textwidth}
@@ -324,28 +386,6 @@ mH1      & $\|\nabla_y (v - v_h)\|_{L^2(\Omega)}$
 \label{tab:errors}
 \caption{Error norms used in the figures.}
 \end{table}
-To investigate the source of the discrepancy, we precompute different elements of the system and see if this improves the results.
-Figure~\ref{fig:aided_benchmark} presents the benchmarking tests where either the full macroscopic solution or the integral term in \eqref{eq:manu_macro} was prescribed in the simulation.
-It is clear that in these cases, convergence is as expected, leading to the conclusion that the approximation of the macroscopic integral term is a numerical bottleneck when map $\zeta$ is non-linear. More on this in Section~\ref{sec:integration}.
-\begin{figure}[h!]
-    \centering
-    \begin{minipage}{.45\textwidth}
-        \includegraphics[width=\linewidth]{exact_macro/linear_convergence_table}
-        \includegraphics[width=\linewidth]{exact_integral/linear_convergence_table}
-    \end{minipage}%
-    \begin{minipage}{.45\textwidth}
-        \includegraphics[width=\linewidth]{exact_macro/non_linear_convergence_table}
-        \includegraphics[width=\linewidth]{exact_integral/non_linear_convergence_table}
-    \end{minipage}
-    \caption{Guided benchmarks}
-    \label{fig:aided_benchmark}
-\end{figure}
-
-\subsection{Issues: Integration}
-\label{sec:integration}
-As the convergence benchmarks in Figure~\ref{fig:benchmark} illustrates, the integration term in the right hand side of the macroscopic equation converges less quickly as the rest of the FEM approximation, if the map is nonlinear.
-This reduces the order of observed convergence significantly, as well as causing non-monotonous convergence behaviour.
-\emph{At this point, I am not sure if I am using a wrong integration method, or if this is a limitation of the method. Moreover, this will play an even larger role in flux integration functions, since those are even less accurate.}
 
 \section{Future work}
 \label{sec:next}
