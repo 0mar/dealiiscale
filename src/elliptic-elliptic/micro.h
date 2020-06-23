@@ -117,6 +117,13 @@ private:
     void setup_scatter();
 
     /**
+     *
+     */
+
+    void integrate_cell(const typename DoFHandler<dim>::active_cell_iterator &cell, FEValues<dim> &fe_values,
+                        const unsigned int &n_q_points);
+
+    /**
      * Actual important method: Create the system matrices and create the right hand side vectors
      * by looping over all the cells and computing the discrete weak forms
      */
