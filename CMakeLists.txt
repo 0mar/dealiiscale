@@ -14,7 +14,7 @@ if (N GREATER 8)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_FLAGS}")
     set(CMAKE_C_COMPILER /cm/shared/apps/spack/opt/spack/linux-centos7-x86_64/gcc-6.2.0/openmpi-3.1.1-ugozppey6swuvzt6sl6h6pc4guuawghf/bin/mpicc)
     set(CMAKE_CXX_COMPILER /cm/shared/apps/spack/opt/spack/linux-centos7-x86_64/gcc-6.2.0/openmpi-3.1.1-ugozppey6swuvzt6sl6h6pc4guuawghf/bin/mpic++)
-elseif(EXISTS "/.dockerenv")
+elseif (EXISTS "/.dockerenv")
     message(STATUS "Detected running in Docker, loading config for dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease")
     set(deal.II_DIR /home/dealii/dealii-v9.1.1/lib/cmake/deal.II)
     set(GCC_FLAGS "-fext-numeric-literals")
@@ -46,6 +46,7 @@ deal_II_initialize_cached_variables()
 set(ELLIPTIC_DIR src/elliptic-elliptic) # Todo: Make a CMakeLists for each subdirectory
 set(PARABOLIC_DIR src/elliptic-parabolic)
 set(TOOLS_DIR src/tools)
+set(BIOMATH_DIR src/bio-multiscale)
 set(DEMO_DIR src/playground)
 set(TEST_DIR tests)
 add_executable(test_tools ${TEST_DIR}/test_tools.cpp ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h ${TOOLS_DIR}/mapping.h ${TOOLS_DIR}/mapping.cpp)
@@ -63,9 +64,17 @@ add_library(parabolic ${PARABOLIC_DIR}/time_manager.h ${PARABOLIC_DIR}/time_mana
 deal_II_setup_target(parabolic)
 target_link_libraries(parabolic tools)
 
+add_library(biomath ${BIOMATH_DIR}/manager.h ${BIOMATH_DIR}/manager.cpp ${BIOMATH_DIR}/micro.h ${BIOMATH_DIR}/micro.cpp ${BIOMATH_DIR}/macro.h ${BIOMATH_DIR}/macro.cpp)
+deal_II_setup_target(biomath)
+target_link_libraries(biomath tools)
+
 add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)
 target_link_libraries(solve_elliptic elliptic)
+
+add_executable(solve_biomath ${ELLIPTIC_DIR}/manufactured.cpp)
+deal_II_setup_target(solve_biomath)
+target_link_libraries(solve_biomath biomath)
 
 set(PLOT_NOTEBOOK plot_convergence.ipynb)
 
