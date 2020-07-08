@@ -26,6 +26,51 @@ struct MicroFEMObjects { // Can be moved to a different file if imports would gi
 };
 
 /**
+ * Struct containing all the macroscopic functions and parameters for the biomath problem
+ * @tparam dim dimension of functions
+ */
+template<int dim>
+struct BioMacroData {
+    FunctionParser<dim> solution_u;
+    FunctionParser<dim> bulk_rhs_u;
+    FunctionParser<dim> bc_u_1;
+    FunctionParser<dim> bc_u_2;
+
+    FunctionParser<dim> solution_w;
+    FunctionParser<dim> bulk_rhs_w;
+    FunctionParser<dim> bc_w;
+
+    ParameterHandler &params;
+
+    /**
+     * Initialize struct with parameter object
+     * @param params parameterhandler object
+     */
+    BioMacroData(ParameterHandler &params) : params(params) {
+        // Needed because this is a reference
+    }
+};
+
+template <int dim>
+struct BioMicroData {
+    FunctionParser<dim> solution_v;
+    FunctionParser<dim> bulk_rhs_v;
+    FunctionParser<dim> bc_v_1;
+    FunctionParser<dim> bc_v_2;
+    FunctionParser<dim> bc_v_3;
+
+    ParameterHandler &params;
+    /**
+     * Initialize struct with parameter object
+     * @param params parameterhandler object
+     */
+    BioMicroData(ParameterHandler &params) : params(params) {
+        // Needed because this is a reference
+    }
+
+};
+
+/**
  * Struct containing all the macroscopic functions and parameters
  * @tparam dim dimension of functions
  */
@@ -40,7 +85,7 @@ struct MacroData {
      * Initialize struct with parameter object
      * @param params parameterhandler object
      */
-    MacroData(ParameterHandler &params) : solution(), rhs(), bc(), params(params) {
+    MacroData(ParameterHandler &params) : params(params) {
         // Needed because this is a reference
     }
 };
@@ -53,7 +98,7 @@ struct MacroData {
  */
 template<int dim>
 struct EllipticMicroData {
-    EllipticMicroData(ParameterHandler &params) : solution(), rhs(), bc(), mapping(dim), map_jac(dim * dim), params(params) {}
+    EllipticMicroData(ParameterHandler &params) : mapping(dim), map_jac(dim * dim), params(params) {}
 
     MultiscaleFunctionParser<dim> solution;
     MultiscaleFunctionParser<dim> rhs;
@@ -74,14 +119,14 @@ struct ParabolicMicroData {
     ParameterHandler &params;
 
     ParabolicMicroData(ParameterHandler &params)
-            : solution(), rhs(), neumann_bc(), robin_bc(), init_rho(), params(params) {
+            :  params(params) {
         // Needed because this is a reference
     }
 };
 
 /**
  * Multiscale data class, composed of a macrodata and microdata struct.
- * This data class reads data from a file and initialized the corresponding structs with the relevant parameters.
+ * This data class reads data from a file and initializes the corresponding struct with the relevant parameters.
  * @tparam dim dimensions of functions.
  */
 template<int dim>
@@ -98,6 +143,11 @@ public:
     static std::string macro_variables();
 };
 
+/**
+ * Data required for Two-pressures model (elliptic-parabolic system of equations)
+ * This data class reads data from a file and initializes the corresponding struct with the relevant parameters.
+ * @tparam dim dimensions of functions
+ */
 template<int dim>
 class TwoPressureData {
 public:
@@ -108,6 +158,26 @@ public:
     ParabolicMicroData<dim> micro;
 
     void set_time(const double time);
+
+    static std::string multiscale_variables();
+
+    static std::string macro_variables();
+};
+
+/**
+ * Data required for the biomathematical system of equations.
+ * This data class reads data from a file and initializes the corresponding struct with the relevant parameters.
+ * @tparam dim dimensions of functions
+ */
+
+template<int dim>
+class BioData {
+public:
+    BioData(const std::string &param_file);
+
+    ParameterHandler params;
+    BioMacroData<dim> macro;
+    BioMicroData<dim> micro;
 
     static std::string multiscale_variables();
 
@@ -142,6 +212,33 @@ std::string MultiscaleData<dim>::macro_variables() {
     return "";
 }
 
+template<int dim>
+std::string BioData<dim>::multiscale_variables() {
+    switch (dim) {
+        case 1:
+            return "x0,y0";
+        case 2:
+            return "x0,x1,y0,y1";
+        case 3:
+            return "x0,x1,x2,y0,y1,y2,";
+        default: Assert(false, ExcNotImplemented())
+    }
+    return "";
+}
+
+template<int dim>
+std::string BioData<dim>::macro_variables() {
+    switch (dim) {
+        case 1:
+            return "x0";
+        case 2:
+            return "x0,x1";
+        case 3:
+            return "x0,x1,x2";
+        default: Assert(false, ExcNotImplemented())
+    }
+    return "";
+}
 
 template<int dim>
 std::string TwoPressureData<dim>::multiscale_variables() {

@@ -35,6 +35,38 @@ MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(param
     micro.map_jac.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("jac_mapping"), constants);
 }
 
+template<int dim>
+BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(params) {
+    params.declare_entry("macro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
+    params.declare_entry("macro_rhs", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("macro_solution", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("macro_bc", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
+
+    params.declare_entry("micro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
+    params.declare_entry("micro_rhs", "-sin(x0*x1) - cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("micro_solution", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
+    params.declare_entry("micro_bc", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
+
+    params.declare_entry("mapping", "(3+x0+x1)*(1.6*y0 - 1.6*y1);(3+x0+x1)*(2.4*y0 + 2.4*y1);", Patterns::Anything());
+    params.declare_entry("jac_mapping", "1.6*(3+x0+x1);-1.6*(3+x0+x1);2.4*(3+x0+x1);2.4*(3+x0+x1);",
+                         Patterns::Anything());
+
+
+    params.parse_input(param_file);
+
+    std::map<std::string, double> constants;
+    macro.rhs.initialize(BioData<dim>::macro_variables(), params.get("macro_rhs"), constants);
+    macro.bc.initialize(BioData<dim>::macro_variables(), params.get("macro_bc"), constants);
+    macro.solution.initialize(BioData<dim>::macro_variables(), params.get("macro_solution"), constants);
+    micro.mapping.initialize(BioData<dim>::multiscale_variables(), params.get("mapping"), constants);
+
+    micro.rhs.initialize(BioData<dim>::multiscale_variables(), params.get("micro_rhs"), constants);
+    micro.bc.initialize(BioData<dim>::multiscale_variables(), params.get("micro_bc"), constants, &micro.mapping);
+    micro.solution.initialize(BioData<dim>::multiscale_variables(), params.get("micro_solution"),
+                              constants, &micro.mapping);
+    micro.map_jac.initialize(BioData<dim>::multiscale_variables(), params.get("jac_mapping"), constants);
+}
+
 
 template<int dim>
 TwoPressureData<dim>::TwoPressureData(const std::string &param_file) : macro(params), micro(params) {
@@ -120,11 +152,18 @@ template
 struct MacroData<3>;
 
 template
-struct EllipticMicroData<1>;
+struct BioMacroData<1>;
 template
-struct EllipticMicroData<2>;
+struct BioMacroData<2>;
 template
-struct EllipticMicroData<3>;
+struct BioMacroData<3>;
+
+template
+struct BioMicroData<1>;
+template
+struct BioMicroData<2>;
+template
+struct BioMicroData<3>;
 
 
 template
