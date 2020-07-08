@@ -58,8 +58,11 @@ struct BioMicroData {
     FunctionParser<dim> bc_v_1;
     FunctionParser<dim> bc_v_2;
     FunctionParser<dim> bc_v_3;
+    MultiscaleFunctionParser<dim> mapping;
+    MultiscaleFunctionParser<dim> map_jac;
 
     ParameterHandler &params;
+
     /**
      * Initialize struct with parameter object
      * @param params parameterhandler object
