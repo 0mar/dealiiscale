@@ -53,11 +53,12 @@ struct BioMacroData {
 
 template <int dim>
 struct BioMicroData {
-    FunctionParser<dim> solution_v;
-    FunctionParser<dim> bulk_rhs_v;
-    FunctionParser<dim> bc_v_1;
-    FunctionParser<dim> bc_v_2;
-    FunctionParser<dim> bc_v_3;
+    MultiscaleFunctionParser<dim> solution_v;
+    MultiscaleFunctionParser<dim> bulk_rhs_v;
+    MultiscaleFunctionParser<dim> bc_v_1;
+    MultiscaleFunctionParser<dim> bc_v_2;
+    MultiscaleFunctionParser<dim> bc_v_3;
+    MultiscaleFunctionParser<dim> bc_v_4;
     MultiscaleFunctionParser<dim> mapping;
     MultiscaleFunctionParser<dim> map_jac;
 

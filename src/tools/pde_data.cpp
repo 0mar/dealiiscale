@@ -53,6 +53,7 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
     params.declare_entry("bc_v_1", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
     params.declare_entry("bc_v_2", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
     params.declare_entry("bc_v_3", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
+    params.declare_entry("bc_v_4", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
 
     params.declare_entry("mapping", "(3+x0+x1)*(1.6*y0 - 1.6*y1);(3+x0+x1)*(2.4*y0 + 2.4*y1);", Patterns::Anything());
     params.declare_entry("jac_mapping", "1.6*(3+x0+x1);-1.6*(3+x0+x1);2.4*(3+x0+x1);2.4*(3+x0+x1);",
@@ -76,6 +77,7 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
     micro.bc_v_1.initialize(BioData<dim>::multiscale_variables(), params.get("bc_v_1"), constants);
     micro.bc_v_2.initialize(BioData<dim>::multiscale_variables(), params.get("bc_v_2"), constants);
     micro.bc_v_3.initialize(BioData<dim>::multiscale_variables(), params.get("bc_v_3"), constants);
+    micro.bc_v_4.initialize(BioData<dim>::multiscale_variables(), params.get("bc_v_4"), constants);
 
     micro.mapping.initialize(BioData<dim>::multiscale_variables(), params.get("mapping"), constants);
     micro.map_jac.initialize(BioData<dim>::multiscale_variables(), params.get("jac_mapping"), constants);
