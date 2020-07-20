@@ -51,7 +51,7 @@ public:
     /**
      * Create a Microsolver that resolves the microscopic systems.
      */
-    MicroSolver(EllipticMicroData<dim> &micro_data, unsigned int refine_level);
+    MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine_level);
 
     /**
      * Collection method for setting up all necessary tools for the microsolver
@@ -68,7 +68,7 @@ public:
      * @param _solution Pointer to the macroscopic solution (so that the content is always up to date).
      * @param _dof_handler pointer to the DoF handler.
      */
-    void set_macro_solution(Vector<double> *_solution, DoFHandler<dim> *_dof_handler);
+    void set_macro_solution(Vector<double> *_sol_u, Vector<double> *_sol_w, DoFHandler<dim> *_dof_handler);
 
     /**
      * Post-process the solution (write convergence estimates and other stuff)
@@ -96,6 +96,10 @@ public:
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
     MapMap<dim, dim> mapmap;
+    static constexpr unsigned int INFLOW_BOUNDARY = 0;
+    static constexpr unsigned int OUTFLOW_BOUNDARY = 1;
+    static constexpr unsigned int TOP_NEUMANN = 2;
+    static constexpr unsigned int BOTTOM_NEUMANN = 3;
 private:
 
     /**
@@ -117,11 +121,14 @@ private:
     void setup_scatter();
 
     /**
-     *
+     * Perform the assembly for a single cell given some finite element parameters
+     * @param cell Cell to integrate the weak form over
+     * @param fe_values  FEValues object for the domain
+     * @param n_q_points Number of quadrature points (from a QGauss or similar object)
      */
-
-    void integrate_cell(const typename DoFHandler<dim>::active_cell_iterator &cell, FEValues<dim> &fe_values,
-                        const unsigned int &n_q_points);
+    void integrate_cell(const typename DoFHandler<dim>::active_cell_iterator &cell, const unsigned int &k,
+                        FEValues<dim> &fe_values, const unsigned int &n_q_points, FEFaceValues<dim> &fe_face_values,
+                        const unsigned int &n_q_face_points, FullMatrix<double> &cell_matrix, Vector<double> &cell_rhs);
 
     /**
      * Actual important method: Create the system matrices and create the right hand side vectors
@@ -153,7 +160,8 @@ private:
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
     // Pointer to the solution of the macroscopic equation (readonly)
-    const Vector<double> *macro_solution;
+    const Vector<double> *sol_u;
+    const Vector<double> *sol_w;
     // Macroscopic contribution to the microscopic equation [unused]
     Vector<double> macro_contribution;
     // Macroscopic degree of freedom handler
@@ -169,7 +177,7 @@ private:
     // Precomputed determinants of the jacobians for each microscopic and macroscopic degree of freedom
     std::vector<std::vector<double>> det_jacs;
     // Object containing microscopic problem data
-    EllipticMicroData<dim> &pde_data;
+    BioMicroData<dim> &pde_data;
 
 public:
     MicroFEMObjects<dim> fem_objects;
