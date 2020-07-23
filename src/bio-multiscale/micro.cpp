@@ -151,11 +151,12 @@ MicroSolver<dim>::integrate_cell(const typename DoFHandler<dim>::active_cell_ite
     const double &k_2 = pde_data.params.get_double("kappa_2");
     const double &k_3 = pde_data.params.get_double("kappa_3");
     const double &k_4 = pde_data.params.get_double("kappa_4");
+    const double &D_2 = pde_data.params.get_double("D_2");
     for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
         mapmap.get(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac, kkt);
         for (unsigned int i = 0; i < dofs_per_cell; i++) {
             for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                cell_matrix(i, j) += fe_values.shape_grad(i, q_index) * kkt
+                cell_matrix(i, j) += D_2 * fe_values.shape_grad(i, q_index) * kkt
                                      * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index) * det_jac;
             }
         }

@@ -58,9 +58,23 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
     params.declare_entry("mapping", "(3+x0+x1)*(1.6*y0 - 1.6*y1);(3+x0+x1)*(2.4*y0 + 2.4*y1);", Patterns::Anything());
     params.declare_entry("jac_mapping", "1.6*(3+x0+x1);-1.6*(3+x0+x1);2.4*(3+x0+x1);2.4*(3+x0+x1);",
                          Patterns::Anything());
-    params.parse_input(param_file);
 
-    std::map<std::string, double> constants;
+    std::map<std::string, double> constants = {{"D_1",     2},
+                                               {"D_2",     2},
+                                               {"kappa_1", 1},
+                                               {"kappa_2", 1},
+                                               {"kappa_3", 1},
+                                               {"kappa_4", 1}};
+    // All the constants will be declared in the file
+    for (const auto &pair: constants) {
+        params.declare_entry(pair.first, std::to_string(pair.second), Patterns::Double());
+    }
+    params.parse_input(param_file);
+    // Override the default constants declared above
+    for (auto &pair: constants) {
+        pair.second = params.get_double(pair.first);
+    }
+
     macro.solution_u.initialize(BioData<dim>::macro_variables(), params.get("solution_u"), constants);
     macro.bulk_rhs_u.initialize(BioData<dim>::macro_variables(), params.get("bulk_rhs_u"), constants);
     macro.bc_u_1.initialize(BioData<dim>::macro_variables(), params.get("bc_u_1"), constants);
