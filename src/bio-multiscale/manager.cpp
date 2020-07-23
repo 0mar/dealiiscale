@@ -22,7 +22,7 @@ void Manager::setup() {
     micro_solver.set_grid_locations(dof_locations);
     micro_solver.setup();
     // Couple the macro structures with the micro structures.
-    micro_solver.set_macro_solution(&macro_solver.solution, &macro_solver.dof_handler);
+    micro_solver.set_macro_solution(&macro_solver.sol_u, &macro_solver.sol_w, &macro_solver.dof_handler);
     macro_solver.set_micro_objects(micro_solver.fem_objects);
 //    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
 //                                               "micro_convergence.txt"};
@@ -89,12 +89,22 @@ void Manager::output_results() {
 }
 
 void Manager::patch_and_write_solutions() {
-    DataOut<MACRO_DIMENSIONS> macro_data_out;
-    macro_data_out.attach_dof_handler(macro_solver.dof_handler);
-    macro_data_out.add_data_vector(macro_solver.solution, "solution");
-    macro_data_out.build_patches();
-    std::ofstream macro_output("results/macro-solution.gpl");
-    macro_data_out.write_gnuplot(macro_output);
+    {
+        DataOut<MACRO_DIMENSIONS> macro_data_out;
+        macro_data_out.attach_dof_handler(macro_solver.dof_handler);
+        macro_data_out.add_data_vector(macro_solver.sol_u, "solution");
+        macro_data_out.build_patches();
+        std::ofstream macro_output("results/u-solution.gpl");
+        macro_data_out.write_gnuplot(macro_output);
+    }
+    {
+        DataOut<MACRO_DIMENSIONS> macro_data_out;
+        macro_data_out.attach_dof_handler(macro_solver.dof_handler);
+        macro_data_out.add_data_vector(macro_solver.sol_w, "solution");
+        macro_data_out.build_patches();
+        std::ofstream macro_output("results/w-solution.gpl");
+        macro_data_out.write_gnuplot(macro_output);
+    }
     {
         DataOut<MICRO_DIMENSIONS> micro_data_out;
         micro_data_out.attach_dof_handler(micro_solver.dof_handler);
