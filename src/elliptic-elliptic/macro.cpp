@@ -139,12 +139,12 @@ double MacroSolver<dim>::get_micro_bulk(unsigned int cell_index) const {
                             update_values | update_quadrature_points | update_JxW_values);
     const unsigned int dofs_per_cell = micro.dof_handler->get_fe().dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
+    std::vector<double> interp_solution(n_q_points);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     double det_jac;
     for (const auto &cell: micro.dof_handler->active_cell_iterators()) {
         fe_values.reinit(cell);
         cell->get_dof_indices(local_dof_indices);
-        std::vector<double> interp_solution(n_q_points);
         fe_values.get_function_values(micro.solutions->at(cell_index), interp_solution);
         for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
             micro.mapmap->get_det_jac(micro_grid_locations.at(cell_index), fe_values.quadrature_point(q_index),
