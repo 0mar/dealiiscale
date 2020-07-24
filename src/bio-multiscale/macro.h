@@ -50,7 +50,7 @@ public:
      * Create and run a macroscopic solver with the given resolution (number of unit square bisections)
      * @param refine_level Number of macroscopic and microscopic bisections.
      */
-    MacroSolver(MacroData<dim> &macro_data, unsigned int refine_level);
+    MacroSolver(BioMacroData<dim> &macro_data, unsigned int refine_level);
 
     /**
      * All the methods that setup the system.
@@ -84,7 +84,7 @@ public:
      * Compute the exact solution value based on the analytic solution present in the boundary condition
      * @param exact_values Output vector
      */
-    Vector<double> get_exact_solution() const;
+    void set_exact_solution();
 
     /**
      * Obtain the physical locations of the degrees of freedom
@@ -92,9 +92,11 @@ public:
      */
     void get_dof_locations(std::vector<Point<dim>> &locations);
 
-    Vector<double> solution;
+    Vector<double> sol_u, sol_w;
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
+    static constexpr unsigned int DIRICHLET_BOUNDARY = 0;
+    static constexpr unsigned int NEUMANN_BOUNDARY = 1;
 
 private:
     /**
@@ -124,9 +126,8 @@ private:
     * @param dof_index Degree of freedom corresponding to the microscopic grid.
     * @return double with the value of the integral/other RHS function
     */
-    double get_micro_bulk(unsigned int cell_index) const;
-
-    double get_micro_flux(unsigned int cell_index) const;
+    void integrate_micro_cells(unsigned int macro_index, const Point<dim> &macro_point, double &u_contribution,
+                               double &w_contribution);
 
     /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
@@ -136,15 +137,15 @@ private:
     /**
      * Struct containing all data and macroscopic functions.
      */
-    MacroData<dim> &pde_data;
+    BioMacroData<dim> &pde_data;
 
     const FE_Q<dim> fe;
     MicroFEMObjects<dim> micro;
 
     SparsityPattern sparsity_pattern;
-    SparseMatrix<double> system_matrix;
-    Vector<double> system_rhs;
-    Vector<double> micro_contribution;
+    SparseMatrix<double> system_matrix_u, system_matrix_w;
+    Vector<double> system_rhs_u, system_rhs_w;
+    Vector<double> micro_contribution_u, micro_contribution_w;
     const int refine_level;
     std::vector<Point<dim>> micro_grid_locations;
 };

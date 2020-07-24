@@ -226,7 +226,8 @@ void MicroSolver<dim>::assemble_system() {
                             update_quadrature_points | update_JxW_values);
     QGauss<dim - 1> face_quadrature_formula(fem_quadrature);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula, update_quadrature_points);
+    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
+                                     update_quadrature_points | update_values | update_JxW_values);
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
