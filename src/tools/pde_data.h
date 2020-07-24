@@ -17,13 +17,6 @@
 
 using namespace dealii;
 
-template<int dim>
-struct MicroFEMObjects { // Can be moved to a different file if imports would give trouble at some point
-    const std::vector<Vector<double>> *solutions;
-    const DoFHandler<dim> *dof_handler;
-    const MapMap<dim, dim> *mapmap;
-    const unsigned int *q_degree;
-};
 
 /**
  * Struct containing all the macroscopic functions and parameters for the biomath problem
@@ -35,6 +28,8 @@ struct BioMacroData {
     FunctionParser<dim> bulk_rhs_u;
     FunctionParser<dim> bc_u_1;
     FunctionParser<dim> bc_u_2;
+    FunctionParser<dim> inflow_measure;
+    FunctionParser<dim> outflow_measure;
 
     FunctionParser<dim> solution_w;
     FunctionParser<dim> bulk_rhs_w;
@@ -72,6 +67,15 @@ struct BioMicroData {
         // Needed because this is a reference
     }
 
+};
+
+template<int dim>
+struct MicroFEMObjects { // Can be moved to a different file if imports would give trouble at some point
+    const std::vector<Vector<double>> *solutions;
+    const DoFHandler<dim> *dof_handler;
+    const MapMap<dim, dim> *mapmap;
+    const unsigned int *q_degree;
+    const BioMicroData<dim> *data; // Not really nice for the other problems but perhaps we can take a polymorphic solution later.
 };
 
 /**

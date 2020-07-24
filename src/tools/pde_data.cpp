@@ -42,6 +42,8 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
     params.declare_entry("bulk_rhs_u", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bc_u_1", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bc_u_2", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("inflow_measure", "x", Patterns::Anything());
+    params.declare_entry("outflow_measure", "x", Patterns::Anything());
 
     params.declare_entry("solution_w", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bulk_rhs_w", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
@@ -79,6 +81,8 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
     macro.bulk_rhs_u.initialize(BioData<dim>::macro_variables(), params.get("bulk_rhs_u"), constants);
     macro.bc_u_1.initialize(BioData<dim>::macro_variables(), params.get("bc_u_1"), constants);
     macro.bc_u_2.initialize(BioData<dim>::macro_variables(), params.get("bc_u_2"), constants);
+    macro.inflow_measure.initialize(BioData<dim>::macro_variables(), params.get("inflow_measure"), constants);
+    macro.outflow_measure.initialize(BioData<dim>::macro_variables(), params.get("outflow_measure"), constants);
 
     macro.solution_w.initialize(BioData<dim>::macro_variables(), params.get("solution_w"), constants);
     macro.bulk_rhs_w.initialize(BioData<dim>::macro_variables(), params.get("bulk_rhs_w"), constants);
