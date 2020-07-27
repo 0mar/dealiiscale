@@ -98,8 +98,6 @@ void MacroSolver<dim>::assemble_system() {
     std::vector<double> u_micro_cont(n_q_points);
     std::vector<double> w_micro_cont(n_q_points);
     const double &k_1 = pde_data.params.get_double("kappa_1");
-    const double &k_2 = pde_data.params.get_double("kappa_2");
-    const double &k_3 = pde_data.params.get_double("kappa_3");
     const double &k_4 = pde_data.params.get_double("kappa_4");
     const double &D_1 = pde_data.params.get_double("D_1");
     for (const auto &cell: dof_handler.active_cell_iterators()) {
