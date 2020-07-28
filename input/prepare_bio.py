@@ -122,8 +122,8 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     f_v = -D_2 * del_v
     g_1_v = get_n_deriv(INFLOW_BOUNDARY, v, chi, yvars) - (k_1 * u - k_2 * v)
     g_2_v = get_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * u - k_4 * w)
-    g_3_v = get_n_deriv('top', v, chi, yvars)  # Why is this not mapped?
-    g_4_v = get_n_deriv('bottom', v, chi, yvars)
+    g_3_v = get_n_deriv('up', v, chi, yvars)  # Why is this not mapped?
+    g_4_v = get_n_deriv('down', v, chi, yvars)
     inflow_func = mapped_micro_measures(INFLOW_BOUNDARY, chi, yvars)
     outflow_func = mapped_micro_measures(OUTFLOW_BOUNDARY, chi, yvars)
     g_1_u = u
