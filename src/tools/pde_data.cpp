@@ -42,15 +42,15 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
     params.declare_entry("bulk_rhs_u", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bc_u_1", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bc_u_2", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
-    params.declare_entry("inflow_measure", "x", Patterns::Anything());
-    params.declare_entry("outflow_measure", "x", Patterns::Anything());
+    params.declare_entry("inflow_measure", "x0 + x1", Patterns::Anything());
+    params.declare_entry("outflow_measure", "x0 + x1", Patterns::Anything());
 
     params.declare_entry("solution_w", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bulk_rhs_w", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bc_w", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
 
     params.declare_entry("micro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
-    params.declare_entry("solution_v", "-sin(x0*x1) - cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("solution_v", "-D_1 * sin(x0*x1) - cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bulk_rhs_v", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
     params.declare_entry("bc_v_1", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
     params.declare_entry("bc_v_2", "y0*y1 + exp(x0^2 + x1^2)", Patterns::Anything());
@@ -199,6 +199,12 @@ template
 struct BioMicroData<3>;
 
 
+template
+struct BioData<1>;
+template
+struct BioData<2>;
+template
+struct BioData<3>;
 template
 struct ParabolicMicroData<1>;
 template

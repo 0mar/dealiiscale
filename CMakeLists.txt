@@ -72,7 +72,7 @@ add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)
 target_link_libraries(solve_elliptic elliptic)
 
-add_executable(solve_biomath ${ELLIPTIC_DIR}/manufactured.cpp)
+add_executable(solve_biomath ${BIOMATH_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_biomath)
 target_link_libraries(solve_biomath biomath)
 

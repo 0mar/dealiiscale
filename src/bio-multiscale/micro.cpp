@@ -18,7 +18,8 @@ MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine
                                                                                           fem_objects{&solutions,
                                                                                                       &dof_handler,
                                                                                                       &mapmap,
-                                                                                                      &fem_quadrature} {
+                                                                                                      &fem_quadrature,
+                                                                                                      &pde_data} {
     printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
     fem_quadrature = 12;
