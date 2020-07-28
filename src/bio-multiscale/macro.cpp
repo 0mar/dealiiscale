@@ -136,11 +136,16 @@ void MacroSolver<dim>::assemble_system() {
                 fe_face_values.reinit(cell, face_number);
                 for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
-                        cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
-                                         pde_data.bc_w.value(fe_face_values.quadrature_point(q_index));
+
                         if (face->boundary_id() == NEUMANN_BOUNDARY) {
+
                             cell_rhs_u(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
                                              pde_data.bc_u_2.value(fe_face_values.quadrature_point(q_index));
+                            cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
+                                             pde_data.bc_w_1.value(fe_face_values.quadrature_point(q_index));
+                        } else {
+                            cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
+                                             pde_data.bc_w_2.value(fe_face_values.quadrature_point(q_index));
                         }
                     }
                 }

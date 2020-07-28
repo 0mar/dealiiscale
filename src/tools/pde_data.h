@@ -33,7 +33,8 @@ struct BioMacroData {
 
     FunctionParser<dim> solution_w;
     FunctionParser<dim> bulk_rhs_w;
-    FunctionParser<dim> bc_w;
+    FunctionParser<dim> bc_w_1;
+    FunctionParser<dim> bc_w_2;
 
     ParameterHandler &params;
 

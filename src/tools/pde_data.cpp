@@ -47,7 +47,8 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
 
     params.declare_entry("solution_w", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bulk_rhs_w", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
-    params.declare_entry("bc_w", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("bc_w_1", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
+    params.declare_entry("bc_w_2", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
 
     params.declare_entry("micro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
     params.declare_entry("solution_v", "-D_1 * sin(x0*x1) - cos(x0 + x1)", Patterns::Anything());
@@ -77,25 +78,26 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
         pair.second = params.get_double(pair.first);
     }
 
-    macro.solution_u.initialize(BioData<dim>::macro_variables(), params.get("solution_u"), constants);
-    macro.bulk_rhs_u.initialize(BioData<dim>::macro_variables(), params.get("bulk_rhs_u"), constants);
-    macro.bc_u_1.initialize(BioData<dim>::macro_variables(), params.get("bc_u_1"), constants);
-    macro.bc_u_2.initialize(BioData<dim>::macro_variables(), params.get("bc_u_2"), constants);
-    macro.inflow_measure.initialize(BioData<dim>::macro_variables(), params.get("inflow_measure"), constants);
-    macro.outflow_measure.initialize(BioData<dim>::macro_variables(), params.get("outflow_measure"), constants);
+    macro.solution_u.initialize(BioData < dim > ::macro_variables(), params.get("solution_u"), constants);
+    macro.bulk_rhs_u.initialize(BioData < dim > ::macro_variables(), params.get("bulk_rhs_u"), constants);
+    macro.bc_u_1.initialize(BioData < dim > ::macro_variables(), params.get("bc_u_1"), constants);
+    macro.bc_u_2.initialize(BioData < dim > ::macro_variables(), params.get("bc_u_2"), constants);
+    macro.inflow_measure.initialize(BioData < dim > ::macro_variables(), params.get("inflow_measure"), constants);
+    macro.outflow_measure.initialize(BioData < dim > ::macro_variables(), params.get("outflow_measure"), constants);
 
-    macro.solution_w.initialize(BioData<dim>::macro_variables(), params.get("solution_w"), constants);
-    macro.bulk_rhs_w.initialize(BioData<dim>::macro_variables(), params.get("bulk_rhs_w"), constants);
-    macro.bc_w.initialize(BioData<dim>::macro_variables(), params.get("bc_w"), constants);
+    macro.solution_w.initialize(BioData < dim > ::macro_variables(), params.get("solution_w"), constants);
+    macro.bulk_rhs_w.initialize(BioData < dim > ::macro_variables(), params.get("bulk_rhs_w"), constants);
+    macro.bc_w_1.initialize(BioData < dim > ::macro_variables(), params.get("bc_w_1"), constants);
+    macro.bc_w_2.initialize(BioData < dim > ::macro_variables(), params.get("bc_w_2"), constants);
 
     // All microfunctions that require full dealii evaluation (i.e. diriclet BC and solution functions) need a mapping
-    micro.solution_v.initialize(BioData<dim>::multiscale_variables(), params.get("solution_v"), constants,
+    micro.solution_v.initialize(BioData < dim > ::multiscale_variables(), params.get("solution_v"), constants,
                                 &micro.mapping);
-    micro.bulk_rhs_v.initialize(BioData<dim>::multiscale_variables(), params.get("bulk_rhs_v"), constants);
-    micro.bc_v_1.initialize(BioData<dim>::multiscale_variables(), params.get("bc_v_1"), constants);
-    micro.bc_v_2.initialize(BioData<dim>::multiscale_variables(), params.get("bc_v_2"), constants);
-    micro.bc_v_3.initialize(BioData<dim>::multiscale_variables(), params.get("bc_v_3"), constants);
-    micro.bc_v_4.initialize(BioData<dim>::multiscale_variables(), params.get("bc_v_4"), constants);
+    micro.bulk_rhs_v.initialize(BioData < dim > ::multiscale_variables(), params.get("bulk_rhs_v"), constants);
+    micro.bc_v_1.initialize(BioData < dim > ::multiscale_variables(), params.get("bc_v_1"), constants);
+    micro.bc_v_2.initialize(BioData < dim > ::multiscale_variables(), params.get("bc_v_2"), constants);
+    micro.bc_v_3.initialize(BioData < dim > ::multiscale_variables(), params.get("bc_v_3"), constants);
+    micro.bc_v_4.initialize(BioData < dim > ::multiscale_variables(), params.get("bc_v_4"), constants);
 
     micro.mapping.initialize(BioData<dim>::multiscale_variables(), params.get("mapping"), constants);
     micro.map_jac.initialize(BioData<dim>::multiscale_variables(), params.get("jac_mapping"), constants);
