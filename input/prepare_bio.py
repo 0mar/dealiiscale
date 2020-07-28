@@ -111,7 +111,9 @@ def matrix_repr(matrix):
 
 
 def compute_biomath_problem(u, v, w, chi, xvars, yvars):
-    k_1, k_2, k_3, k_4, D_1, D_2 = symbols('k_1, k_2, k_3, k_4, D_1, D_2')
+    const_vals = {'kappa_1': 3.0, 'kappa_2': 1, 'kappa_3': 0.5, 'kappa_4': 1, 'D_1': 4, 'D_2': 2}
+    const_symbols = symbols(list(const_vals))
+    k_1, k_2, k_3, k_4, D_1, D_2 = const_symbols
     INFLOW_BOUNDARY = 'left'
     OUTFLOW_BOUNDARY = 'right'
     del_u = laplace(u, xvars)
@@ -138,7 +140,7 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
              "solution_w": w, "bulk_rhs_w": f_w, "bc_w_1": g_1_w, "bc_w_2": g_2_w,
              "inflow_measure": inflow_func, "outflow_measure": outflow_func,
              "solution_v": v, "bulk_rhs_v": f_v, "bc_v_1": g_1_v, "bc_v_2": g_2_v, "bc_v_3": g_3_v, "bc_v_4": g_4_v,
-             "mapping": matrix_repr(chi), "jac_mapping": matrix_repr(jac)}
+             "mapping": matrix_repr(chi), "jac_mapping": matrix_repr(jac), **const_vals}
     return funcs
 
 

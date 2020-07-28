@@ -64,9 +64,7 @@ struct BioMicroData {
      * Initialize struct with parameter object
      * @param params parameterhandler object
      */
-    BioMicroData(ParameterHandler &params) : params(params) {
-        // Needed because this is a reference
-    }
+    BioMicroData(ParameterHandler &params) : mapping(dim), map_jac(dim * dim), params(params) {}
 
 };
 

@@ -109,6 +109,7 @@ void MicroSolver<dim>::compute_pullback_objects() {
             }
             for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
                 if (cell->face(face_number)->at_boundary()) {
+                    fe_face_values.reinit(cell, face_number);
                     for (unsigned int q_index = 0; q_index < face_quadrature_formula.size(); q_index++) {
                         Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(grid_locations.at(k),
                                                                                  fe_face_values.quadrature_point(

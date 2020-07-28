@@ -76,7 +76,7 @@ void plot(const std::string &input_path) {
 
 int main(int argc, char *argv[]) {
     dealii::deallog.depth_console(0);
-    const std::string input_path = "input/full_nonlinear.prm";
+    std::string input_path = "input/full_nonlinear.prm";
     if (argc == 2) {
         input_path = argv[1];
     } else if (argc > 2) {
