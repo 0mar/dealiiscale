@@ -66,6 +66,8 @@ def mapped_boundary_integral(direction, map, f, vars):
 def get_n_deriv(direction, f, map, vars):
     _, normal = mapped_boundary_and_normal(direction, map, vars)
     grad_f = grad(f, vars)
+    print(normal)
+    print(direction, f, map, grad_f, grad_f[0] * normal[0] + grad_f[1] * normal[1])
     return grad_f[0] * normal[0] + grad_f[1] * normal[1]
 
 
@@ -123,7 +125,7 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
 
     f_v = -D_2 * del_v
     g_1_v = get_n_deriv(INFLOW_BOUNDARY, v, chi, yvars) - (k_1 * u - k_2 * v)
-    g_2_v = get_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * u - k_4 * w)
+    g_2_v = get_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * v - k_4 * w)
     g_3_v = get_n_deriv('up', v, chi, yvars)  # Why is this not mapped?
     g_4_v = get_n_deriv('down', v, chi, yvars)
     inflow_func = mapped_micro_measures(INFLOW_BOUNDARY, chi, yvars)
