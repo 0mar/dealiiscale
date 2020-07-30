@@ -113,7 +113,7 @@ def matrix_repr(matrix):
 
 
 def compute_biomath_problem(u, v, w, chi, xvars, yvars):
-    const_vals = {'kappa_1': 3.0, 'kappa_2': 1, 'kappa_3': 0.5, 'kappa_4': 1, 'D_1': 4, 'D_2': 2}
+    const_vals = {'kappa_1': 1.0, 'kappa_2': 1, 'kappa_3': 1, 'kappa_4': -1, 'D_1': 4, 'D_2': 1}
     const_symbols = symbols(list(const_vals))
     k_1, k_2, k_3, k_4, D_1, D_2 = const_symbols
     INFLOW_BOUNDARY = 'left'
@@ -124,16 +124,16 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     map_v = map_function(v, chi, yvars)
 
     f_v = -D_2 * del_v
-    g_1_v = get_n_deriv(INFLOW_BOUNDARY, v, chi, yvars) - (k_1 * u - k_2 * v)
-    g_2_v = get_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * v - k_4 * w)
-    g_3_v = get_n_deriv('up', v, chi, yvars)  # Why is this not mapped?
-    g_4_v = get_n_deriv('down', v, chi, yvars)
+    g_1_v = D_2 * get_n_deriv(INFLOW_BOUNDARY, v, chi, yvars) - (k_1 * u - k_2 * v)
+    g_2_v = D_2 * get_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * v - k_4 * w)
+    g_3_v = D_2 * get_n_deriv('up', v, chi, yvars)  # Why is this not mapped?
+    g_4_v = D_2 * get_n_deriv('down', v, chi, yvars)
     inflow_func = mapped_micro_measures(INFLOW_BOUNDARY, chi, yvars)
     outflow_func = mapped_micro_measures(OUTFLOW_BOUNDARY, chi, yvars)
     g_1_u = u
-    g_2_u = get_macro_n_deriv(xvars[1], u, xvars)
-    g_1_w = get_macro_n_deriv(xvars[0], w, xvars)
-    g_2_w = get_macro_n_deriv(xvars[1], w, xvars)
+    g_2_u = D_1 * get_macro_n_deriv(xvars[1], u, xvars)
+    g_1_w = D_1 * get_macro_n_deriv(xvars[0], w, xvars)
+    g_2_w = D_1 * get_macro_n_deriv(xvars[1], w, xvars)
     f_u = -del_u + mapped_boundary_integral(INFLOW_BOUNDARY, chi, k_1 * u - k_2 * map_v + g_1_v, yvars)
     f_w = -D_1 * del_w - mapped_boundary_integral(OUTFLOW_BOUNDARY, chi, k_3 * v - k_4 * w + g_2_v, yvars)
 
