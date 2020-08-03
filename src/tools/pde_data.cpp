@@ -202,11 +202,14 @@ struct BioMicroData<3>;
 
 
 template
-struct BioData<1>;
+class BioData<1>;
+
 template
-struct BioData<2>;
+class BioData<2>;
+
 template
-struct BioData<3>;
+class BioData<3>;
+
 template
 struct ParabolicMicroData<1>;
 template
