@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from sympy import *
+from sympy.core import expr
 from sympy.parsing.sympy_parser import parse_expr
 import sys, re
 from configparser import ConfigParser
@@ -63,11 +64,9 @@ def mapped_boundary_integral(direction, map, f, vars):
     return integrate(f.subs({vars[i]: mapped_boundary[i] for i in range(len(vars))}), (t, 0, 1))
 
 
-def get_n_deriv(direction, f, map, vars):
+def mapped_n_deriv(direction, f, map, vars):
     _, normal = mapped_boundary_and_normal(direction, map, vars)
     grad_f = grad(f, vars)
-    print(normal)
-    print(direction, f, map, grad_f, grad_f[0] * normal[0] + grad_f[1] * normal[1])
     return grad_f[0] * normal[0] + grad_f[1] * normal[1]
 
 
@@ -122,12 +121,12 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     del_v = laplace(v, yvars)
     del_w = laplace(w, xvars)
     map_v = map_function(v, chi, yvars)
-
+    jac = jacobian(chi, yvars)
     f_v = -D_2 * del_v
-    g_1_v = D_2 * get_n_deriv(INFLOW_BOUNDARY, v, chi, yvars) - (k_1 * u - k_2 * v)
-    g_2_v = D_2 * get_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * v - k_4 * w)
-    g_3_v = D_2 * get_n_deriv('up', v, chi, yvars)  # Why is this not mapped?
-    g_4_v = D_2 * get_n_deriv('down', v, chi, yvars)
+    g_1_v = D_2 * mapped_n_deriv(INFLOW_BOUNDARY, v, chi, yvars) - (k_1 * u - k_2 * v)
+    g_2_v = D_2 * mapped_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * v - k_4 * w)
+    g_3_v = D_2 * mapped_n_deriv('up', v, chi, yvars)
+    g_4_v = D_2 * mapped_n_deriv('down', v, chi, yvars)
     inflow_func = mapped_micro_measures(INFLOW_BOUNDARY, chi, yvars)
     outflow_func = mapped_micro_measures(OUTFLOW_BOUNDARY, chi, yvars)
     g_1_u = u
@@ -137,22 +136,37 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     f_u = -del_u + mapped_boundary_integral(INFLOW_BOUNDARY, chi, k_1 * u - k_2 * map_v + g_1_v, yvars)
     f_w = -D_1 * del_w - mapped_boundary_integral(OUTFLOW_BOUNDARY, chi, k_3 * v - k_4 * w + g_2_v, yvars)
 
-    jac = jacobian(chi, yvars)
-    funcs = {"solution_u": u, "bulk_rhs_u": f_u, "bc_u_1": g_1_u, "bc_u_2": g_2_u,
-             "solution_w": w, "bulk_rhs_w": f_w, "bc_w_1": g_1_w, "bc_w_2": g_2_w,
-             "inflow_measure": inflow_func, "outflow_measure": outflow_func,
+    funcs = {"solution_u": u, "bulk_rhs_u": f_u, "bc_u_1": g_1_u, "bc_u_2": g_2_u, "solution_w": w, "bulk_rhs_w": f_w,
+             "bc_w_1": g_1_w, "bc_w_2": g_2_w, "inflow_measure": inflow_func, "outflow_measure": outflow_func,
              "solution_v": v, "bulk_rhs_v": f_v, "bc_v_1": g_1_v, "bc_v_2": g_2_v, "bc_v_3": g_3_v, "bc_v_4": g_4_v,
-             "mapping": matrix_repr(chi), "jac_mapping": matrix_repr(jac), **const_vals}
+             "mapping": chi, "jac_mapping": jac, 'micro_geometry': "[-1,1]x[-1,1]",
+             'macro_geometry': "[-1,1]x[-1,1]", **const_vals}
     return funcs
 
 
-def write_param_file(filename, funcs):
-    data = funcs.copy()
-    data['micro_geometry'] = "[-1,1]x[-1,1]"
-    data['macro_geometry'] = "[-1,1]x[-1,1]"
+def compute_single_scale_problem(funcs):
+    const_vals = {'kappa_1': 0, 'kappa_2': 1, 'kappa_3': -1, 'kappa_4': 0, 'D_2': 1, 'D_1': 0, 'x0': -1, 'x1': -1}
+    funcs_ = funcs.copy()
+    x, y = symbols('x y')
+    for func, val in funcs.items():
+        if isinstance(val, expr.Expr) or isinstance(val, Matrix):
+            print(val)
+            funcs_[func] = val.subs(const_vals)
+            funcs_[func] = funcs_[func].subs({'y0': x, 'y1': y})
+    # Turn y0 and y1 in x and y
+    ref_solution = map_function(funcs_['solution_v'], funcs_['mapping'], (x, y))
+    single_scale_funcs = {'solution': funcs_['solution_v'], 'rhs': funcs_['bulk_rhs_v'], 'mapping': funcs_['mapping'],
+                          'jac_mapping': funcs_['jac_mapping'], 'left_robin': funcs_['bc_v_1'],
+                          'right_robin': funcs_['bc_v_2'], 'up_neumann': funcs_['bc_v_3'],
+                          'down_neumann': funcs_['bc_v_4'], 'ref_solution': ref_solution}
+    return single_scale_funcs
 
+
+def write_param_file(filename, data):
     with open('%s.prm' % filename, 'w') as param_file:
         for key, val in data.items():
+            if isinstance(val, Matrix):
+                val = matrix_repr(val)
             formatted_val = str(val).replace('**', '^')
             param_file.write("set %s = %s\n" % (key, formatted_val))
 
@@ -166,6 +180,8 @@ def create_new_biomath_case(name, u_def, v_def, w_def, chi_def):
     chi = parse_mapping(chi_def.replace('^', '**'))
     funcs = compute_biomath_problem(u, v, w, chi, xvars, yvars)
     write_param_file(name, funcs)
+    single_funcs = compute_single_scale_problem(funcs)
+    write_param_file('validate.' + name, single_funcs)
 
 
 def bio_wizard():
