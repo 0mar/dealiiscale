@@ -26,28 +26,6 @@ def jacobian(map, vars):
     return map.jacobian(m_vars)
 
 
-def mapped_boundary_and_normal(direction, map, vars):
-    t = symbols('t')
-    move = 1 - 2 * t
-    directions = {'up': (move, 1), 'right': (1, -move), 'down': (-move, -1), 'left': (-1, move)}
-    if direction not in directions:
-        raise AttributeError("Direction %s not present" % direction)
-    boundary = directions[direction]
-    mapped_boundary = map.subs({vars[i]: boundary[i] for i in range(len(vars))})
-    tangent = mapped_boundary.diff(t)
-    rot_matrix = Matrix([[0, 1], [-1, 0]])
-    normal = rot_matrix * tangent
-    normal = normal / normal.norm()
-    return boundary, normal
-
-
-def get_n_deriv(direction, f, map, vars):
-    _, normal = mapped_boundary_and_normal(direction, map, vars)
-    print(normal)
-    grad_f = grad(f, vars)
-    return grad_f[0] * normal[0] + grad_f[1] * normal[1]
-
-
 def boundary_integral(f, vars):
     # todo: Implement map for this # check line integral
     if len(vars) == 2:
@@ -85,26 +63,15 @@ def compute_elliptic_problem(u, v, chi, xvars, yvars, micro_integration='bulk'):
     del_v = laplace(v, yvars)
     map_v = map_function(v, chi, yvars)
 
-    if micro_integration == 'flux':
-        integral_v = boundary_integral(map_v, yvars)
-    elif micro_integration == 'bulk':
-        integral_v = bulk_integral(map_v, yvars)  # fixme not correctly implemented yet
-    else:
-        raise ValueError("Choose micro_integration to be either 'bulk' or 'flux', not %s" % micro_integration)
+    jac = jacobian(chi, yvars)
+    # Use reference domain to integrate, but we want the integral on the deformed domain
+    integral_v = bulk_integral(map_v * jac.det(), yvars)
     macro_rhs = - integral_v - del_u
     micro_rhs = - u - del_v
-    left_robin = v + get_n_deriv('left', v, chi, yvars)
-    right_robin = v + get_n_deriv('right', v, chi, yvars)
-    up_neumann = get_n_deriv('up', v, chi, yvars)
-    down_neumann = get_n_deriv('down', v, chi, yvars)
 
-    jac = jacobian(chi, yvars)
     funcs = {"macro_rhs": macro_rhs, "micro_rhs": micro_rhs,
-             "left_robin": left_robin,
-             "right_robin": right_robin,
-             "up_neumann": up_neumann,
-             "down_neumann": down_neumann,
              "macro_solution": u, "micro_solution": v,
+             "macro_bc": u, "micro_bc": v,
              "mapping": matrix_repr(chi), "jac_mapping": matrix_repr(jac)}
     return funcs
 
@@ -125,7 +92,6 @@ def create_new_elliptic_case(name, u_def, v_def, chi_def):
     yvars = symbols('y0 y1')
     u = parse_expr(u_def.replace('^', '**'))
     v = parse_expr(v_def.replace('^', '**'))
-    chi_def = "y0*cos(pi/6) - y1*sin(pi/6);y0*sin(pi/6) + y1*cos(pi/6)"
     chi = parse_mapping(chi_def.replace('^', '**'))
     funcs = compute_elliptic_problem(u, v, chi, xvars, yvars)
     write_param_file(name, funcs)

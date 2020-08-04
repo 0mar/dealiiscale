@@ -126,8 +126,6 @@ private:
     */
     double get_micro_bulk(unsigned int cell_index) const;
 
-    double get_micro_flux(unsigned int cell_index) const;
-
     /**
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
      */
