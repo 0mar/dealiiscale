@@ -147,7 +147,7 @@ public:
 
     Point<dim> map(const Point<dim> &p) const;
 
-private:
+public:
     const ProblemData<dim> &solution_base;
 };
 
@@ -305,12 +305,17 @@ void RobinSolver::assemble_system() {
             if (cell->face(face_number)->at_boundary()) {
                 fe_face_values.reinit(cell, face_number);
                 for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
-                    dm.get_kkt(fe_face_values.quadrature_point(q_index), kkt, det_jac);
+                    Tensor<2, dim> jac = dm.solution_base.map_jac->value(fe_face_values.quadrature_point(q_index));
+                    Tensor<2, dim> rot_mat;
+                    rot_mat[0][1] = -1;
+                    rot_mat[1][0] = 1;
+                    det_jac = (jac * rot_mat * fe_face_values.normal_vector(q_index)).norm();
 //                    std::cout << det_jac << "\t" << dm.map(fe_face_values.quadrature_point(q_index)) << std::endl;
                     Point<dim> mapped_point = dm.map(fe_face_values.quadrature_point(q_index));
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
                         switch (cell->face(face_number)->boundary_id()) {
                             case RIGHT_ROBIN:
+//                                std::cout << "Right " << det_jac << std::endl;
                                 for (unsigned int j = 0; j < dofs_per_cell; j++) {
                                     cell_matrix(i, j) += fe_face_values.shape_value(i, q_index) *
                                                          fe_face_values.shape_value(j, q_index) * det_jac *
@@ -320,6 +325,7 @@ void RobinSolver::assemble_system() {
                                                fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index);
                                 break;
                             case LEFT_ROBIN:
+//                                std::cout << "left " << det_jac << std::endl;
                                 for (unsigned int j = 0; j < dofs_per_cell; j++) {
                                     cell_matrix(i, j) += fe_face_values.shape_value(i, q_index) *
                                                          fe_face_values.shape_value(j, q_index) * det_jac *
@@ -329,10 +335,12 @@ void RobinSolver::assemble_system() {
                                                fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index);
                                 break;
                             case UP_NEUMANN:
+//                                std::cout << "up " << det_jac << std::endl;
                                 cell_rhs(i) += solution_base.up_neumann.value(mapped_point) * det_jac *
                                                fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index);
                                 break;
                             case DOWN_NEUMANN:
+//                                std::cout << "down " << det_jac << std::endl;
                                 cell_rhs(i) += solution_base.down_neumann.value(mapped_point) * det_jac *
                                                fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index);
                                 break;
@@ -350,7 +358,6 @@ void RobinSolver::assemble_system() {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
         }
     }
-//    std::cout << system_rhs << std::endl;
 }
 
 void RobinSolver::solve() {
