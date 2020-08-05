@@ -166,6 +166,8 @@ private:
     Vector<double> macro_contribution;
     // Macroscopic degree of freedom handler
     const DoFHandler<dim> *macro_dof_handler;
+    // Rotation matrix required for computing the boundary transformation determinant
+    Tensor<2, dim> rotation_matrix;
     // System matrices for each microscopic domain
     std::vector<SparseMatrix<double>> system_matrices;
     // Right hand side vectors for each microscopic domain

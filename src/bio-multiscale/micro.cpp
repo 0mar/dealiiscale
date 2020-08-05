@@ -66,6 +66,8 @@ void MicroSolver<dim>::setup_system() {
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
+    rotation_matrix[0][1] = -1;
+    rotation_matrix[1][0] = 1;
 }
 
 template<int dim>
@@ -117,7 +119,8 @@ void MicroSolver<dim>::compute_pullback_objects() {
                         Tensor<2, dim> inv_jacobian = invert(jacobian);
                         det_jac = determinant(jacobian);
                         kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
-                        mapmap.set(grid_locations.at(k), fe_face_values.quadrature_point(q_index), det_jac, kkt);
+                        mapmap.set(grid_locations.at(k), fe_face_values.quadrature_point(q_index), det_jac,
+                                   kkt); // Todo: modify for boundary representation
                     }
                 }
             }
@@ -176,7 +179,9 @@ MicroSolver<dim>::integrate_cell(const typename DoFHandler<dim>::active_cell_ite
         if (cell->face(face_number)->at_boundary()) {
             fe_face_values.reinit(cell, face_number);
             for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
-                mapmap.get_det_jac(grid_locations.at(k), fe_face_values.quadrature_point(q_index), det_jac);
+                det_jac = (
+                        pde_data.map_jac.mtensor_value(grid_locations.at(k), fe_face_values.quadrature_point(q_index)) *
+                        rotation_matrix * fe_face_values.normal_vector(q_index)).norm();
                 Point<dim> mp = pde_data.mapping.mmap(grid_locations.at(k),
                                                       fe_face_values.quadrature_point(q_index));
                 for (unsigned int i = 0; i < dofs_per_cell; i++) {
@@ -229,7 +234,8 @@ void MicroSolver<dim>::assemble_system() {
     QGauss<dim - 1> face_quadrature_formula(fem_quadrature);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
-                                     update_quadrature_points | update_values | update_JxW_values);
+                                     update_quadrature_points | update_values | update_normal_vectors |
+                                     update_JxW_values);
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
