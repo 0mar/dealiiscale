@@ -53,7 +53,7 @@ def mapped_boundary_and_normal(direction, map, vars):
     return boundary, normal
 
 
-def mapped_boundary_integral(direction, map, f, vars):
+def mapped_boundary_integral(direction, f, map, vars):
     t = symbols('t')
     move = 1 - 2 * t
     directions = {'up': (move, 1), 'right': (1, -move), 'down': (-move, -1), 'left': (-1, move)}
@@ -133,8 +133,9 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     g_2_u = D_1 * get_macro_n_deriv(xvars[1], u, xvars)
     g_1_w = D_1 * get_macro_n_deriv(xvars[0], w, xvars)
     g_2_w = D_1 * get_macro_n_deriv(xvars[1], w, xvars)
-    f_u = -del_u + mapped_boundary_integral(INFLOW_BOUNDARY, chi, k_1 * u - k_2 * map_v + g_1_v, yvars)
-    f_w = -D_1 * del_w - mapped_boundary_integral(OUTFLOW_BOUNDARY, chi, k_3 * v - k_4 * w + g_2_v, yvars)
+    mbi = mapped_boundary_integral(INFLOW_BOUNDARY, k_1 * u - k_2 * map_v + g_1_v, chi, yvars)
+    f_u = -del_u + mbi
+    f_w = -D_1 * del_w - mapped_boundary_integral(OUTFLOW_BOUNDARY, k_3 * v - k_4 * w + g_2_v, chi, yvars)
 
     funcs = {"solution_u": u, "bulk_rhs_u": f_u, "bc_u_1": g_1_u, "bc_u_2": g_2_u, "solution_w": w, "bulk_rhs_w": f_w,
              "bc_w_1": g_1_w, "bc_w_2": g_2_w, "inflow_measure": inflow_func, "outflow_measure": outflow_func,
@@ -150,7 +151,6 @@ def compute_single_scale_problem(funcs):
     x, y = symbols('x y')
     for func, val in funcs.items():
         if isinstance(val, expr.Expr) or isinstance(val, Matrix):
-            print(val)
             funcs_[func] = val.subs(const_vals)
             funcs_[func] = funcs_[func].subs({'y0': x, 'y1': y})
     # Turn y0 and y1 in x and y

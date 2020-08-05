@@ -52,9 +52,9 @@ void Manager::run() {
 
 void Manager::fixed_point_iterate() {
     macro_solver.run();
-//    macro_solver.solution = macro_solver.get_exact_solution();
-    micro_solver.run();
-//    micro_solver.set_exact_solution();
+//    macro_solver.set_exact_solution();
+//    micro_solver.run();
+    micro_solver.set_exact_solution();
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
