@@ -130,10 +130,10 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     inflow_func = mapped_micro_measures(INFLOW_BOUNDARY, chi, yvars)
     outflow_func = mapped_micro_measures(OUTFLOW_BOUNDARY, chi, yvars)
     g_1_u = u
-    g_2_u = D_1 * get_macro_n_deriv(xvars[1], u, xvars)
+    g_2_u = get_macro_n_deriv(xvars[1], u, xvars)
     g_1_w = D_1 * get_macro_n_deriv(xvars[0], w, xvars)
     g_2_w = D_1 * get_macro_n_deriv(xvars[1], w, xvars)
-    mbi = mapped_boundary_integral(INFLOW_BOUNDARY, k_1 * u - k_2 * map_v + g_1_v, chi, yvars)
+    mbi = mapped_boundary_integral(INFLOW_BOUNDARY, k_1 * u - k_2 * v + g_1_v, chi, yvars)
     f_u = -del_u + mbi
     f_w = -D_1 * del_w - mapped_boundary_integral(OUTFLOW_BOUNDARY, k_3 * v - k_4 * w + g_2_v, chi, yvars)
 
