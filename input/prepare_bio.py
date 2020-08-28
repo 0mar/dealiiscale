@@ -74,7 +74,7 @@ def get_macro_n_deriv(axis, f, vars):
     normal = [0] * len(vars)
     if axis not in vars:
         raise AttributeError("Axis %s not in %s" % (axis, vars))
-    normal[vars.index(axis)] = 1
+    normal[vars.index(axis)] = axis  # Normal vector adjusted for direction
     grad_f = grad(f, vars)
     return sum([grad_f[i] * normal[i] for i in range(len(vars))])
 
