@@ -238,7 +238,6 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
 //                    const double y0 = q_point(0);
 //                    const double y1 = q_point(1);
 //                    const double symb_val = micro.data->params.get_double("D_2") *std::sqrt(2)/2 * (y0*y1 - y0*(1-y1) - y1*(1-y1));
-
                     det_jac = (micro.data->map_jac.mtensor_value(macro_point, q_point) * rotation_matrix *
                                fe_face_values.normal_vector(q_index)).norm();
 //                    const double num_val = micro.data->bc_v_1.mvalue(macro_point, q_point) - k_2*interp_solution[q_index] + micro.data->params.get_double("kappa_1")*pde_data.solution_u.value(macro_point);
