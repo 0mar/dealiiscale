@@ -142,11 +142,11 @@ void MacroSolver<dim>::assemble_system() {
                             cell_rhs_u(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
                                              pde_data.bc_u_2.value(fe_face_values.quadrature_point(q_index));
                             cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
-                                             pde_data.bc_w_1.value(fe_face_values.quadrature_point(q_index));
-                        } else {
-                            // Neumann boundary indication only for u
-                            cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
                                              pde_data.bc_w_2.value(fe_face_values.quadrature_point(q_index));
+                        } else {
+                            // Todo: fix manuscript to also have dirichlet for w
+//                            cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
+//                                             pde_data.bc_w_2.value(fe_face_values.quadrature_point(q_index));
                         }
                     }
                 }
@@ -161,10 +161,18 @@ void MacroSolver<dim>::assemble_system() {
             system_rhs_w(local_dof_indices[i]) += cell_rhs_w(i);
         }
     }
-    std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.bc_u_1,
-                                             boundary_values);
-    MatrixTools::apply_boundary_values(boundary_values, system_matrix_u, sol_u, system_rhs_u);
+    {
+        std::map<types::global_dof_index, double> boundary_values;
+        VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_u,
+                                                 boundary_values);
+        MatrixTools::apply_boundary_values(boundary_values, system_matrix_u, sol_u, system_rhs_u);
+    }
+    {
+        std::map<types::global_dof_index, double> boundary_values;
+        VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_w,
+                                                 boundary_values);
+        MatrixTools::apply_boundary_values(boundary_values, system_matrix_w, sol_w, system_rhs_w);
+    }
 }
 
 template<int dim>
@@ -184,10 +192,12 @@ void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
                                       QGauss<dim>(8),
                                       VectorTools::L2_norm);
     l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::L2_norm);
+    printf("U error: %.4e\n", l2_error);
     VectorTools::integrate_difference(dof_handler, sol_w, pde_data.solution_w, difference_per_cell,
                                       QGauss<dim>(8),
                                       VectorTools::L2_norm);
     l2_error += VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::L2_norm);
+    printf("U + W error: %.4e\n", l2_error);
     VectorTools::integrate_difference(dof_handler, sol_u, pde_data.solution_u, difference_per_cell,
                                       QGauss<dim>(8),
                                       VectorTools::H1_seminorm);
@@ -244,6 +254,7 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
 //                    printf("(%.2f, %.2f)x(%.2f, %.2f) -> %.2f (exact %.2f)\n", macro_point(0), macro_point(1), y0,y1, num_val, symb_val);
                     switch (cell->face(face_number)->boundary_id()) {
                         case 0: // INFLOW_BOUNDARY // Todo: Not clean, should be micro enums
+//                        printf("Comparing %.3f with %.3f and %.3f\n", interp_solution[q_index], mq_point(0)*mq_point(1)*(1-mq_point(1)) + macro_point(0) + macro_point(1), micro.data->solution_v.mvalue(macro_point,q_point));
                             u_contribution += (-k_2 * interp_solution[q_index] +
                                                micro.data->bc_v_1.mvalue(macro_point, mq_point)) * jxw * det_jac;
 //                                u_contribution += (symb_val - ) * jxw * det_jac;

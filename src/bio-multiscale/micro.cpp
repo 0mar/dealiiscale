@@ -106,6 +106,7 @@ void MicroSolver<dim>::compute_pullback_objects() {
                                                                          fe_values.quadrature_point(q_index));
                 Tensor<2, dim> inv_jacobian = invert(jacobian);
                 det_jac = determinant(jacobian);
+                Assert(det_jac > 1E-4, ExcMessage("Determinant of jacobian of mapping is not positive!"))
                 kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
                 mapmap.set(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac, kkt);
             }
