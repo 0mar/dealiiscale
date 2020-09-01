@@ -61,7 +61,10 @@ def mapped_boundary_integral(direction, f, map, vars):
         raise AttributeError("Direction %s not present" % direction)
     boundary = directions[direction]
     mapped_boundary = map.subs({vars[i]: boundary[i] for i in range(len(vars))})
-    return integrate(f.subs({vars[i]: mapped_boundary[i] for i in range(len(vars))}), (t, 0, 1))
+    integrand = f.subs({vars[i]: mapped_boundary[i] for i in range(len(vars))})
+    jac = mapped_boundary.diff('t').norm()
+    result = integrate(integrand * jac, (t, 0, 1))
+    return result
 
 
 def mapped_n_deriv(direction, f, map, vars):
@@ -135,7 +138,7 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     g_2_w = D_1 * get_macro_n_deriv(xvars[1], w, xvars)
     mbi = mapped_boundary_integral(INFLOW_BOUNDARY, k_1 * u - k_2 * v + g_1_v, chi, yvars)
     f_u = -del_u + mbi
-    f_w = -D_1 * del_w - mapped_boundary_integral(OUTFLOW_BOUNDARY, k_3 * v - k_4 * w + g_2_v, chi, yvars)
+    f_w = -D_1 * del_w + mapped_boundary_integral(OUTFLOW_BOUNDARY, k_3 * v - k_4 * w + g_2_v, chi, yvars)
 
     funcs = {"solution_u": u, "bulk_rhs_u": f_u, "bc_u_1": g_1_u, "bc_u_2": g_2_u, "solution_w": w, "bulk_rhs_w": f_w,
              "bc_w_1": g_1_w, "bc_w_2": g_2_w, "inflow_measure": inflow_func, "outflow_measure": outflow_func,

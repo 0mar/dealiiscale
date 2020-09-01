@@ -119,13 +119,13 @@ void MacroSolver<dim>::assemble_system() {
                     const double mass_term =
                             fe_values.shape_value(i, q_index) * fe_values.shape_value(j, q_index) *
                             fe_values.JxW(q_index);
-                    cell_matrix_u(i, j) += laplace_term - mass_term * k_1 * pde_data.inflow_measure.value(q_point);
+                    cell_matrix_u(i, j) += laplace_term + mass_term * k_1 * pde_data.inflow_measure.value(q_point);
                     cell_matrix_w(i, j) +=
-                            D_1 * laplace_term + mass_term * k_4 * pde_data.outflow_measure.value(q_point);
+                            D_1 * laplace_term - mass_term * k_4 * pde_data.outflow_measure.value(q_point);
                 }
-                cell_rhs_u(i) += (u_micro_cont[q_index] + pde_data.bulk_rhs_u.value(q_point)) *
+                cell_rhs_u(i) += (-u_micro_cont[q_index] + pde_data.bulk_rhs_u.value(q_point)) *
                                  fe_values.shape_value(i, q_index) * fe_values.JxW(q_index);
-                cell_rhs_w(i) += (w_micro_cont[q_index] + pde_data.bulk_rhs_w.value(q_point)) *
+                cell_rhs_w(i) += (-w_micro_cont[q_index] + pde_data.bulk_rhs_w.value(q_point)) *
                                  fe_values.shape_value(i, q_index) * fe_values.JxW(q_index);
             }
         }
@@ -144,6 +144,7 @@ void MacroSolver<dim>::assemble_system() {
                             cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
                                              pde_data.bc_w_1.value(fe_face_values.quadrature_point(q_index));
                         } else {
+                            // Neumann boundary indication only for u
                             cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
                                              pde_data.bc_w_2.value(fe_face_values.quadrature_point(q_index));
                         }
@@ -233,6 +234,7 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
                 for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                     const double &jxw = fe_face_values.JxW(q_index);
                     const Point<dim> &q_point = fe_face_values.quadrature_point(q_index);
+                    const Point<dim> mq_point = micro.data->mapping.mmap(macro_point, q_point);
 //                    const double y0 = q_point(0);
 //                    const double y1 = q_point(1);
 //                    const double symb_val = micro.data->params.get_double("D_2") *std::sqrt(2)/2 * (y0*y1 - y0*(1-y1) - y1*(1-y1));
@@ -244,12 +246,12 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
                     switch (cell->face(face_number)->boundary_id()) {
                         case 0: // INFLOW_BOUNDARY // Todo: Not clean, should be micro enums
                             u_contribution += (-k_2 * interp_solution[q_index] +
-                                               micro.data->bc_v_1.mvalue(macro_point, q_point)) * jxw * det_jac;
+                                               micro.data->bc_v_1.mvalue(macro_point, mq_point)) * jxw * det_jac;
 //                                u_contribution += (symb_val - ) * jxw * det_jac;
                             break;
                         case 1: // OUTFLOW_BOUNDARY
                             w_contribution += (k_3 * interp_solution[q_index] +
-                                               micro.data->bc_v_2.mvalue(macro_point, q_point)) * jxw * det_jac;
+                                               micro.data->bc_v_2.mvalue(macro_point, mq_point)) * jxw * det_jac;
                             break;
                         }
                 }

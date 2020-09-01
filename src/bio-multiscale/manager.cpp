@@ -100,6 +100,18 @@ void Manager::patch_and_write_solutions() {
     {
         DataOut<MACRO_DIMENSIONS> macro_data_out;
         macro_data_out.attach_dof_handler(macro_solver.dof_handler);
+        Vector<double> error(macro_solver.dof_handler.n_dofs());
+        error += macro_solver.sol_u;
+        macro_solver.set_exact_solution();
+        error -= macro_solver.sol_u;
+        macro_data_out.add_data_vector(error, "solution");
+        macro_data_out.build_patches();
+        std::ofstream macro_output("results/u-error.gpl");
+        macro_data_out.write_gnuplot(macro_output);
+    }
+    {
+        DataOut<MACRO_DIMENSIONS> macro_data_out;
+        macro_data_out.attach_dof_handler(macro_solver.dof_handler);
         macro_data_out.add_data_vector(macro_solver.sol_w, "solution");
         macro_data_out.build_patches();
         std::ofstream macro_output("results/w-solution.gpl");
