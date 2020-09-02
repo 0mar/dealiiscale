@@ -161,18 +161,13 @@ void MacroSolver<dim>::assemble_system() {
             system_rhs_w(local_dof_indices[i]) += cell_rhs_w(i);
         }
     }
-    {
-        std::map<types::global_dof_index, double> boundary_values;
-        VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_u,
-                                                 boundary_values);
-        MatrixTools::apply_boundary_values(boundary_values, system_matrix_u, sol_u, system_rhs_u);
-    }
-    {
-        std::map<types::global_dof_index, double> boundary_values;
-        VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_w,
-                                                 boundary_values);
-        MatrixTools::apply_boundary_values(boundary_values, system_matrix_w, sol_w, system_rhs_w);
-    }
+    std::map<types::global_dof_index, double> boundary_values;
+    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_u,
+                                             boundary_values);
+    MatrixTools::apply_boundary_values(boundary_values, system_matrix_u, sol_u, system_rhs_u);
+    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_w,
+                                             boundary_values);
+    MatrixTools::apply_boundary_values(boundary_values, system_matrix_w, sol_w, system_rhs_w);
 }
 
 template<int dim>
@@ -245,19 +240,12 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
                     const double &jxw = fe_face_values.JxW(q_index);
                     const Point<dim> &q_point = fe_face_values.quadrature_point(q_index);
                     const Point<dim> mq_point = micro.data->mapping.mmap(macro_point, q_point);
-//                    const double y0 = q_point(0);
-//                    const double y1 = q_point(1);
-//                    const double symb_val = micro.data->params.get_double("D_2") *std::sqrt(2)/2 * (y0*y1 - y0*(1-y1) - y1*(1-y1));
                     det_jac = (micro.data->map_jac.mtensor_value(macro_point, q_point) * rotation_matrix *
                                fe_face_values.normal_vector(q_index)).norm();
-//                    const double num_val = micro.data->bc_v_1.mvalue(macro_point, q_point) - k_2*interp_solution[q_index] + micro.data->params.get_double("kappa_1")*pde_data.solution_u.value(macro_point);
-//                    printf("(%.2f, %.2f)x(%.2f, %.2f) -> %.2f (exact %.2f)\n", macro_point(0), macro_point(1), y0,y1, num_val, symb_val);
                     switch (cell->face(face_number)->boundary_id()) {
-                        case 0: // INFLOW_BOUNDARY // Todo: Not clean, should be micro enums
-//                        printf("Comparing %.3f with %.3f and %.3f\n", interp_solution[q_index], mq_point(0)*mq_point(1)*(1-mq_point(1)) + macro_point(0) + macro_point(1), micro.data->solution_v.mvalue(macro_point,q_point));
+                        case 0: // INFLOW_BOUNDARY // Not clean, should be micro enums
                             u_contribution += (-k_2 * interp_solution[q_index] +
                                                micro.data->bc_v_1.mvalue(macro_point, mq_point)) * jxw * det_jac;
-//                                u_contribution += (symb_val - ) * jxw * det_jac;
                             break;
                         case 1: // OUTFLOW_BOUNDARY
                             w_contribution += (k_3 * interp_solution[q_index] +
@@ -276,8 +264,7 @@ void MacroSolver<dim>::compute_microscopic_contribution() {
     std::vector<Point<dim>> locations;
     get_dof_locations(locations);
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
-        integrate_micro_cells(i, locations[i], micro_contribution_u(i),
-                              micro_contribution_w(i)); // Todo: does this work?
+        integrate_micro_cells(i, locations[i], micro_contribution_u(i), micro_contribution_w(i));
     }
 }
 

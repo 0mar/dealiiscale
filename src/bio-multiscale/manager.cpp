@@ -52,9 +52,7 @@ void Manager::run() {
 
 void Manager::fixed_point_iterate() {
     macro_solver.run();
-//    macro_solver.set_exact_solution();
     micro_solver.run();
-//    micro_solver.set_exact_solution();
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
@@ -100,18 +98,6 @@ void Manager::patch_and_write_solutions() {
     {
         DataOut<MACRO_DIMENSIONS> macro_data_out;
         macro_data_out.attach_dof_handler(macro_solver.dof_handler);
-        Vector<double> error(macro_solver.dof_handler.n_dofs());
-        error += macro_solver.sol_u;
-        macro_solver.set_exact_solution();
-        error -= macro_solver.sol_u;
-        macro_data_out.add_data_vector(error, "solution");
-        macro_data_out.build_patches();
-        std::ofstream macro_output("results/u-error.gpl");
-        macro_data_out.write_gnuplot(macro_output);
-    }
-    {
-        DataOut<MACRO_DIMENSIONS> macro_data_out;
-        macro_data_out.attach_dof_handler(macro_solver.dof_handler);
         macro_data_out.add_data_vector(macro_solver.sol_w, "solution");
         macro_data_out.build_patches();
         std::ofstream macro_output("results/w-solution.gpl");
@@ -123,7 +109,7 @@ void Manager::patch_and_write_solutions() {
         const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
         micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
         micro_data_out.build_patches();
-        std::ofstream micro_output("results/micro-computed.gpl");
+        std::ofstream micro_output("results/v-computed.gpl");
         micro_data_out.write_gnuplot(micro_output);
     }
     {

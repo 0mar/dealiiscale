@@ -167,12 +167,11 @@ MicroSolver<dim>::integrate_cell(const typename DoFHandler<dim>::active_cell_ite
             }
         }
     }
-    for (unsigned int i = 0; i < dofs_per_cell; i++) { // Todo: Swap for loops
-        for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-            mapmap.get_det_jac(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac);
-            const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k),
-                                                              fe_values.quadrature_point(q_index));
-            double rhs_val = pde_data.bulk_rhs_v.mvalue(grid_locations.at(k), mapped_p);
+    for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+        mapmap.get_det_jac(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac);
+        const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k), fe_values.quadrature_point(q_index));
+        double rhs_val = pde_data.bulk_rhs_v.mvalue(grid_locations.at(k), mapped_p);
+        for (unsigned int i = 0; i < dofs_per_cell; i++) {
             cell_rhs(i) += rhs_val * fe_values.shape_value(i, q_index) * fe_values.JxW(q_index) * det_jac;
         }
     }
