@@ -219,8 +219,7 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
     w_contribution = 0;
     QGauss<dim - 1> quadrature_formula(*(micro.q_degree)); // Not necessarily the same dim
     FEFaceValues<dim> fe_face_values(micro.dof_handler->get_fe(),
-                                     quadrature_formula, update_values | update_quadrature_points | update_JxW_values |
-                                                         update_normal_vectors);
+                                     quadrature_formula, update_values | update_quadrature_points | update_JxW_values);
     const unsigned int n_q_face_points = quadrature_formula.size();
     const unsigned int dofs_per_cell = micro.dof_handler->get_fe().dofs_per_cell;
     std::vector<double> interp_solution(n_q_face_points);
@@ -228,9 +227,6 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
     const double &k_2 = micro.data->params.get_double("kappa_2");
     const double &k_3 = micro.data->params.get_double("kappa_3");
     double det_jac;
-    Tensor<2, dim> rotation_matrix; // Todo: Move
-    rotation_matrix[0][1] = -1;
-    rotation_matrix[1][0] = 1;
     for (const auto &cell: micro.dof_handler->active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary()) {
@@ -240,8 +236,7 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
                     const double &jxw = fe_face_values.JxW(q_index);
                     const Point<dim> &q_point = fe_face_values.quadrature_point(q_index);
                     const Point<dim> mq_point = micro.data->mapping.mmap(macro_point, q_point);
-                    det_jac = (micro.data->map_jac.mtensor_value(macro_point, q_point) * rotation_matrix *
-                               fe_face_values.normal_vector(q_index)).norm();
+                    micro.mapmap->get_det_jac(macro_point, fe_face_values.quadrature_point(q_index), det_jac);
                     switch (cell->face(face_number)->boundary_id()) {
                         case 0: // INFLOW_BOUNDARY // Not clean, should be micro enums
                             u_contribution += (-k_2 * interp_solution[q_index] +

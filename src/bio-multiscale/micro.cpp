@@ -66,8 +66,6 @@ void MicroSolver<dim>::setup_system() {
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
-    rotation_matrix[0][1] = -1;
-    rotation_matrix[1][0] = 1;
 }
 
 template<int dim>
@@ -94,9 +92,12 @@ void MicroSolver<dim>::compute_pullback_objects() {
     QGauss<dim> quadrature_formula(fem_quadrature);
     QGauss<dim - 1> face_quadrature_formula(fem_quadrature);
     FEValues<dim> fe_values(fe, quadrature_formula, update_quadrature_points);
-    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula, update_quadrature_points);
+    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula, update_quadrature_points | update_normal_vectors);
     std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
     SymmetricTensor<2, dim> kkt;
+    Tensor<2, dim> rotation_matrix; // inits to zero
+    rotation_matrix[0][1] = -1;
+    rotation_matrix[1][0] = 1;
     double det_jac;
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
@@ -114,14 +115,11 @@ void MicroSolver<dim>::compute_pullback_objects() {
                 if (cell->face(face_number)->at_boundary()) {
                     fe_face_values.reinit(cell, face_number);
                     for (unsigned int q_index = 0; q_index < face_quadrature_formula.size(); q_index++) {
-                        Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(grid_locations.at(k),
-                                                                                 fe_face_values.quadrature_point(
-                                                                                         q_index));
-                        Tensor<2, dim> inv_jacobian = invert(jacobian);
-                        det_jac = determinant(jacobian);
-                        kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
-                        mapmap.set(grid_locations.at(k), fe_face_values.quadrature_point(q_index), det_jac,
-                                   kkt); // Todo: modify for boundary representation
+                        det_jac = (pde_data.map_jac.mtensor_value(grid_locations[k],
+                                                                  fe_face_values.quadrature_point(q_index)) *
+                                   rotation_matrix * fe_face_values.normal_vector(q_index)).norm();
+                        // Dummy kkt object. None is used on boundary.
+                        mapmap.set(grid_locations.at(k), fe_face_values.quadrature_point(q_index), det_jac, kkt);
                     }
                 }
             }
@@ -179,9 +177,7 @@ MicroSolver<dim>::integrate_cell(const typename DoFHandler<dim>::active_cell_ite
         if (cell->face(face_number)->at_boundary()) {
             fe_face_values.reinit(cell, face_number);
             for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
-                det_jac = (
-                        pde_data.map_jac.mtensor_value(grid_locations.at(k), fe_face_values.quadrature_point(q_index)) *
-                        rotation_matrix * fe_face_values.normal_vector(q_index)).norm();
+                mapmap.get_det_jac(grid_locations.at(k), fe_face_values.quadrature_point(q_index), det_jac);
                 Point<dim> mp = pde_data.mapping.mmap(grid_locations.at(k),
                                                       fe_face_values.quadrature_point(q_index));
                 for (unsigned int i = 0; i < dofs_per_cell; i++) {
@@ -234,8 +230,7 @@ void MicroSolver<dim>::assemble_system() {
     QGauss<dim - 1> face_quadrature_formula(fem_quadrature);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
-                                     update_quadrature_points | update_values | update_normal_vectors |
-                                     update_JxW_values);
+                                     update_quadrature_points | update_values | update_JxW_values);
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
@@ -302,7 +297,7 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_h1_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(fem_quadrature), VectorTools::L2_norm);
     h1_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
-                                                 VectorTools::L2_norm); //todo: Not sure about this norm, although output is consistent
+                                                 VectorTools::L2_norm); //Not sure about this norm, although output is consistent
 }
 
 template<int dim>

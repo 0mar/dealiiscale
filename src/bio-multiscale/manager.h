@@ -44,7 +44,7 @@ public:
      */
     void output_results();
 
-    double eps = 1E-4;
+    double eps = 1E-2;
     double max_iterations = 1E4;
 
 
