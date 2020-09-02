@@ -172,7 +172,7 @@ void MacroSolver<dim>::assemble_system() {
 
 template<int dim>
 void MacroSolver<dim>::solve() {
-    SolverControl solver_control(1000, 1e-12);
+    SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix_u, sol_u, system_rhs_u, PreconditionIdentity());
     solver.solve(system_matrix_w, sol_w, system_rhs_w, PreconditionIdentity());
