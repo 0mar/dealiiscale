@@ -35,7 +35,9 @@ def mapped_micro_measures(boundary, map, vars):
         raise AttributeError("Direction %s not present" % boundary)
     params = directions[boundary]
     mapped_boundary = map.subs({vars[i]: params[i] for i in range(len(vars))})
-    return mapped_boundary.diff(t).norm()
+    path_integrand = mapped_boundary.diff(t).norm()
+    path_length = integrate(path_integrand, (t, 0, 1))
+    return path_length
 
 
 def mapped_boundary_and_normal(direction, map, vars):
@@ -70,7 +72,7 @@ def mapped_boundary_integral(direction, f, map, vars):
 def mapped_n_deriv(direction, f, map, vars):
     _, normal = mapped_boundary_and_normal(direction, map, vars)
     grad_f = grad(f, vars)
-    return grad_f[0] * normal[0] + grad_f[1] * normal[1]
+    return grad_f[0] * normal[0] + grad_f[1] * normal[1]  # Fixme: this does not work for nonlinear mappings
 
 
 def get_macro_n_deriv(axis, f, vars):
@@ -123,7 +125,6 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     del_u = laplace(u, xvars)
     del_v = laplace(v, yvars)
     del_w = laplace(w, xvars)
-    map_v = map_function(v, chi, yvars)
     jac = jacobian(chi, yvars)
     f_v = -D_2 * del_v
     g_1_v = D_2 * mapped_n_deriv(INFLOW_BOUNDARY, v, chi, yvars) - (k_1 * u - k_2 * v)
