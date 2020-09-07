@@ -123,7 +123,7 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     jac = jacobian(chi, yvars)
     f_v = -D_2 * del_v
     g_1_v = D_2 * mapped_n_deriv(INFLOW_BOUNDARY, v, chi, yvars) - (k_1 * u - k_2 * v)
-    g_2_v = D_2 * mapped_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * v - k_4 * w)
+    g_2_v = D_2 * mapped_n_deriv(OUTFLOW_BOUNDARY, v, chi, yvars) - (k_3 * w - k_4 * v)
     g_3_v = D_2 * mapped_n_deriv('up', v, chi, yvars)
     g_4_v = D_2 * mapped_n_deriv('down', v, chi, yvars)
     inflow_func = mapped_micro_measures(INFLOW_BOUNDARY, chi, yvars)
@@ -134,7 +134,7 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     g_2_w = D_1 * get_macro_n_deriv(xvars[1], w, xvars)
     mbi = mapped_boundary_integral(INFLOW_BOUNDARY, k_1 * u - k_2 * v + g_1_v, chi, yvars)
     f_u = -del_u + mbi
-    f_w = -D_1 * del_w + mapped_boundary_integral(OUTFLOW_BOUNDARY, k_3 * v - k_4 * w + g_2_v, chi, yvars)
+    f_w = -D_1 * del_w + mapped_boundary_integral(OUTFLOW_BOUNDARY, k_3 * w - k_4 * v + g_2_v, chi, yvars)
 
     funcs = {"solution_u": u, "bulk_rhs_u": f_u, "bc_u_1": g_1_u, "bc_u_2": g_2_u, "solution_w": w, "bulk_rhs_w": f_w,
              "bc_w_1": g_1_w, "bc_w_2": g_2_w, "inflow_measure": inflow_func, "outflow_measure": outflow_func,

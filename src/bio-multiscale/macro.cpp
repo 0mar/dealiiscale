@@ -98,7 +98,7 @@ void MacroSolver<dim>::assemble_system() {
     std::vector<double> u_micro_cont(n_q_points);
     std::vector<double> w_micro_cont(n_q_points);
     const double &k_1 = pde_data.params.get_double("kappa_1");
-    const double &k_4 = pde_data.params.get_double("kappa_4");
+    const double &k_3 = pde_data.params.get_double("kappa_3");
     const double &D_1 = pde_data.params.get_double("D_1");
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
@@ -121,7 +121,7 @@ void MacroSolver<dim>::assemble_system() {
                             fe_values.JxW(q_index);
                     cell_matrix_u(i, j) += laplace_term + mass_term * k_1 * pde_data.inflow_measure.value(q_point);
                     cell_matrix_w(i, j) +=
-                            D_1 * laplace_term - mass_term * k_4 * pde_data.outflow_measure.value(q_point);
+                            D_1 * laplace_term + mass_term * k_3 * pde_data.outflow_measure.value(q_point);
                 }
                 cell_rhs_u(i) += (-u_micro_cont[q_index] + pde_data.bulk_rhs_u.value(q_point)) *
                                  fe_values.shape_value(i, q_index) * fe_values.JxW(q_index);
@@ -225,7 +225,7 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
     std::vector<double> interp_solution(n_q_face_points);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     const double &k_2 = micro.data->params.get_double("kappa_2");
-    const double &k_3 = micro.data->params.get_double("kappa_3");
+    const double &k_4 = micro.data->params.get_double("kappa_4");
     double det_jac;
     for (const auto &cell: micro.dof_handler->active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
@@ -243,7 +243,7 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
                                                micro.data->bc_v_1.mvalue(macro_point, mq_point)) * jxw * det_jac;
                             break;
                         case 1: // OUTFLOW_BOUNDARY
-                            w_contribution += (k_3 * interp_solution[q_index] +
+                            w_contribution += (-k_4 * interp_solution[q_index] +
                                                micro.data->bc_v_2.mvalue(macro_point, mq_point)) * jxw * det_jac;
                             break;
                         }

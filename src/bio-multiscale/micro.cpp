@@ -194,11 +194,11 @@ MicroSolver<dim>::integrate_cell(const typename DoFHandler<dim>::active_cell_ite
                             break;
                         case OUTFLOW_BOUNDARY:
                             for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                                cell_matrix(i, j) += -fe_face_values.shape_value(i, q_index) * det_jac * k_3 *
+                                cell_matrix(i, j) += fe_face_values.shape_value(i, q_index) * det_jac * k_4 *
                                                      fe_face_values.shape_value(j, q_index) *
                                                      fe_face_values.JxW(q_index);
                             }
-                            cell_rhs(i) += (pde_data.bc_v_2.mvalue(grid_locations.at(k), mp) - k_4 * (*sol_w)(k)) *
+                            cell_rhs(i) += (pde_data.bc_v_2.mvalue(grid_locations.at(k), mp) + k_3 * (*sol_w)(k)) *
                                            fe_face_values.shape_value(i, q_index) *
                                            det_jac * fe_face_values.JxW(q_index);
                             break;
