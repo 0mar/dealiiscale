@@ -40,19 +40,15 @@ def mapped_micro_measures(boundary, map, vars):
     return path_length
 
 
-def mapped_boundary_and_normal(direction, map, vars):
-    t = symbols('t')
-    move = 1 - 2 * t
-    directions = {'up': (move, 1), 'right': (1, -move), 'down': (-move, -1), 'left': (-1, move)}
+def mapped_normal(direction, map, vars):
+    directions = {'up': (0, 1), 'right': (1, 0), 'down': (0, -1), 'left': (-1, 0)}
     if direction not in directions:
         raise AttributeError("Direction %s not present" % direction)
-    boundary = directions[direction]
-    mapped_boundary = map.subs({vars[i]: boundary[i] for i in range(len(vars))})
-    tangent = mapped_boundary.diff(t)
-    rot_matrix = Matrix([[0, 1], [-1, 0]])
-    normal = rot_matrix * tangent
-    normal = normal / normal.norm()
-    return boundary, normal
+    normal = directions[direction]
+    inv_jac = jacobian(map, vars).inv()
+    m_normal = inv_jac.T * Matrix(normal)
+    m_normal = m_normal / m_normal.norm()
+    return m_normal
 
 
 def mapped_boundary_integral(direction, f, map, vars):
@@ -70,9 +66,9 @@ def mapped_boundary_integral(direction, f, map, vars):
 
 
 def mapped_n_deriv(direction, f, map, vars):
-    _, normal = mapped_boundary_and_normal(direction, map, vars)
+    normal = mapped_normal(direction, map, vars)
     grad_f = grad(f, vars)
-    return grad_f[0] * normal[0] + grad_f[1] * normal[1]  # Fixme: this does not work for nonlinear mappings
+    return grad_f[0] * normal[0] + grad_f[1] * normal[1]
 
 
 def get_macro_n_deriv(axis, f, vars):
@@ -85,7 +81,6 @@ def get_macro_n_deriv(axis, f, vars):
 
 
 def boundary_integral(f, vars):
-    # todo: Implement map for this # check line integral
     if len(vars) == 2:
         x0, x1 = vars
         normals = ((1, 0), (0, 1), (-1, 0), (0, -1))  # Can for sure be improved
