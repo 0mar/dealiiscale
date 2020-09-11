@@ -144,9 +144,8 @@ void MacroSolver<dim>::assemble_system() {
                             cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
                                              pde_data.bc_w_2.value(fe_face_values.quadrature_point(q_index));
                         } else {
-                            // Todo: fix manuscript to also have dirichlet for w
-//                            cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
-//                                             pde_data.bc_w_2.value(fe_face_values.quadrature_point(q_index));
+                            cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
+                                             pde_data.bc_w_1.value(fe_face_values.quadrature_point(q_index));
                         }
                     }
                 }
@@ -165,9 +164,6 @@ void MacroSolver<dim>::assemble_system() {
     VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_u,
                                              boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix_u, sol_u, system_rhs_u);
-    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_w,
-                                             boundary_values);
-    MatrixTools::apply_boundary_values(boundary_values, system_matrix_w, sol_w, system_rhs_w);
 }
 
 template<int dim>

@@ -21,6 +21,6 @@ set macro_geometry = [-1,1]x[-1,1]
 set kappa_1 = 1.0
 set kappa_2 = 1
 set kappa_3 = 1
-set kappa_4 = -1
+set kappa_4 = 1
 set D_1 = 4
 set D_2 = 1

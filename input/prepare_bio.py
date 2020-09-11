@@ -112,7 +112,7 @@ def matrix_repr(matrix):
 
 
 def compute_biomath_problem(u, v, w, chi, xvars, yvars):
-    const_vals = {'kappa_1': 1.0, 'kappa_2': 1, 'kappa_3': 1, 'kappa_4': -1, 'D_1': 4, 'D_2': 1}
+    const_vals = {'kappa_1': 1.0, 'kappa_2': 1, 'kappa_3': 1, 'kappa_4': 1, 'D_1': 4, 'D_2': 1}
     const_symbols = symbols(list(const_vals))
     k_1, k_2, k_3, k_4, D_1, D_2 = const_symbols
     INFLOW_BOUNDARY = 'left'
