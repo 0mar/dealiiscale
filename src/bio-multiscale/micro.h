@@ -30,7 +30,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/numerics/error_estimator.h>
-
+#include <thread>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -178,6 +178,7 @@ private:
     std::vector<std::vector<double>> det_jacs;
     // Object containing microscopic problem data
     BioMicroData<dim> &pde_data;
+    std::vector<std::thread> thread_pool;
 
 public:
     MicroFEMObjects<dim> fem_objects;

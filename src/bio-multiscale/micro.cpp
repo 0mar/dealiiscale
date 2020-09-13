@@ -23,6 +23,11 @@ MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine
     printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
     fem_quadrature = 12;
+    const unsigned int num_threads = std::thread::hardware_concurrency() - 1;
+    for (unsigned int i=0;i<num_threads;i++) {
+        std::thread t;
+        thread_pool.push_back(t);
+    }
 }
 
 template<int dim>
