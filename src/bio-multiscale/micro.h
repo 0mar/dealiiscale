@@ -43,6 +43,17 @@
 
 using namespace dealii;
 
+template<int dim>
+struct Integrand {
+    const typename DoFHandler<dim>::active_cell_iterator *cell;
+    FEValues<dim> *fe_values;
+    FEFaceValues<dim> *fe_face_values;
+    const unsigned int n_q_points;
+    const unsigned int n_q_face_points;
+    const FullMatrix<double> *cell_matrix;
+    const Vector<double> *cell_rhs;
+};
+
 
 template<int dim>
 class MicroSolver {
@@ -126,9 +137,8 @@ private:
      * @param fe_values  FEValues object for the domain
      * @param n_q_points Number of quadrature points (from a QGauss or similar object)
      */
-    void integrate_cell(const typename DoFHandler<dim>::active_cell_iterator &cell, const unsigned int &k,
-                        FEValues<dim> &fe_values, const unsigned int &n_q_points, FEFaceValues<dim> &fe_face_values,
-                        const unsigned int &n_q_face_points, FullMatrix<double> &cell_matrix, Vector<double> &cell_rhs);
+    void
+    integrate_cell(int grid_num, Integrand<dim> &integrand, FullMatrix<double> &cell_matrix, Vector<double> &cell_rhs);
 
     /**
      * Actual important method: Create the system matrices and create the right hand side vectors
@@ -178,7 +188,7 @@ private:
     std::vector<std::vector<double>> det_jacs;
     // Object containing microscopic problem data
     BioMicroData<dim> &pde_data;
-    std::vector<std::thread> thread_pool;
+//    std::vector<std::thread> thread_pool;
 
 public:
     MicroFEMObjects<dim> fem_objects;

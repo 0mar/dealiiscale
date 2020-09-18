@@ -23,11 +23,11 @@ MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine
     printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
     fem_quadrature = 12;
-    const unsigned int num_threads = std::thread::hardware_concurrency() - 1;
-    for (unsigned int i=0;i<num_threads;i++) {
-        std::thread t;
-        thread_pool.push_back(t);
-    }
+//    const unsigned int num_threads = std::thread::hardware_concurrency() - 1;
+//    for (unsigned int i = 0; i < num_threads; i++) {
+//        std::thread t;
+//        thread_pool.push_back(t);
+//    }
 }
 
 template<int dim>
@@ -146,76 +146,79 @@ void MicroSolver<dim>::compute_macroscopic_contribution() {
 }
 
 template<int dim>
-void
-MicroSolver<dim>::integrate_cell(const typename DoFHandler<dim>::active_cell_iterator &cell, const unsigned int &k,
-                                 FEValues<dim> &fe_values, const unsigned int &n_q_points,
-                                 FEFaceValues<dim> &fe_face_values, const unsigned int &n_q_face_points,
-                                 FullMatrix<double> &cell_matrix,
-                                 Vector<double> &cell_rhs) {
+void MicroSolver<dim>::integrate_cell(int grid_num, Integrand<dim> &integrand, FullMatrix<double> &cell_matrix,
+                                      Vector<double> &cell_rhs) {
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     SymmetricTensor<2, dim> kkt;
     double det_jac;
-    fe_values.reinit(cell);
+    integrand.fe_values->reinit(*(integrand.cell));
     const double &k_1 = pde_data.params.get_double("kappa_1");
     const double &k_2 = pde_data.params.get_double("kappa_2");
     const double &k_3 = pde_data.params.get_double("kappa_3");
     const double &k_4 = pde_data.params.get_double("kappa_4");
     const double &D_2 = pde_data.params.get_double("D_2");
-    for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
-        mapmap.get(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac, kkt);
+    for (unsigned int q_index = 0; q_index < integrand.n_q_points; ++q_index) {
+        mapmap.get(grid_locations[grid_num], integrand.fe_values->quadrature_point(q_index), det_jac, kkt);
         for (unsigned int i = 0; i < dofs_per_cell; i++) {
             for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                cell_matrix(i, j) += D_2 * fe_values.shape_grad(i, q_index) * kkt
-                                     * fe_values.shape_grad(j, q_index) * fe_values.JxW(q_index) * det_jac;
+                cell_matrix(i, j) += D_2 * integrand.fe_values->shape_grad(i, q_index) * kkt
+                                     * integrand.fe_values->shape_grad(j, q_index) *
+                                     integrand.fe_values->JxW(q_index) * det_jac;
             }
         }
     }
-    for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
-        mapmap.get_det_jac(grid_locations.at(k), fe_values.quadrature_point(q_index), det_jac);
-        const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations.at(k), fe_values.quadrature_point(q_index));
-        double rhs_val = pde_data.bulk_rhs_v.mvalue(grid_locations.at(k), mapped_p);
+    for (unsigned int q_index = 0; q_index < integrand.n_q_points; q_index++) {
+        mapmap.get_det_jac(grid_locations[grid_num], integrand.fe_values->quadrature_point(q_index), det_jac);
+        const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations[grid_num],
+                                                          integrand.fe_values->quadrature_point(q_index));
+        double rhs_val = pde_data.bulk_rhs_v.mvalue(grid_locations[grid_num], mapped_p);
         for (unsigned int i = 0; i < dofs_per_cell; i++) {
-            cell_rhs(i) += rhs_val * fe_values.shape_value(i, q_index) * fe_values.JxW(q_index) * det_jac;
+            cell_rhs(i) += rhs_val * integrand.fe_values->shape_value(i, q_index) * integrand.fe_values->JxW(q_index) *
+                           det_jac;
         }
     }
     for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+        const auto cell = *integrand.cell;
         if (cell->face(face_number)->at_boundary()) {
-            fe_face_values.reinit(cell, face_number);
-            for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
-                mapmap.get_det_jac(grid_locations.at(k), fe_face_values.quadrature_point(q_index), det_jac);
-                Point<dim> mp = pde_data.mapping.mmap(grid_locations.at(k),
-                                                      fe_face_values.quadrature_point(q_index));
+            integrand.fe_face_values->reinit(cell, face_number);
+            for (unsigned int q_index = 0; q_index < integrand.n_q_face_points; q_index++) {
+                mapmap.get_det_jac(grid_locations[grid_num], integrand.fe_face_values->quadrature_point(q_index),
+                                   det_jac);
+                Point<dim> mp = pde_data.mapping.mmap(grid_locations[grid_num],
+                                                      integrand.fe_face_values->quadrature_point(q_index));
                 for (unsigned int i = 0; i < dofs_per_cell; i++) {
                     switch (cell->face(face_number)->boundary_id()) {
                         case INFLOW_BOUNDARY:
                             for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                                cell_matrix(i, j) += fe_face_values.shape_value(i, q_index) * det_jac * k_2 *
-                                                     fe_face_values.shape_value(j, q_index) *
-                                                     fe_face_values.JxW(q_index);
+                                cell_matrix(i, j) += integrand.fe_face_values->shape_value(i, q_index) * det_jac * k_2 *
+                                                     integrand.fe_face_values->shape_value(j, q_index) *
+                                                     integrand.fe_face_values->JxW(q_index);
                             }
-                            cell_rhs(i) += (pde_data.bc_v_1.mvalue(grid_locations.at(k), mp) + k_1 * (*sol_u)(k)) *
-                                           fe_face_values.shape_value(i, q_index) *
-                                           det_jac * fe_face_values.JxW(q_index);
+                            cell_rhs(i) +=
+                                    (pde_data.bc_v_1.mvalue(grid_locations[grid_num], mp) + k_1 * (*sol_u)(grid_num)) *
+                                    integrand.fe_face_values->shape_value(i, q_index) *
+                                    det_jac * integrand.fe_face_values->JxW(q_index);
                             break;
                         case OUTFLOW_BOUNDARY:
                             for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                                cell_matrix(i, j) += fe_face_values.shape_value(i, q_index) * det_jac * k_4 *
-                                                     fe_face_values.shape_value(j, q_index) *
-                                                     fe_face_values.JxW(q_index);
+                                cell_matrix(i, j) += integrand.fe_face_values->shape_value(i, q_index) * det_jac * k_4 *
+                                                     integrand.fe_face_values->shape_value(j, q_index) *
+                                                     integrand.fe_face_values->JxW(q_index);
                             }
-                            cell_rhs(i) += (pde_data.bc_v_2.mvalue(grid_locations.at(k), mp) + k_3 * (*sol_w)(k)) *
-                                           fe_face_values.shape_value(i, q_index) *
-                                           det_jac * fe_face_values.JxW(q_index);
+                            cell_rhs(i) +=
+                                    (pde_data.bc_v_2.mvalue(grid_locations[grid_num], mp) + k_3 * (*sol_w)(grid_num)) *
+                                    integrand.fe_face_values->shape_value(i, q_index) *
+                                    det_jac * integrand.fe_face_values->JxW(q_index);
                             break;
                         case TOP_NEUMANN:
-                            cell_rhs(i) += pde_data.bc_v_3.mvalue(grid_locations.at(k), mp) *
-                                           fe_face_values.shape_value(i, q_index) *
-                                           det_jac * fe_face_values.JxW(q_index);
+                            cell_rhs(i) += pde_data.bc_v_3.mvalue(grid_locations[grid_num], mp) *
+                                           integrand.fe_face_values->shape_value(i, q_index) *
+                                           det_jac * integrand.fe_face_values->JxW(q_index);
                             break;
                         case BOTTOM_NEUMANN:
-                            cell_rhs(i) += pde_data.bc_v_4.mvalue(grid_locations.at(k), mp) *
-                                           fe_face_values.shape_value(i, q_index) *
-                                           det_jac * fe_face_values.JxW(q_index);
+                            cell_rhs(i) += pde_data.bc_v_4.mvalue(grid_locations[grid_num], mp) *
+                                           integrand.fe_face_values->shape_value(i, q_index) *
+                                           det_jac * integrand.fe_face_values->JxW(q_index);
                             break;
                         default: Assert(false, ExcMessage("Part of the boundary is not initialized correctly"))
                     }
@@ -239,17 +242,17 @@ void MicroSolver<dim>::assemble_system() {
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-
+    Integrand<dim> integrand = {nullptr, &fe_values, &fe_face_values, quadrature_formula.size(),
+                                face_quadrature_formula.size(), &cell_matrix, &cell_rhs};
     for (unsigned int k = 0; k < num_grids; k++) {
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
         for (const auto &cell: dof_handler.active_cell_iterators()) {
+            integrand.cell = &cell;
             cell_matrix = 0;
             cell_rhs = 0;
-            integrate_cell(cell, k, fe_values, quadrature_formula.size(), fe_face_values,
-                           face_quadrature_formula.size(),
-                           cell_matrix, cell_rhs);
+            integrate_cell(k, integrand, cell_matrix, cell_rhs);
             cell->get_dof_indices(local_dof_indices);
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int j = 0; j < dofs_per_cell; j++) {
