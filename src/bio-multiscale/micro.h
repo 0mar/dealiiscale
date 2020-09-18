@@ -70,9 +70,10 @@ public:
     void setup();
 
     /**
-     * Collection method for solving the micro systems
+     * Actual important method: Create the system matrices and create the right hand side vectors
+     * by looping over all the cells and computing the discrete weak forms and solving the system
      */
-    void run();
+    void assemble_and_solve();
 
     /**
      * Set the macroscopic solution so that the solver can compute its contribution from it.
@@ -140,16 +141,11 @@ private:
     void
     integrate_cell(int grid_num, Integrand<dim> &integrand, FullMatrix<double> &cell_matrix, Vector<double> &cell_rhs);
 
-    /**
-     * Actual important method: Create the system matrices and create the right hand side vectors
-     * by looping over all the cells and computing the discrete weak forms
-     */
-    void assemble_system();
 
     /**
      * Solve the system we obtained in `assemble_system`.
      */
-    void solve();
+    void solve(int grid_num);
 
     /**
      * Use the (probably updated) macroscopic data to compute new elements of the microscopic system.

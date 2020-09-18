@@ -66,7 +66,7 @@ public:
      * 5. Solve the system
      * 6. Process the solution (numerically)
      */
-    void run();
+    void assemble_and_solve();
 
     /**
      * Compute residual/convergence estimates.

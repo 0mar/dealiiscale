@@ -230,7 +230,7 @@ void MicroSolver<dim>::integrate_cell(int grid_num, Integrand<dim> &integrand, F
 
 
 template<int dim>
-void MicroSolver<dim>::assemble_system() {
+void MicroSolver<dim>::assemble_and_solve() {
     QGauss<dim> quadrature_formula(fem_quadrature);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
@@ -261,17 +261,17 @@ void MicroSolver<dim>::assemble_system() {
                 righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
             }
         }
+        solve(k);
     }
 }
 
 
 template<int dim>
-void MicroSolver<dim>::solve() {
+void MicroSolver<dim>::solve(int grid_num) {
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
-    for (unsigned int k = 0; k < num_grids; k++) {
-        solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
-    }
+    solver.solve(system_matrices.at(grid_num), solutions.at(grid_num), righthandsides.at(grid_num),
+                 PreconditionIdentity());
     printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
 }
 
@@ -306,12 +306,6 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
                                       macro_integral, QGauss<dim>(fem_quadrature), VectorTools::L2_norm);
     h1_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
                                                  VectorTools::L2_norm); //Not sure about this norm, although output is consistent
-}
-
-template<int dim>
-void MicroSolver<dim>::run() {
-    assemble_system();
-    solve();
 }
 
 template<int dim>

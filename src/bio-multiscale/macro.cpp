@@ -269,7 +269,7 @@ void MacroSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
 }
 
 template<int dim>
-void MacroSolver<dim>::run() {
+void MacroSolver<dim>::assemble_and_solve() {
     assemble_system();
     solve();
 }
