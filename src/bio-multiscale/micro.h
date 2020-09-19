@@ -49,8 +49,6 @@ struct Integrand {
     const typename DoFHandler<dim>::active_cell_iterator *cell;
     FEValues<dim> *fe_values;
     FEFaceValues<dim> *fe_face_values;
-    const unsigned int n_q_points;
-    const unsigned int n_q_face_points;
     const FullMatrix<double> *cell_matrix;
     const Vector<double> *cell_rhs;
 };
@@ -163,8 +161,10 @@ private:
 
     // The level of refinement (every +1 means a bisection)
     const unsigned int refine_level;
-    unsigned int fem_quadrature;
     const FE_Q<dim> fe;
+    const unsigned int fem_q_deg;
+    const QGauss<dim> quadrature_formula;
+    const QGauss<dim - 1> face_quadrature_formula;
     // Number of microscopic grids
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;

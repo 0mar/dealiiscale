@@ -8,21 +8,20 @@
 using namespace dealii;
 
 template<int dim>
-MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine_level):  dof_handler(triangulation),
-                                                                                          refine_level(refine_level),
-                                                                                          fe(1),
-                                                                                          sol_u(nullptr),
-                                                                                          sol_w(nullptr),
-                                                                                          macro_dof_handler(nullptr),
-                                                                                          pde_data(micro_data),
-                                                                                          fem_objects{&solutions,
-                                                                                                      &dof_handler,
-                                                                                                      &mapmap,
-                                                                                                      &fem_quadrature,
-                                                                                                      &pde_data} {
+MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine_level):
+        dof_handler(triangulation),
+        refine_level(refine_level),
+        fe(1),
+        fem_q_deg(12),
+        quadrature_formula(fem_q_deg),
+        face_quadrature_formula(fem_q_deg),
+        sol_u(nullptr),
+        sol_w(nullptr),
+        macro_dof_handler(nullptr),
+        pde_data(micro_data),
+        fem_objects{&solutions, &dof_handler, &mapmap, &fem_q_deg, &pde_data} {
     printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
-    fem_quadrature = 12;
 }
 
 template<int dim>
@@ -89,8 +88,6 @@ void MicroSolver<dim>::setup_scatter() {
 
 template<int dim>
 void MicroSolver<dim>::compute_pullback_objects() {
-    QGauss<dim> quadrature_formula(fem_quadrature);
-    QGauss<dim - 1> face_quadrature_formula(fem_quadrature);
     FEValues<dim> fe_values(fe, quadrature_formula, update_quadrature_points);
     FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula, update_quadrature_points | update_normal_vectors);
     std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
@@ -152,7 +149,7 @@ void MicroSolver<dim>::integrate_cell(int grid_num, Integrand<dim> &integrand, F
     const double &k_3 = pde_data.params.get_double("kappa_3");
     const double &k_4 = pde_data.params.get_double("kappa_4");
     const double &D_2 = pde_data.params.get_double("D_2");
-    for (unsigned int q_index = 0; q_index < integrand.n_q_points; ++q_index) {
+    for (unsigned int q_index = 0; q_index < quadrature_formula.size(); ++q_index) {
         mapmap.get(grid_locations[grid_num], integrand.fe_values->quadrature_point(q_index), det_jac, kkt);
         for (unsigned int i = 0; i < dofs_per_cell; i++) {
             for (unsigned int j = 0; j < dofs_per_cell; j++) {
@@ -162,7 +159,7 @@ void MicroSolver<dim>::integrate_cell(int grid_num, Integrand<dim> &integrand, F
             }
         }
     }
-    for (unsigned int q_index = 0; q_index < integrand.n_q_points; q_index++) {
+    for (unsigned int q_index = 0; q_index < quadrature_formula.size(); q_index++) {
         mapmap.get_det_jac(grid_locations[grid_num], integrand.fe_values->quadrature_point(q_index), det_jac);
         const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations[grid_num],
                                                           integrand.fe_values->quadrature_point(q_index));
@@ -176,7 +173,7 @@ void MicroSolver<dim>::integrate_cell(int grid_num, Integrand<dim> &integrand, F
         const auto cell = *integrand.cell;
         if (cell->face(face_number)->at_boundary()) {
             integrand.fe_face_values->reinit(cell, face_number);
-            for (unsigned int q_index = 0; q_index < integrand.n_q_face_points; q_index++) {
+            for (unsigned int q_index = 0; q_index < face_quadrature_formula.size(); q_index++) {
                 mapmap.get_det_jac(grid_locations[grid_num], integrand.fe_face_values->quadrature_point(q_index),
                                    det_jac);
                 Point<dim> mp = pde_data.mapping.mmap(grid_locations[grid_num],
@@ -233,19 +230,16 @@ void MicroSolver<dim>::assemble_and_solve() {
 
 template<int dim>
 void MicroSolver<dim>::assemble(int grid_num) {
-    QGauss<dim> quadrature_formula(fem_quadrature);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
-    QGauss<dim - 1> face_quadrature_formula(fem_quadrature);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
                                      update_quadrature_points | update_values | update_JxW_values);
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    Integrand<dim> integrand = {nullptr, &fe_values, &fe_face_values, quadrature_formula.size(),
-                                face_quadrature_formula.size(), &cell_matrix, &cell_rhs};
+    Integrand<dim> integrand = {nullptr, &fe_values, &fe_face_values, &cell_matrix, &cell_rhs};
     righthandsides[grid_num] = 0;
     solutions[grid_num] = 0;
     system_matrices[grid_num].reinit(sparsity_pattern);
@@ -284,12 +278,12 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
         const unsigned int n_active = triangulation.n_active_cells();
         Vector<double> difference_per_cell(n_active);
         VectorTools::integrate_difference(dof_handler, solutions[grid_num], pde_data.solution_v, difference_per_cell,
-                                          QGauss<dim>(fem_quadrature),
+                                          QGauss<dim>(fem_q_deg),
                                           VectorTools::L2_norm);
         double micro_l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
                                                                   VectorTools::L2_norm);
         VectorTools::integrate_difference(dof_handler, solutions[grid_num], pde_data.solution_v, difference_per_cell,
-                                          QGauss<dim>(fem_quadrature),
+                                          QGauss<dim>(fem_q_deg),
                                           VectorTools::H1_seminorm);
         double micro_h1_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
                                                                   VectorTools::H1_seminorm);
@@ -298,11 +292,11 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     }
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
-                                      macro_integral, QGauss<dim>(fem_quadrature), VectorTools::L2_norm);
+                                      macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
     l2_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
                                                  VectorTools::L2_norm);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_h1_error, Functions::ZeroFunction<dim>(),
-                                      macro_integral, QGauss<dim>(fem_quadrature), VectorTools::L2_norm);
+                                      macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
     h1_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
                                                  VectorTools::L2_norm); //Not sure about this norm, although output is consistent
 }
@@ -315,7 +309,7 @@ void MicroSolver<dim>::set_exact_solution() {
     constraints.close();
     for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
         pde_data.solution_v.set_macro_point(grid_locations[grid_num]);
-        VectorTools::project(mapping, dof_handler, constraints, QGauss<dim>(fem_quadrature), pde_data.solution_v,
+        VectorTools::project(mapping, dof_handler, constraints, QGauss<dim>(fem_q_deg), pde_data.solution_v,
                              solutions[grid_num]);
     }
 }

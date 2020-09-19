@@ -20,11 +20,11 @@ MicroSolver<dim>::MicroSolver(EllipticMicroData<dim> &micro_data, unsigned int r
                                                                                                fem_objects{&solutions,
                                                                                                            &dof_handler,
                                                                                                            &mapmap,
-                                                                                                           &fem_quadrature,
+                                                                                                           &fem_q_deg,
                                                                                                            nullptr} {
     printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
-    fem_quadrature = 12;
+    fem_q_deg = 12;
 }
 
 template<int dim>
@@ -72,7 +72,7 @@ void MicroSolver<dim>::setup_scatter() {
 
 template<int dim>
 void MicroSolver<dim>::compute_pullback_objects() {
-    QGauss<dim> quadrature_formula(fem_quadrature);
+    QGauss<dim> quadrature_formula(fem_q_deg);
     FEValues<dim> fe_values(fe, quadrature_formula, update_quadrature_points);
     std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
     SymmetricTensor<2, dim> kkt;
@@ -137,7 +137,7 @@ MicroSolver<dim>::integrate_cell(const typename DoFHandler<dim>::active_cell_ite
 
 template<int dim>
 void MicroSolver<dim>::assemble_system() {
-    QGauss<dim> quadrature_formula(fem_quadrature);
+    QGauss<dim> quadrature_formula(fem_q_deg);
     FEValues<dim> fe_values(fe, quadrature_formula,
                             update_values | update_gradients |
                             update_quadrature_points | update_JxW_values);
@@ -190,12 +190,12 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
         const unsigned int n_active = triangulation.n_active_cells();
         Vector<double> difference_per_cell(n_active);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
-                                          QGauss<dim>(fem_quadrature),
+                                          QGauss<dim>(fem_q_deg),
                                           VectorTools::L2_norm);
         double micro_l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
                                                                   VectorTools::L2_norm);
         VectorTools::integrate_difference(dof_handler, solutions.at(k), pde_data.solution, difference_per_cell,
-                                          QGauss<dim>(fem_quadrature),
+                                          QGauss<dim>(fem_q_deg),
                                           VectorTools::H1_seminorm);
         double micro_h1_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
                                                                   VectorTools::H1_seminorm);
@@ -204,11 +204,11 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     }
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
-                                      macro_integral, QGauss<dim>(fem_quadrature), VectorTools::L2_norm);
+                                      macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
     l2_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
                                                  VectorTools::L2_norm);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_h1_error, Functions::ZeroFunction<dim>(),
-                                      macro_integral, QGauss<dim>(fem_quadrature), VectorTools::L2_norm);
+                                      macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
     h1_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
                                                  VectorTools::L2_norm); //todo: Not sure about this norm, although output is consistent
 }
@@ -227,7 +227,7 @@ void MicroSolver<dim>::set_exact_solution() {
     constraints.close();
     for (unsigned int k = 0; k < num_grids; k++) {
         pde_data.solution.set_macro_point(grid_locations.at(k));
-        VectorTools::project(mapping, dof_handler, constraints, QGauss<dim>(fem_quadrature), pde_data.solution,
+        VectorTools::project(mapping, dof_handler, constraints, QGauss<dim>(fem_q_deg), pde_data.solution,
                              solutions.at(k));
     }
 }

@@ -147,7 +147,7 @@ private:
 
     // The level of refinement (every +1 means a bisection)
     const unsigned int refine_level;
-    unsigned int fem_quadrature;
+    unsigned int fem_q_deg;
     const FE_Q<dim> fe;
     // Number of microscopic grids
     unsigned int num_grids;
