@@ -143,6 +143,8 @@ private:
     integrate_cell(int grid_num, Integrand<dim> &integrand, FullMatrix<double> &cell_matrix, Vector<double> &cell_rhs);
 
 
+    void assemble(int grid_num);
+
     /**
      * Solve the system we obtained in `assemble_system`.
      */
