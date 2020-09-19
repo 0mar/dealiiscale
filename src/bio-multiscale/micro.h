@@ -72,7 +72,9 @@ public:
      * Actual important method: Create the system matrices and create the right hand side vectors
      * by looping over all the cells and computing the discrete weak forms and solving the system
      */
-    void assemble_and_solve();
+    void assemble_and_solve(int grid_num);
+
+    void assemble_and_solve_all();
 
     /**
      * Set the macroscopic solution so that the solver can compute its contribution from it.
