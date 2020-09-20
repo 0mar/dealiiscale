@@ -222,6 +222,9 @@ void MicroSolver<dim>::integrate_cell(int grid_num, Integrand<dim> &integrand, F
 
 template<int dim>
 void MicroSolver<dim>::assemble_and_solve_all() {
+    for (unsigned int grid_num=0;grid_num < num_grids;grid_num++) {
+        assemble_and_solve(grid_num);
+    }
 }
 
 template<int dim>

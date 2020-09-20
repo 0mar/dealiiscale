@@ -45,11 +45,12 @@ public:
     void output_results();
 
     double eps = 1E-2;
-    double max_iterations = 1E4;
+    double max_iterations = 1E1;
 
 
 private:
     int cycle;
+    const bool parallel;
 
     /**
      * One (Banach-like) fixed point iteration. The multiscale system is operator-splitted into two single-scale problems.

@@ -9,6 +9,7 @@ Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, c
         data(data_file),
         macro_solver(data.macro, macro_refinement),
         micro_solver(data.micro, micro_refinement),
+        parallel(true),
         ct_file_name(out_file) {
     printf("Running elliptic-elliptic solver with data from %s, storing results in %s\n", data_file.c_str(),
            out_file.c_str());
@@ -52,17 +53,20 @@ void Manager::run() {
 
 void Manager::fixed_point_iterate() {
     macro_solver.assemble_and_solve();
-    const int num_threads = std::thread::hardware_concurrency() - 1;
-    ctpl::thread_pool p(num_threads);
-    const std::function<void(int, int, MicroSolver<MICRO_DIMENSIONS> &)> wrap_solver(
-            [&](int thread_num, int grid_num, MicroSolver<MICRO_DIMENSIONS> &t) -> void {
-                t.assemble_and_solve(grid_num);
-            });
-    for (unsigned int grid_num = 0; grid_num < micro_solver.get_num_grids(); grid_num++) {
-        p.push(wrap_solver, grid_num, std::ref(micro_solver));
+    if (parallel) {
+        const int num_threads = 4;
+        ctpl::thread_pool p(num_threads);
+        const std::function<void(int, int, MicroSolver<MICRO_DIMENSIONS> &)> wrap_solver(
+                [&](int thread_num, int grid_num, MicroSolver<MICRO_DIMENSIONS> &t) -> void {
+                    t.assemble_and_solve(grid_num);
+                });
+        for (unsigned int grid_num = 0; grid_num < micro_solver.get_num_grids(); grid_num++) {
+            p.push(wrap_solver, grid_num, std::ref(micro_solver));
+        }
+        p.stop(true);
+    } else {
+        micro_solver.assemble_and_solve_all();
     }
-    p.stop(true);
-    micro_solver.assemble_and_solve_all();
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
