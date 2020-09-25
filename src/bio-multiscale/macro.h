@@ -36,6 +36,8 @@
 #include <string>
 #include <cmath>
 #include <cstdlib>
+#include <deal.II/base/work_stream.h>
+#include <deal.II/base/multithread_info.h>
 #include <deal.II/base/logstream.h>
 #include "../tools/pde_data.h"
 #include "../tools/mapping.h"
@@ -99,6 +101,27 @@ public:
     static constexpr unsigned int NEUMANN_BOUNDARY = 1;
 
 private:
+
+    struct AssemblyScratchData {
+        AssemblyScratchData(const FiniteElement<dim> &fe);
+
+        AssemblyScratchData(const AssemblyScratchData &scratch_data);
+
+        FEValues<dim> fe_values;
+        FEFaceValues<dim> fe_face_values;
+
+        std::vector<double> rhs_values;
+        // todo: more? PDEData? All temporary structures.
+    };
+
+    struct AssemblyCopyData {
+        FullMatrix<double> cell_matrix_u;
+        Vector<double> cell_rhs_u;
+        FullMatrix<double> cell_matrix_w;
+        Vector<double> cell_rhs_w;
+        std::vector<types::global_dof_index> local_dof_indices;
+    };
+
     /**
      * Create the grid and triangulation
      * @param refine_level Number of bisections done on the unit square
@@ -114,6 +137,13 @@ private:
      * Compute the actual system matrix and right hand side based on the discrete weak form of the macro PDE.
      */
     void assemble_system();
+
+    void
+    local_assemble_system(const typename DoFHandler<dim>::active_cell_iterator &cell, AssemblyScratchData &scratch_data,
+                          AssemblyCopyData &copy_data);
+
+
+    void copy_local_to_global(const AssemblyCopyData &copy_data);
 
     /**
      * Use the (probably updated) microscopic data to compute new elements of the macroscopic system.
@@ -140,6 +170,8 @@ private:
     BioMacroData<dim> &pde_data;
 
     const FE_Q<dim> fe;
+    AffineConstraints<double> u_constraints;
+    AffineConstraints<double> w_constraints;
     MicroFEMObjects<dim> micro;
 
     SparsityPattern sparsity_pattern;

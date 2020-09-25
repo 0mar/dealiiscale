@@ -7,6 +7,23 @@
 
 using namespace dealii;
 
+template<int dim>
+MacroSolver<dim>::AssemblyScratchData::AssemblyScratchData(const FiniteElement<dim> &fe)
+        : fe_values(fe, QGauss<dim>(8),
+                    update_values | update_gradients | update_quadrature_points | update_JxW_values),
+          fe_face_values(fe, QGauss<dim - 1>(8), update_quadrature_points | update_values | update_JxW_values),
+          rhs_values(fe_values.get_quadrature().size()) {
+}
+
+template<int dim>
+MacroSolver<dim>::AssemblyScratchData::AssemblyScratchData(const AssemblyScratchData &scratch_data)
+        : fe_values(scratch_data.fe_values.get_fe(), scratch_data.fe_values.get_quadrature(),
+                    update_values | update_gradients | update_quadrature_points | update_JxW_values),
+          fe_face_values(scratch_data.fe_face_values.get_fe(), scratch_data.fe_face_values.get_quadrature(),
+                         update_quadrature_points | update_values | update_JxW_values),
+          rhs_values(scratch_data.rhs_values.size()) {
+
+}
 
 template<int dim>
 MacroSolver<dim>::MacroSolver(BioMacroData<dim> &macro_data, unsigned int refine_level):dof_handler(triangulation),
@@ -46,9 +63,16 @@ void MacroSolver<dim>::make_grid() {
 template<int dim>
 void MacroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
+    u_constraints.clear();
+    DoFTools::make_hanging_node_constraints(dof_handler, u_constraints);
+    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.bc_u_1, u_constraints);
+    u_constraints.close();
+    w_constraints.clear();
+    DoFTools::make_hanging_node_constraints(dof_handler, w_constraints);
+    w_constraints.close();
     printf("%d macro DoFs\n", dof_handler.n_dofs());
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(dof_handler, dsp);
+    DoFTools::make_sparsity_pattern(dof_handler, dsp, w_constraints, false); // Todo: Check if we can use one dsp
     sparsity_pattern.copy_from(dsp);
     system_matrix_u.reinit(sparsity_pattern);
     system_matrix_w.reinit(sparsity_pattern);
@@ -71,106 +95,101 @@ void MacroSolver<dim>::set_exact_solution() {
     VectorTools::project(mapping, dof_handler, constraints, QGauss<dim>(8), pde_data.solution_w, sol_w);
 }
 
+
 template<int dim>
-void MacroSolver<dim>::assemble_system() {
-    QGauss<dim> quadrature_formula(8);
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_gradients |
-                            update_quadrature_points | update_JxW_values);
-    QGauss<dim - 1> face_quadrature_formula(8);
-    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
-                                     update_quadrature_points | update_values | update_JxW_values);
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points = quadrature_formula.size();
-    const unsigned int n_q_face_points = face_quadrature_formula.size();
-
-    FullMatrix<double> cell_matrix_u(dofs_per_cell, dofs_per_cell);
-    FullMatrix<double> cell_matrix_w(dofs_per_cell, dofs_per_cell);
-    Vector<double> cell_rhs_u(dofs_per_cell);
-    Vector<double> cell_rhs_w(dofs_per_cell);
-
-    compute_microscopic_contribution();
-    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    system_matrix_u = 0;
-    system_matrix_w = 0;
-    system_rhs_u = 0;
-    system_rhs_w = 0;
+void MacroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                             MacroSolver::AssemblyScratchData &scratch_data,
+                                             MacroSolver::AssemblyCopyData &copy_data) {
+    const unsigned int n_q_points = scratch_data.fe_values.get_quadrature().size();
+    const unsigned int n_q_face_points = scratch_data.fe_face_values.get_quadrature().size();
+    copy_data.cell_matrix_u.reinit(fe.dofs_per_cell, fe.dofs_per_cell);
+    copy_data.cell_rhs_u.reinit(fe.dofs_per_cell);
+    copy_data.cell_matrix_w.reinit(fe.dofs_per_cell, fe.dofs_per_cell);
+    copy_data.cell_rhs_w.reinit(fe.dofs_per_cell);
+    copy_data.local_dof_indices.resize(fe.dofs_per_cell);
+    scratch_data.fe_values.reinit(cell);
+    const auto &sd = scratch_data;
     std::vector<double> u_micro_cont(n_q_points);
     std::vector<double> w_micro_cont(n_q_points);
+    sd.fe_values.get_function_values(micro_contribution_u, u_micro_cont);
+    sd.fe_values.get_function_values(micro_contribution_w, w_micro_cont);
     const double &k_1 = pde_data.params.get_double("kappa_1");
     const double &k_3 = pde_data.params.get_double("kappa_3");
     const double &D_1 = pde_data.params.get_double("D_1");
-    for (const auto &cell: dof_handler.active_cell_iterators()) {
-        fe_values.reinit(cell);
-        cell_matrix_u = 0;
-        cell_matrix_w = 0;
-        cell_rhs_u = 0;
-        cell_rhs_w = 0;
-        fe_values.get_function_values(micro_contribution_u, u_micro_cont);
-        fe_values.get_function_values(micro_contribution_w, w_micro_cont);
-        cell->get_dof_indices(local_dof_indices);
-        for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
-            const Point<dim> &q_point = fe_values.quadrature_point(q_index);
-            for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-                for (unsigned int j = 0; j < dofs_per_cell; ++j) {
-                    const double laplace_term = fe_values.shape_grad(i, q_index) *
-                                                fe_values.shape_grad(j, q_index) *
-                                                fe_values.JxW(q_index);
-                    const double mass_term =
-                            fe_values.shape_value(i, q_index) * fe_values.shape_value(j, q_index) *
-                            fe_values.JxW(q_index);
-                    cell_matrix_u(i, j) += laplace_term + mass_term * k_1 * pde_data.inflow_measure.value(q_point);
-                    cell_matrix_w(i, j) +=
-                            D_1 * laplace_term + mass_term * k_3 * pde_data.outflow_measure.value(q_point);
-                }
-                cell_rhs_u(i) += (-u_micro_cont[q_index] + pde_data.bulk_rhs_u.value(q_point)) *
-                                 fe_values.shape_value(i, q_index) * fe_values.JxW(q_index);
-                cell_rhs_w(i) += (-w_micro_cont[q_index] + pde_data.bulk_rhs_w.value(q_point)) *
-                                 fe_values.shape_value(i, q_index) * fe_values.JxW(q_index);
+    for (unsigned int q_index = 0; q_index < n_q_points; ++q_index) {
+        const Point<dim> &q_point = sd.fe_values.quadrature_point(q_index);
+        for (unsigned int i = 0; i < fe.dofs_per_cell; ++i) {
+            for (unsigned int j = 0; j < fe.dofs_per_cell; ++j) {
+                const double laplace_term = sd.fe_values.shape_grad(i, q_index) *
+                                            sd.fe_values.shape_grad(j, q_index) *
+                                            sd.fe_values.JxW(q_index);
+                const double mass_term =
+                        sd.fe_values.shape_value(i, q_index) * sd.fe_values.shape_value(j, q_index) *
+                        sd.fe_values.JxW(q_index);
+                copy_data.cell_matrix_u(i, j) +=
+                        laplace_term + mass_term * k_1 * pde_data.inflow_measure.value(q_point);
+                copy_data.cell_matrix_w(i, j) +=
+                        D_1 * laplace_term + mass_term * k_3 * pde_data.outflow_measure.value(q_point);
             }
+            copy_data.cell_rhs_u(i) += (-u_micro_cont[q_index] + pde_data.bulk_rhs_u.value(q_point)) *
+                                       sd.fe_values.shape_value(i, q_index) * sd.fe_values.JxW(q_index);
+            copy_data.cell_rhs_w(i) += (-w_micro_cont[q_index] + pde_data.bulk_rhs_w.value(q_point)) *
+                                       sd.fe_values.shape_value(i, q_index) * sd.fe_values.JxW(q_index);
         }
+    }
 
-        for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-            const auto &face = cell->face(face_number);
-            if (face->at_boundary()) {
-                fe_face_values.reinit(cell, face_number);
-                for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
-                    for (unsigned int i = 0; i < dofs_per_cell; i++) {
+    for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+        const auto &face = cell->face(face_number);
+        if (face->at_boundary()) {
+            scratch_data.fe_face_values.reinit(cell, face_number);
+            for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
+                for (unsigned int i = 0; i < fe.dofs_per_cell; i++) {
 
-                        if (face->boundary_id() == NEUMANN_BOUNDARY) {
+                    if (face->boundary_id() == NEUMANN_BOUNDARY) {
 
-                            cell_rhs_u(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
-                                             pde_data.bc_u_2.value(fe_face_values.quadrature_point(q_index));
-                            cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
-                                             pde_data.bc_w_2.value(fe_face_values.quadrature_point(q_index));
-                        } else {
-                            cell_rhs_w(i) += fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index) *
-                                             pde_data.bc_w_1.value(fe_face_values.quadrature_point(q_index));
-                        }
+                        copy_data.cell_rhs_u(i) +=
+                                sd.fe_face_values.shape_value(i, q_index) * sd.fe_face_values.JxW(q_index) *
+                                pde_data.bc_u_2.value(sd.fe_face_values.quadrature_point(q_index));
+                        copy_data.cell_rhs_w(i) +=
+                                sd.fe_face_values.shape_value(i, q_index) * sd.fe_face_values.JxW(q_index) *
+                                pde_data.bc_w_2.value(sd.fe_face_values.quadrature_point(q_index));
+                    } else {
+                        copy_data.cell_rhs_w(i) +=
+                                sd.fe_face_values.shape_value(i, q_index) * sd.fe_face_values.JxW(q_index) *
+                                pde_data.bc_w_1.value(sd.fe_face_values.quadrature_point(q_index));
                     }
                 }
             }
         }
-        for (unsigned int i = 0; i < dofs_per_cell; i++) {
-            for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                system_matrix_u.add(local_dof_indices[i], local_dof_indices[j], cell_matrix_u(i, j));
-                system_matrix_w.add(local_dof_indices[i], local_dof_indices[j], cell_matrix_w(i, j));
-            }
-            system_rhs_u(local_dof_indices[i]) += cell_rhs_u(i);
-            system_rhs_w(local_dof_indices[i]) += cell_rhs_w(i);
-        }
     }
-    std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_u,
-                                             boundary_values);
-    MatrixTools::apply_boundary_values(boundary_values, system_matrix_u, sol_u, system_rhs_u);
+    cell->get_dof_indices(copy_data.local_dof_indices);
+}
+
+template<int dim>
+void MacroSolver<dim>::copy_local_to_global(const MacroSolver::AssemblyCopyData &copy_data) {
+    u_constraints.distribute_local_to_global(copy_data.cell_matrix_u, copy_data.cell_rhs_u,
+                                             copy_data.local_dof_indices, system_matrix_u, system_rhs_u);
+    w_constraints.distribute_local_to_global(copy_data.cell_matrix_w, copy_data.cell_rhs_w,
+                                             copy_data.local_dof_indices, system_matrix_w, system_rhs_w);
+
+}
+
+template<int dim>
+void MacroSolver<dim>::assemble_system() {
+    system_matrix_u = 0;
+    system_matrix_w = 0;
+    system_rhs_u = 0;
+    system_rhs_w = 0;
+    compute_microscopic_contribution();
+    WorkStream::run(dof_handler.begin_active(), dof_handler.end(), *this, &MacroSolver::local_assemble_system,
+                    &MacroSolver::copy_local_to_global, AssemblyScratchData(fe), AssemblyCopyData());
 }
 
 template<int dim>
 void MacroSolver<dim>::solve() {
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
-    solver.solve(system_matrix_u, sol_u, system_rhs_u, PreconditionIdentity());
+    solver.solve(system_matrix_u, sol_u, system_rhs_u, PreconditionIdentity()); // todo parallellize
     solver.solve(system_matrix_w, sol_w, system_rhs_w, PreconditionIdentity());
     printf("\t %d CG iterations to convergence (macro)\n", solver_control.last_step());
 }
@@ -210,6 +229,7 @@ template<int dim>
 void
 MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<dim> &macro_point, double &u_contribution,
                                         double &w_contribution) {
+    // Todo: Could be parallel
     // Computed as: f(x) = \int_\Gamma_R \nabla_y \rho(x,y) \cdot n_y d_\sigma_y
     u_contribution = 0;
     w_contribution = 0;
@@ -242,7 +262,7 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
                             w_contribution += (-k_4 * interp_solution[q_index] +
                                                micro.data->bc_v_2.mvalue(macro_point, mq_point)) * jxw * det_jac;
                             break;
-                        }
+                    }
                 }
             }
         }
