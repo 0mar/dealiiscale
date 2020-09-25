@@ -65,14 +65,13 @@ void MacroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
     u_constraints.clear();
     DoFTools::make_hanging_node_constraints(dof_handler, u_constraints);
-    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.bc_u_1, u_constraints);
     u_constraints.close();
     w_constraints.clear();
     DoFTools::make_hanging_node_constraints(dof_handler, w_constraints);
     w_constraints.close();
     printf("%d macro DoFs\n", dof_handler.n_dofs());
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(dof_handler, dsp, w_constraints, false); // Todo: Check if we can use one dsp
+    DoFTools::make_sparsity_pattern(dof_handler, dsp, w_constraints, false);
     sparsity_pattern.copy_from(dsp);
     system_matrix_u.reinit(sparsity_pattern);
     system_matrix_w.reinit(sparsity_pattern);
@@ -180,16 +179,22 @@ void MacroSolver<dim>::assemble_system() {
     system_matrix_w = 0;
     system_rhs_u = 0;
     system_rhs_w = 0;
+//    std::cout << "Computing micro assembly" << std::endl;
     compute_microscopic_contribution();
+//    std::cout << "Starting assembly" << std::endl;
     WorkStream::run(dof_handler.begin_active(), dof_handler.end(), *this, &MacroSolver::local_assemble_system,
                     &MacroSolver::copy_local_to_global, AssemblyScratchData(fe), AssemblyCopyData());
+//    std::cout << "Finishing assembly" << std::endl;
+    std::map<types::global_dof_index, double> boundary_values;
+    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_u, boundary_values);
+    MatrixTools::apply_boundary_values(boundary_values, system_matrix_u, sol_u, system_rhs_u);
 }
 
 template<int dim>
 void MacroSolver<dim>::solve() {
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
-    solver.solve(system_matrix_u, sol_u, system_rhs_u, PreconditionIdentity()); // todo parallellize
+    solver.solve(system_matrix_u, sol_u, system_rhs_u, PreconditionIdentity());
     solver.solve(system_matrix_w, sol_w, system_rhs_w, PreconditionIdentity());
     printf("\t %d CG iterations to convergence (macro)\n", solver_control.last_step());
 }

@@ -13,16 +13,23 @@ Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, c
         ct_file_name(out_file) {
     printf("Running elliptic-elliptic solver with data from %s, storing results in %s\n", data_file.c_str(),
            out_file.c_str());
-    MultithreadInfo::set_thread_limit();
+//    MultithreadInfo::set_thread_limit(4);
+    std::cout<<"Running on max " << MultithreadInfo::n_cores() << std::endl;
+    if (MultithreadInfo::is_running_single_threaded()) {
+        std::cout << "Running single threaded" << std::endl;
+    }
 }
 
 void Manager::setup() {
     // Create the grids and solution data structures for each grid
+    printf("Starting setup\n");
     macro_solver.setup();
     std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
     macro_solver.get_dof_locations(dof_locations);
+    printf("Finished macro setup\n");
     micro_solver.set_grid_locations(dof_locations);
     micro_solver.setup();
+    printf("Finished micro setup\n");
     // Couple the macro structures with the micro structures.
     micro_solver.set_macro_solution(&macro_solver.sol_u, &macro_solver.sol_w, &macro_solver.dof_handler);
     macro_solver.set_micro_objects(micro_solver.fem_objects);
@@ -54,21 +61,20 @@ void Manager::run() {
 
 void Manager::fixed_point_iterate() {
     macro_solver.assemble_and_solve();
-//    if (parallel) {
-//        const int num_threads = 4;
-//        ctpl::thread_pool p(num_threads);
-//        const std::function<void(int, int, MicroSolver<MICRO_DIMENSIONS> &)> wrap_solver(
-//                [&](int thread_num, int grid_num, MicroSolver<MICRO_DIMENSIONS> &t) -> void {
-//                    t.assemble_and_solve(grid_num);
-//                });
-//        for (unsigned int grid_num = 0; grid_num < micro_solver.get_num_grids(); grid_num++) {
-//            p.push(wrap_solver, grid_num, std::ref(micro_solver));
-//        }
-//        p.stop(true);
-//    } else {
-//        micro_solver.assemble_and_solve_all();
-//    }
-    micro_solver.set_exact_solution();
+    if (parallel) {
+        const int num_threads = 4;
+        ctpl::thread_pool p(num_threads);
+        const std::function<void(int, int, MicroSolver<MICRO_DIMENSIONS> &)> wrap_solver(
+                [&](int thread_num, int grid_num, MicroSolver<MICRO_DIMENSIONS> &t) -> void {
+                    t.assemble_and_solve(grid_num);
+                });
+        for (unsigned int grid_num = 0; grid_num < micro_solver.get_num_grids(); grid_num++) {
+            p.push(wrap_solver, grid_num, std::ref(micro_solver));
+        }
+        p.stop(true);
+    } else {
+        micro_solver.assemble_and_solve_all();
+    }
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
