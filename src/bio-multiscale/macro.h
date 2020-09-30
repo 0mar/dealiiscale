@@ -170,8 +170,7 @@ private:
     BioMacroData<dim> &pde_data;
 
     const FE_Q<dim> fe;
-    AffineConstraints<double> u_constraints;
-    AffineConstraints<double> w_constraints;
+    AffineConstraints<double> u_constraints, w_constraints;
     MicroFEMObjects<dim> micro;
 
     SparsityPattern sparsity_pattern;

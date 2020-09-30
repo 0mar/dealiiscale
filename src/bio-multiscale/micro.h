@@ -39,6 +39,8 @@
 #include <deal.II/base/logstream.h>
 #include "../tools/multiscale_function_parser.h"
 #include "../tools/pde_data.h"
+#include <deal.II/base/work_stream.h>
+#include <deal.II/base/multithread_info.h>
 #include "../tools/mapping.h"
 #include "../tools/ctpl.h"
 
@@ -115,6 +117,28 @@ public:
     static constexpr unsigned int BOTTOM_NEUMANN = 3;
 private:
 
+    struct AssemblyScratchData {
+        AssemblyScratchData(const FiniteElement<dim> &fe);
+
+        AssemblyScratchData(const AssemblyScratchData &scratch_data);
+
+        FEValues<dim> fe_values;
+        FEFaceValues<dim> fe_face_values;
+
+        std::vector<double> rhs_values;
+        // todo: more? PDEData? All temporary structures.
+    };
+
+    struct AssemblyCopyData { //todo: single objects
+
+        AssemblyCopyData(unsigned int num_grids);
+
+        std::vector<FullMatrix<double>> cell_matrices;
+        std::vector<Vector<double>> cell_rhs;
+        std::vector<types::global_dof_index> local_dof_indices;
+    };
+
+
     /**
      * Create a domain and make a triangulation
      */
@@ -142,6 +166,12 @@ private:
     void
     integrate_cell(int grid_num, Integrand<dim> &integrand, FullMatrix<double> &cell_matrix, Vector<double> &cell_rhs);
 
+    void
+    local_assemble_system(const typename DoFHandler<dim>::active_cell_iterator &cell, AssemblyScratchData &scratch_data,
+                          AssemblyCopyData &copy_data);
+
+
+    void copy_local_to_global(const AssemblyCopyData &copy_data);
 
     void assemble(int grid_num);
 
@@ -164,6 +194,7 @@ private:
     // The level of refinement (every +1 means a bisection)
     const unsigned int refine_level;
     const FE_Q<dim> fe;
+    AffineConstraints<double> constraints;
     const unsigned int fem_q_deg;
     const QGauss<dim> quadrature_formula;
     const QGauss<dim - 1> face_quadrature_formula;

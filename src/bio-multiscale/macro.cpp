@@ -12,7 +12,7 @@ MacroSolver<dim>::AssemblyScratchData::AssemblyScratchData(const FiniteElement<d
         : fe_values(fe, QGauss<dim>(8),
                     update_values | update_gradients | update_quadrature_points | update_JxW_values),
           fe_face_values(fe, QGauss<dim - 1>(8), update_quadrature_points | update_values | update_JxW_values),
-          rhs_values(fe_values.get_quadrature().size()) {
+          rhs_values(fe_values.get_quadrature().size()) { // todo: optimize contents
 }
 
 template<int dim>
@@ -64,10 +64,10 @@ template<int dim>
 void MacroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
     u_constraints.clear();
-    DoFTools::make_hanging_node_constraints(dof_handler, u_constraints);
+//    DoFTools::make_hanging_node_constraints(dof_handler, u_constraints);
     u_constraints.close();
     w_constraints.clear();
-    DoFTools::make_hanging_node_constraints(dof_handler, w_constraints);
+//    DoFTools::make_hanging_node_constraints(dof_handler, w_constraints);
     w_constraints.close();
     printf("%d macro DoFs\n", dof_handler.n_dofs());
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
