@@ -13,7 +13,7 @@ Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, c
         ct_file_name(out_file) {
     printf("Running elliptic-elliptic solver with data from %s, storing results in %s\n", data_file.c_str(),
            out_file.c_str());
-//    MultithreadInfo::set_thread_limit(4);
+    MultithreadInfo::set_thread_limit(4);
     std::cout<<"Running on max " << MultithreadInfo::n_cores() << std::endl;
     if (MultithreadInfo::is_running_single_threaded()) {
         std::cout << "Running single threaded" << std::endl;
