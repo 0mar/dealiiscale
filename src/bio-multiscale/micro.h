@@ -184,6 +184,8 @@ private:
      */
     void compute_pullback_objects();
 
+    void get_map_info(const Point<dim> &px, const Point<dim> &py, double &det_jac, SymmetricTensor<2, dim> &kkt);
+
     // The level of refinement (every +1 means a bisection)
     const unsigned int refine_level;
     const FE_Q<dim> fe;
@@ -193,6 +195,7 @@ private:
     const QGauss<dim - 1> face_quadrature_formula;
     // Number of microscopic grids
     unsigned int num_grids;
+    const bool cache_mappings;
     SparsityPattern sparsity_pattern;
     // Pointer to the solution of the macroscopic equation (readonly)
     const Vector<double> *sol_u;

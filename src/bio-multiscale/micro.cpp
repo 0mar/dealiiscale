@@ -43,6 +43,7 @@ MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine
         fem_q_deg(12),
         quadrature_formula(fem_q_deg),
         face_quadrature_formula(fem_q_deg),
+        cache_mappings(true),
         sol_u(nullptr),
         sol_w(nullptr),
         macro_dof_handler(nullptr),
@@ -57,7 +58,9 @@ void MicroSolver<dim>::setup() {
     make_grid();
     setup_system();
     setup_scatter();
-    compute_pullback_objects();
+    if (cache_mappings) {
+        compute_pullback_objects();
+    }
 }
 
 template<int dim>
@@ -155,6 +158,21 @@ void MicroSolver<dim>::compute_pullback_objects() {
 }
 
 template<int dim>
+void MicroSolver<dim>::get_map_info(const Point<dim> &px, const Point<dim> &py, double &det_jac,
+                                    SymmetricTensor<2, dim> &kkt) {
+    if (cache_mappings) {
+        mapmap.get(px, py, det_jac, kkt);
+    } else {
+        Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(px, py);
+        Tensor<2, dim> inv_jacobian = invert(jacobian);
+        det_jac = determinant(jacobian);
+        Assert(det_jac > 1E-4, ExcMessage("Determinant of jacobian of mapping is not positive!"))
+        kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
+    }
+
+}
+
+template<int dim>
 void
 MicroSolver<dim>::set_macro_solution(Vector<double> *_sol_u, Vector<double> *_sol_w, DoFHandler<dim> *_dof_handler) {
     this->sol_u = _sol_u;
@@ -187,7 +205,7 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
         copy_data.cell_rhs[grid_num].reinit(fe.dofs_per_cell);
 
         for (unsigned int q_index = 0; q_index < quadrature_formula.size(); ++q_index) {
-            mapmap.get(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac, kkt);
+            get_map_info(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac, kkt);
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int j = 0; j < dofs_per_cell; j++) {
                     copy_data.cell_matrices[grid_num](i, j) += D_2 * sd.fe_values.shape_grad(i, q_index) * kkt
@@ -211,8 +229,8 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
             if (cell->face(face_number)->at_boundary()) {
                 scratch_data.fe_face_values.reinit(cell, face_number);
                 for (unsigned int q_index = 0; q_index < face_quadrature_formula.size(); q_index++) {
-                    mapmap.get_det_jac(grid_locations[grid_num], sd.fe_face_values.quadrature_point(q_index),
-                                       det_jac);
+                    get_map_info(grid_locations[grid_num], sd.fe_face_values.quadrature_point(q_index),
+                                       det_jac, kkt); // Todo: Only needs det_jac
                     Point<dim> mp = pde_data.mapping.mmap(grid_locations[grid_num],
                                                           sd.fe_face_values.quadrature_point(q_index));
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
