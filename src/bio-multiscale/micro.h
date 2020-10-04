@@ -74,8 +74,6 @@ public:
      * Actual important method: Create the system matrices and create the right hand side vectors
      * by looping over all the cells and computing the discrete weak forms and solving the system
      */
-    void assemble_and_solve(int grid_num);
-
     void assemble_and_solve_all();
 
     /**
@@ -164,16 +162,11 @@ private:
      * @param n_q_points Number of quadrature points (from a QGauss or similar object)
      */
     void
-    integrate_cell(int grid_num, Integrand<dim> &integrand, FullMatrix<double> &cell_matrix, Vector<double> &cell_rhs);
-
-    void
     local_assemble_system(const typename DoFHandler<dim>::active_cell_iterator &cell, AssemblyScratchData &scratch_data,
                           AssemblyCopyData &copy_data);
 
 
     void copy_local_to_global(const AssemblyCopyData &copy_data);
-
-    void assemble(int grid_num);
 
     /**
      * Solve the system we obtained in `assemble_system`.

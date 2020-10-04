@@ -274,11 +274,6 @@ void MicroSolver<dim>::copy_local_to_global(const MicroSolver::AssemblyCopyData 
     }
 }
 
-template<int dim>
-void MicroSolver<dim>::integrate_cell(int grid_num, Integrand<dim> &integrand, FullMatrix<double> &cell_matrix,
-                                      Vector<double> &cell_rhs) {
-    integrand.fe_values->reinit(*(integrand.cell));
-}
 
 template<int dim>
 void MicroSolver<dim>::assemble_and_solve_all() {
@@ -290,42 +285,6 @@ void MicroSolver<dim>::assemble_and_solve_all() {
                     &MicroSolver::copy_local_to_global, AssemblyScratchData(fe), AssemblyCopyData(num_grids));
     for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
         solve(grid_num);
-    }
-}
-
-template<int dim>
-void MicroSolver<dim>::assemble_and_solve(int grid_num) {
-    assemble(grid_num);
-    solve(grid_num);
-}
-
-template<int dim>
-void MicroSolver<dim>::assemble(int grid_num) {
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_gradients |
-                            update_quadrature_points | update_JxW_values);
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
-                                     update_quadrature_points | update_values | update_JxW_values);
-    FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
-    Vector<double> cell_rhs(dofs_per_cell);
-    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    Integrand<dim> integrand = {nullptr, &fe_values, &fe_face_values, &cell_matrix, &cell_rhs};
-    righthandsides[grid_num] = 0;
-    solutions[grid_num] = 0;
-    system_matrices[grid_num].reinit(sparsity_pattern);
-    for (const auto &cell: dof_handler.active_cell_iterators()) {
-        integrand.cell = &cell;
-        cell_matrix = 0;
-        cell_rhs = 0;
-        integrate_cell(grid_num, integrand, cell_matrix, cell_rhs);
-        cell->get_dof_indices(local_dof_indices);
-        for (unsigned int i = 0; i < dofs_per_cell; i++) {
-            for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                system_matrices[grid_num].add(local_dof_indices[i], local_dof_indices[j], cell_matrix(i, j));
-            }
-            righthandsides[grid_num](local_dof_indices[i]) += cell_rhs(i);
-        }
     }
 }
 
