@@ -29,10 +29,10 @@ MicroSolver<dim>::AssemblyScratchData::AssemblyScratchData(const MicroSolver::As
 
 template<int dim>
 MicroSolver<dim>::AssemblyCopyData::AssemblyCopyData(unsigned int num_grids) {
-    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
-        cell_matrices.push_back(FullMatrix<double>());
-        cell_rhs.push_back(Vector<double>());
-    }
+    cell_matrices.resize(num_grids);
+    cell_rhs.resize(num_grids);
+    std::fill(cell_matrices.begin(), cell_matrices.end(), FullMatrix<double>());
+    std::fill(cell_rhs.begin(), cell_rhs.end(), Vector<double>());
 }
 
 template<int dim>
@@ -102,21 +102,14 @@ void MicroSolver<dim>::setup_system() {
 
 template<int dim>
 void MicroSolver<dim>::setup_scatter() {
-    solutions.clear();
-    righthandsides.clear();
-    system_matrices.clear();
+    solutions.resize(num_grids);
+    righthandsides.resize(num_grids);
+    system_matrices.resize(num_grids);
     compute_macroscopic_contribution();
     unsigned int n_dofs = dof_handler.n_dofs();
-    for (unsigned int i = 0; i < num_grids; i++) {
-        Vector<double> solution(n_dofs);
-        solutions.push_back(solution);
-
-        Vector<double> rhs(n_dofs);
-        righthandsides.push_back(rhs);
-
-        SparseMatrix<double> system_matrix;
-        system_matrices.push_back(system_matrix);
-    }
+    std::fill(solutions.begin(), solutions.end(), Vector<double>(n_dofs));
+    std::fill(righthandsides.begin(), righthandsides.end(), Vector<double>(n_dofs));
+    std::fill(system_matrices.begin(), system_matrices.end(), SparseMatrix<double>());
 }
 
 template<int dim>

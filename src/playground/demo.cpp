@@ -262,11 +262,16 @@ void second_grid() {
     // fine.
 }
 
+void test_fill_function() {
+    std::vector<Vector<double>> vec(10);
+    std::fill(vec.begin(), vec.end(), Vector<double>(2));
+    vec[0](0) = 1;
+    printf("First value %f second value %f\n",vec[0](0), vec[1](0));
+}
 // @sect3{The main function}
 
 // Finally, the main function. There isn't much to do here, only to call the
 // two subfunctions, which produce the two grids.
 int main() {
-    first_grid();
-    second_grid();
+    test_fill_function();
 }
