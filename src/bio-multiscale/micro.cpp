@@ -43,7 +43,7 @@ MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine
         fem_q_deg(12),
         quadrature_formula(fem_q_deg),
         face_quadrature_formula(fem_q_deg),
-        cache_mappings(true),
+        cache_mappings(false),
         sol_u(nullptr),
         sol_w(nullptr),
         macro_dof_handler(nullptr),
@@ -208,7 +208,7 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
             }
         }
         for (unsigned int q_index = 0; q_index < quadrature_formula.size(); q_index++) {
-            mapmap.get_det_jac(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac);
+            get_map_info(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac, kkt); // only needs jac
             const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations[grid_num],
                                                               sd.fe_values.quadrature_point(q_index));
             double rhs_val = pde_data.bulk_rhs_v.mvalue(grid_locations[grid_num], mapped_p);

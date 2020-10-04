@@ -20,7 +20,7 @@ void run(const std::string &input_path) {
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    for (unsigned int i = 4; i < 5; i++) {
+    for (unsigned int i = 2; i < 7; i++) {
         Manager manager(i - 1, i, input_path, output_path);
         manager.setup();
         manager.run();
