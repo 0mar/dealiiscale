@@ -39,7 +39,7 @@ void Manager::run() {
     double residual = 0;
     while (std::fabs(old_residual - residual) > eps) { // Todo: make relative
         fixed_point_iterate();
-        compute_residuals(old_residual, residual);
+        compute_errors(old_residual, residual);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
         cycle++;
         if (cycle > max_iterations) {
@@ -57,7 +57,7 @@ void Manager::fixed_point_iterate() {
 //    micro_solver.set_exact_solution();
 }
 
-void Manager::compute_residuals(double &old_residual, double &residual) {
+void Manager::compute_errors(double &old_residual, double &residual) {
     double macro_l2 = 0;
     double macro_h1 = 0;
     double micro_l2 = 0;

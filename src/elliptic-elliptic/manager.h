@@ -61,10 +61,10 @@ private:
     /**
      * Compute the multiscale residual by adding the macroscopic and the microscopic error.
      * Analysis shows that this is bounded.
-     * @param old_residual The residual in the previous operator splitting iteration.
-     * @param residual The residual in the current operator splitting iteration.
+     * @param old_error The residual in the previous operator splitting iteration.
+     * @param error The residual in the current operator splitting iteration.
      */
-    void compute_residuals(double &old_residual, double &residual);
+    void compute_errors(double &old_error, double &error);
 
     void patch_and_write_solutions();
 

@@ -46,10 +46,13 @@ void Manager::setup() {
 void Manager::run() {
     double old_residual = 2;
     double residual = 1;
-    while (std::fabs(old_residual - residual) / residual > eps) {
+    double old_error, error;
+    while (std::fabs(old_residual - residual) > eps) {
         fixed_point_iterate();
         compute_residuals(old_residual, residual);
+        compute_errors(old_error, error);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
+        printf("Old error %.2e, new error %.2e\n", old_error, error);
         cycle++;
         if (cycle > max_iterations) {
             std::cout << "Can't get the residual small enough..." << std::endl;
@@ -64,7 +67,7 @@ void Manager::fixed_point_iterate() {
     micro_solver.assemble_and_solve_all();
 }
 
-void Manager::compute_residuals(double &old_residual, double &residual) {
+void Manager::compute_errors(double &old_error, double &error) {
     double macro_l2 = 0;
     double macro_h1 = 0;
     double micro_l2 = 0;
@@ -78,9 +81,19 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
     convergence_table.add_value("mH1", micro_h1);
     convergence_table.add_value("ML2", macro_l2);
     convergence_table.add_value("MH1", macro_h1);
+    old_error = error;
+    printf("Macro error: %.2e\tMicro error: %.2e\n", macro_l2, micro_l2);
+    error = micro_l2 + macro_l2;
+}
+
+void Manager::compute_residuals(double &old_residual, double &residual) {
+    double macro_residual = 0;
+    double micro_residual = 0;
+    macro_solver.compute_residual(macro_residual);
+    micro_solver.compute_all_residuals(micro_residual);
     old_residual = residual;
-    printf("Macro residual: %.2e\tMicro residual: %.2e\n", macro_l2, micro_l2);
-    residual = micro_l2 + macro_l2;
+    printf("Macro residual: %.2e\tMicro residual: %.2e\n", macro_residual, micro_residual);
+    residual = macro_residual + micro_residual;
 }
 
 void Manager::output_results() {

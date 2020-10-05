@@ -77,6 +77,8 @@ void MacroSolver<dim>::setup_system() {
     system_matrix_w.reinit(sparsity_pattern);
     sol_u.reinit(dof_handler.n_dofs());
     sol_w.reinit(dof_handler.n_dofs());
+    old_sol_u.reinit(dof_handler.n_dofs());
+    old_sol_w.reinit(dof_handler.n_dofs());
     system_rhs_u.reinit(dof_handler.n_dofs());
     system_rhs_w.reinit(dof_handler.n_dofs());
     micro_contribution_u.reinit(dof_handler.n_dofs());
@@ -192,6 +194,8 @@ void MacroSolver<dim>::assemble_system() {
 
 template<int dim>
 void MacroSolver<dim>::solve() {
+    old_sol_u = sol_u;
+    old_sol_w = sol_w;
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix_u, sol_u, system_rhs_u, PreconditionIdentity());
@@ -223,6 +227,23 @@ void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
                                       VectorTools::H1_seminorm);
     h1_error += VectorTools::compute_global_error(triangulation, difference_per_cell,
                                                   VectorTools::H1_seminorm);
+}
+
+template<int dim>
+void MacroSolver<dim>::compute_residual(double &l2_residual) {
+    Vector<double> error(dof_handler.n_dofs());
+    error += sol_u;
+    error -= old_sol_u;
+    Vector<double> difference_per_cell(triangulation.n_active_cells());
+    VectorTools::integrate_difference(dof_handler, error, Functions::ZeroFunction<dim>(), difference_per_cell,
+                                      QGauss<dim>(8), VectorTools::L2_norm);
+    l2_residual = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::L2_norm);
+    error = 0;
+    error += sol_w;
+    error -= old_sol_w;
+    VectorTools::integrate_difference(dof_handler, error, Functions::ZeroFunction<dim>(), difference_per_cell,
+                                      QGauss<dim>(8), VectorTools::L2_norm);
+    l2_residual = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::L2_norm);
 }
 
 template<int dim>

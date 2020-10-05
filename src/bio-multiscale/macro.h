@@ -75,6 +75,8 @@ public:
      */
     void compute_error(double &l2_error, double &h1_error);
 
+    void compute_residual(double &l2_residual);
+
     /**
      * Set the microscopic solutions pointers, so that this solver can compute its contribution from it.
      * @param _solutions Pointer to a vector of microscopic solution vectors.
@@ -172,7 +174,7 @@ private:
     const FE_Q<dim> fe;
     AffineConstraints<double> u_constraints, w_constraints;
     MicroFEMObjects<dim> micro;
-
+    Vector<double> old_sol_u, old_sol_w;
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix_u, system_matrix_w;
     Vector<double> system_rhs_u, system_rhs_w;

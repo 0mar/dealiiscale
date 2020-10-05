@@ -88,9 +88,7 @@ public:
      */
     void compute_all_errors(double &l2_error, double &h1_error);
 
-    double get_l2_error(unsigned int grid_num);
-
-    double get_h1_error(unsigned int grid_num);
+    void compute_all_residuals(double &l2_residual);
 
     double get_residual(unsigned int grid_num);
 
@@ -114,6 +112,7 @@ public:
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
+    std::vector<Vector<double>> old_solutions;
     MapMap<dim, dim> mapmap;
     static constexpr unsigned int INFLOW_BOUNDARY = 0;
     static constexpr unsigned int OUTFLOW_BOUNDARY = 1;
@@ -133,7 +132,7 @@ private:
         // todo: more? PDEData? All temporary structures.
     };
 
-    struct AssemblyCopyData { //todo: single objects
+    struct AssemblyCopyData {
 
         AssemblyCopyData(unsigned int num_grids);
 
