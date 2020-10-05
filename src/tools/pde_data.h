@@ -57,6 +57,7 @@ struct BioMicroData {
     MultiscaleFunctionParser<dim> bc_v_4;
     MultiscaleFunctionParser<dim> mapping;
     MultiscaleFunctionParser<dim> map_jac;
+    Tensor<2, dim> rotation_matrix;
 
     ParameterHandler &params;
 
@@ -64,7 +65,10 @@ struct BioMicroData {
      * Initialize struct with parameter object
      * @param params parameterhandler object
      */
-    BioMicroData(ParameterHandler &params) : mapping(dim), map_jac(dim * dim), params(params) {}
+    BioMicroData(ParameterHandler &params) : mapping(dim), map_jac(dim * dim), params(params) {
+        rotation_matrix[0][1] = -1;
+        rotation_matrix[1][0] = 1;
+    }
 
 };
 
@@ -79,7 +83,10 @@ struct MicroFEMObjects { // Can be moved to a different file if imports would gi
 
     void get_map_data(const Point<dim> &px, const Point<dim> &py, double &det_jac,
                       SymmetricTensor<2, dim> &kkt);
+
     void get_map_det_jac(const Point<dim> &px, const Point<dim> &py, double &det_jac);
+
+    void get_map_det_jac_bc(const Point<dim> &px, const Point<dim> &py, const Tensor<1, dim> &normal, double &det_jac);
 };
 
 /**

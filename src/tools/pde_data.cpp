@@ -194,6 +194,18 @@ void MicroFEMObjects<dim>::get_map_det_jac(const Point<dim> &px, const Point<dim
     }
 }
 
+template<int dim>
+void MicroFEMObjects<dim>::get_map_det_jac_bc(const Point<dim> &px, const Point<dim> &py, const Tensor<1, dim> &normal,
+                                              double &det_jac) {
+    if (cache_map_data) {
+        mapmap->get_det_jac(px, py, det_jac);
+    } else {
+        Tensor<2, dim> jacobian = data->map_jac.mtensor_value(px, py);
+        det_jac = (jacobian * data->rotation_matrix * normal).norm();
+        Assert(det_jac > 1E-4, ExcMessage("Determinant of jacobian of mapping is not positive!"))
+    }
+}
+
 // Explicit instantiation
 
 template
