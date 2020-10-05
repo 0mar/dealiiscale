@@ -321,10 +321,11 @@ void MicroSolver<dim>::compute_all_errors(double &l2_error, double &h1_error) {
     printf("Micro: computing error\n");
     Vector<double> macro_domain_l2_error(num_grids);
     Vector<double> macro_domain_h1_error(num_grids);
+    const unsigned int n_active = triangulation.n_active_cells();
+    Vector<double> difference_per_cell(n_active);
     for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
         pde_data.solution_v.set_macro_point(grid_locations[grid_num]);
-        const unsigned int n_active = triangulation.n_active_cells();
-        Vector<double> difference_per_cell(n_active);
+        difference_per_cell.reinit(n_active);
         VectorTools::integrate_difference(dof_handler, solutions[grid_num], pde_data.solution_v, difference_per_cell,
                                           QGauss<dim>(fem_q_deg),
                                           VectorTools::L2_norm);
@@ -341,7 +342,7 @@ void MicroSolver<dim>::compute_all_errors(double &l2_error, double &h1_error) {
     double residual;
     compute_all_residuals(residual);
     printf("Residual: %.4f\n", residual);
-    Vector<double> macro_integral(num_grids); // todo: Should this not be n_active?
+    Vector<double> macro_integral(n_active);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
     l2_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,

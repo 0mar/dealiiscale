@@ -46,10 +46,11 @@ void Manager::setup() {
 void Manager::run() {
     double old_residual = 2;
     double residual = 1;
-    double old_error, error;
-    while (std::fabs(old_residual - residual) > eps) {
+    double old_error = 2;
+    double error = 1;
+    while (std::fabs(old_error - error) > eps) {
         fixed_point_iterate();
-        compute_residuals(old_residual, residual);
+//        compute_residuals(old_residual, residual);
         compute_errors(old_error, error);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
         printf("Old error %.2e, new error %.2e\n", old_error, error);
