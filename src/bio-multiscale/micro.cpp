@@ -8,7 +8,7 @@
 using namespace dealii;
 
 template<int dim>
-MicroSolver<dim>::AssemblyScratchData::AssemblyScratchData(const FiniteElement<dim> &fe)
+MicroSolver<dim>::AssemblyScratchData::AssemblyScratchData(const FiniteElement <dim> &fe)
         :  fe_values(fe, QGauss<dim>(12), update_values | update_gradients | // todo Fix this constant
                                           update_quadrature_points | update_JxW_values),
            fe_face_values(fe, QGauss<dim - 1>(12), update_quadrature_points | update_values | update_JxW_values),
@@ -33,21 +33,21 @@ MicroSolver<dim>::AssemblyCopyData::AssemblyCopyData(unsigned int num_grids) {
     cell_rhs.resize(num_grids);
 //    std::fill(cell_matrices.begin(), cell_matrices.end(), FullMatrix<double>());
 //    std::fill(cell_rhs.begin(), cell_rhs.end(), Vector<double>());
-    for (unsigned int grid_num=0;grid_num < num_grids;grid_num++) {
+    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
         cell_matrices[grid_num] = FullMatrix<double>();
         cell_rhs[grid_num] = Vector<double>();
     }
 }
 
 template<int dim>
-MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine_level):
+MicroSolver<dim>::MicroSolver(BioMicroData <dim> &micro_data, unsigned int refine_level):
         dof_handler(triangulation),
         refine_level(refine_level),
         fe(1),
         fem_q_deg(12),
         quadrature_formula(fem_q_deg),
         face_quadrature_formula(fem_q_deg),
-        cache_mappings(false),
+        cache_mappings(true),
         sol_u(nullptr),
         sol_w(nullptr),
         macro_dof_handler(nullptr),
@@ -69,6 +69,7 @@ void MicroSolver<dim>::setup() {
 
 template<int dim>
 void MicroSolver<dim>::make_grid() {
+    printf("Creating micro grid\n");
     GridGenerator::hyper_cube(triangulation, -1, 1);
     triangulation.refine_global(refine_level);
     const double EPS = 1E-4;
@@ -95,6 +96,7 @@ void MicroSolver<dim>::make_grid() {
 
 template<int dim>
 void MicroSolver<dim>::setup_system() {
+    printf("Micro: setting up constant parts\n");
     dof_handler.distribute_dofs(fe);
     constraints.clear();
     constraints.close();
@@ -106,6 +108,7 @@ void MicroSolver<dim>::setup_system() {
 
 template<int dim>
 void MicroSolver<dim>::setup_scatter() {
+    printf("Micro: setting up variable parts\n");
     solutions.resize(num_grids);
     righthandsides.resize(num_grids);
     system_matrices.resize(num_grids);
@@ -114,7 +117,7 @@ void MicroSolver<dim>::setup_scatter() {
 //    std::fill(solutions.begin(), solutions.end(), Vector<double>(n_dofs));
 //    std::fill(righthandsides.begin(), righthandsides.end(), Vector<double>(n_dofs));
 //    std::fill(system_matrices.begin(), system_matrices.end(), SparseMatrix<double>());
-    for (unsigned int grid_num=0;grid_num < num_grids;grid_num++) {
+    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
         solutions[grid_num] = Vector<double>(n_dofs);
         righthandsides[grid_num] = Vector<double>(n_dofs);
         system_matrices[grid_num] = SparseMatrix<double>();
@@ -123,9 +126,10 @@ void MicroSolver<dim>::setup_scatter() {
 
 template<int dim>
 void MicroSolver<dim>::compute_pullback_objects() {
-    FEValues<dim> fe_values(fe, quadrature_formula, update_quadrature_points);
-    FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula, update_quadrature_points | update_normal_vectors);
-    std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
+    printf("Micro: pre-computing pullback objects\n");
+    FEValues <dim> fe_values(fe, quadrature_formula, update_quadrature_points);
+    FEFaceValues <dim> fe_face_values(fe, face_quadrature_formula, update_quadrature_points | update_normal_vectors);
+    std::vector <types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
     SymmetricTensor<2, dim> kkt;
     Tensor<2, dim> rotation_matrix; // inits to zero
     rotation_matrix[0][1] = -1;
@@ -150,6 +154,11 @@ void MicroSolver<dim>::compute_pullback_objects() {
                         det_jac = (pde_data.map_jac.mtensor_value(grid_locations[grid_num],
                                                                   fe_face_values.quadrature_point(q_index)) *
                                    rotation_matrix * fe_face_values.normal_vector(q_index)).norm();
+                        double det_jac_2 = (transpose(invert(pde_data.map_jac.mtensor_value(grid_locations[grid_num],
+                                                                                  fe_face_values.quadrature_point(
+                                                                                          q_index)))) *
+                                            fe_face_values.normal_vector(q_index)).norm();
+                        printf("1: %.5f, 2: %.5f\n",det_jac, det_jac_2);
                         // Dummy kkt object. None is used on boundary.
                         mapmap.set(grid_locations[grid_num], fe_face_values.quadrature_point(q_index), det_jac, kkt);
                     }
@@ -162,7 +171,7 @@ void MicroSolver<dim>::compute_pullback_objects() {
 
 template<int dim>
 void
-MicroSolver<dim>::set_macro_solution(Vector<double> *_sol_u, Vector<double> *_sol_w, DoFHandler<dim> *_dof_handler) {
+MicroSolver<dim>::set_macro_solution(Vector<double> *_sol_u, Vector<double> *_sol_w, DoFHandler <dim> *_dof_handler) {
     this->sol_u = _sol_u;
     this->sol_w = _sol_w;
     this->macro_dof_handler = _dof_handler;
@@ -204,8 +213,8 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
         }
         for (unsigned int q_index = 0; q_index < quadrature_formula.size(); q_index++) {
             fem_objects.get_map_det_jac(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac);
-            const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations[grid_num],
-                                                              sd.fe_values.quadrature_point(q_index));
+            const Point <dim> mapped_p = pde_data.mapping.mmap(grid_locations[grid_num],
+                                                               sd.fe_values.quadrature_point(q_index));
             double rhs_val = pde_data.bulk_rhs_v.mvalue(grid_locations[grid_num], mapped_p);
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 copy_data.cell_rhs[grid_num](i) +=
@@ -218,9 +227,9 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
                 scratch_data.fe_face_values.reinit(cell, face_number);
                 for (unsigned int q_index = 0; q_index < face_quadrature_formula.size(); q_index++) {
                     fem_objects.get_map_det_jac(grid_locations[grid_num], sd.fe_face_values.quadrature_point(q_index),
-                                       det_jac);
-                    Point<dim> mp = pde_data.mapping.mmap(grid_locations[grid_num],
-                                                          sd.fe_face_values.quadrature_point(q_index));
+                                                det_jac);
+                    Point <dim> mp = pde_data.mapping.mmap(grid_locations[grid_num],
+                                                           sd.fe_face_values.quadrature_point(q_index));
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
                         switch (cell->face(face_number)->boundary_id()) {
                             case INFLOW_BOUNDARY:
@@ -261,7 +270,8 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
                                         sd.fe_face_values.shape_value(i, q_index) *
                                         det_jac * sd.fe_face_values.JxW(q_index);
                                 break;
-                            default: Assert(false, ExcMessage("Part of the boundary is not initialized correctly"))
+                            default:
+                                Assert(false, ExcMessage("Part of the boundary is not initialized correctly"))
                         }
                     }
                 }
@@ -290,13 +300,14 @@ void MicroSolver<dim>::assemble_and_solve_all() {
     WorkStream::run(dof_handler.begin_active(), dof_handler.end(), *this, &MicroSolver::local_assemble_system,
                     &MicroSolver::copy_local_to_global, AssemblyScratchData(fe), AssemblyCopyData(num_grids));
     for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
-        solve(grid_num);
+        solve(grid_num); // Todo: task-based
     }
 }
 
 
 template<int dim>
 void MicroSolver<dim>::solve(int grid_num) {
+    printf("Micro: solving\n");
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrices.at(grid_num), solutions.at(grid_num), righthandsides.at(grid_num),
@@ -311,8 +322,10 @@ void MicroSolver<dim>::solve(int grid_num) {
 
 template<int dim>
 void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
+    printf("Micro: computing error\n");
     Vector<double> macro_domain_l2_error(num_grids);
     Vector<double> macro_domain_h1_error(num_grids);
+    // Todo: task-based
     for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
         pde_data.solution_v.set_macro_point(grid_locations[grid_num]);
         const unsigned int n_active = triangulation.n_active_cells();
@@ -344,7 +357,7 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
 template<int dim>
 void MicroSolver<dim>::set_exact_solution() {
     std::cout << "Exact micro-solution set" << std::endl;
-    MappingQ1<dim> mapping;
+    MappingQ1 <dim> mapping;
     AffineConstraints<double> constraints; // Object that is necessary to use `Vectortools::project`
     constraints.close();
     for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
@@ -360,7 +373,7 @@ unsigned int MicroSolver<dim>::get_num_grids() const {
 }
 
 template<int dim>
-void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations) {
+void MicroSolver<dim>::set_grid_locations(const std::vector <Point<dim>> &locations) {
     grid_locations = locations;
     num_grids = locations.size();
 }
