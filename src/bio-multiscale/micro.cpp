@@ -32,12 +32,12 @@ template<int dim>
 MicroSolver<dim>::AssemblyCopyData::AssemblyCopyData(unsigned int num_grids) {
     cell_matrices.resize(num_grids);
     cell_rhs.resize(num_grids);
-//    std::fill(cell_matrices.begin(), cell_matrices.end(), FullMatrix<double>());
-//    std::fill(cell_rhs.begin(), cell_rhs.end(), Vector<double>());
-    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
-        cell_matrices[grid_num] = FullMatrix<double>();
-        cell_rhs[grid_num] = Vector<double>();
-    }
+    std::fill(cell_matrices.begin(), cell_matrices.end(), FullMatrix<double>());
+    std::fill(cell_rhs.begin(), cell_rhs.end(), Vector<double>());
+//    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
+//        cell_matrices[grid_num] = FullMatrix<double>();
+//        cell_rhs[grid_num] = Vector<double>();
+//    }
 }
 
 template<int dim>
@@ -48,7 +48,7 @@ MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine
         fem_q_deg(12),
         quadrature_formula(fem_q_deg),
         face_quadrature_formula(fem_q_deg),
-        cache_mappings(true),
+        cache_mappings(false),
         sol_u(nullptr),
         sol_w(nullptr),
         macro_dof_handler(nullptr),
@@ -115,14 +115,14 @@ void MicroSolver<dim>::setup_scatter() {
     system_matrices.resize(num_grids);
     compute_macroscopic_contribution();
     unsigned int n_dofs = dof_handler.n_dofs();
-//    std::fill(solutions.begin(), solutions.end(), Vector<double>(n_dofs));
-//    std::fill(righthandsides.begin(), righthandsides.end(), Vector<double>(n_dofs));
-//    std::fill(system_matrices.begin(), system_matrices.end(), SparseMatrix<double>());
-    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
-        solutions[grid_num] = Vector<double>(n_dofs);
-        righthandsides[grid_num] = Vector<double>(n_dofs);
-        system_matrices[grid_num] = SparseMatrix<double>();
-    }
+    std::fill(solutions.begin(), solutions.end(), Vector<double>(n_dofs));
+    std::fill(righthandsides.begin(), righthandsides.end(), Vector<double>(n_dofs));
+    std::fill(system_matrices.begin(), system_matrices.end(), SparseMatrix<double>());
+//    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
+//        solutions[grid_num] = Vector<double>(n_dofs);
+//        righthandsides[grid_num] = Vector<double>(n_dofs);
+//        system_matrices[grid_num] = SparseMatrix<double>();
+//    }
 }
 
 template<int dim>
@@ -295,9 +295,11 @@ void MicroSolver<dim>::assemble_and_solve_all() {
     }
     WorkStream::run(dof_handler.begin_active(), dof_handler.end(), *this, &MicroSolver::local_assemble_system,
                     &MicroSolver::copy_local_to_global, AssemblyScratchData(fe), AssemblyCopyData(num_grids));
+    Threads::TaskGroup<void> task_group;
     for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
-        solve(grid_num); // Todo: task-based
+        task_group += Threads::new_task(&MicroSolver::solve, *this, grid_num);
     }
+    task_group.join_all();
 }
 
 
@@ -309,35 +311,25 @@ void MicroSolver<dim>::solve(int grid_num) {
     solver.solve(system_matrices.at(grid_num), solutions.at(grid_num), righthandsides.at(grid_num),
                  PreconditionIdentity());
     printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
-//    for (unsigned int i=0;i<grid_num;i++) {
-//        std::cout << i << std::endl;
-//        solutions[grid_num].print(std::cout);
-//    }
 }
 
-
 template<int dim>
-void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
+void MicroSolver<dim>::compute_all_errors(double &l2_error, double &h1_error) {
     printf("Micro: computing error\n");
     Vector<double> macro_domain_l2_error(num_grids);
     Vector<double> macro_domain_h1_error(num_grids);
-    // Todo: task-based
+    std::vector<Threads::Task<double>> l2_tasks(num_grids);
+    std::vector<Threads::Task<double>> h1_tasks(num_grids);
     for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
-        pde_data.solution_v.set_macro_point(grid_locations[grid_num]);
-        const unsigned int n_active = triangulation.n_active_cells();
-        Vector<double> difference_per_cell(n_active);
-        VectorTools::integrate_difference(dof_handler, solutions[grid_num], pde_data.solution_v, difference_per_cell,
-                                          QGauss<dim>(fem_q_deg),
-                                          VectorTools::L2_norm);
-        double micro_l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
-                                                                  VectorTools::L2_norm);
-        VectorTools::integrate_difference(dof_handler, solutions[grid_num], pde_data.solution_v, difference_per_cell,
-                                          QGauss<dim>(fem_q_deg),
-                                          VectorTools::H1_seminorm);
-        double micro_h1_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
-                                                                  VectorTools::H1_seminorm);
-        macro_domain_l2_error(grid_num) = micro_l2_error;
-        macro_domain_h1_error(grid_num) = micro_h1_error;
+        l2_tasks[grid_num] = Threads::new_task(&MicroSolver::get_l2_error, *this, grid_num);
+        h1_tasks[grid_num] = Threads::new_task(&MicroSolver::get_h1_error, *this, grid_num);
+    }
+    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
+        macro_domain_l2_error(grid_num) = l2_tasks[grid_num].return_value();
+        macro_domain_h1_error(grid_num) = h1_tasks[grid_num].return_value();
+//        macro_domain_l2_error(grid_num) = get_l2_error(grid_num);
+//        macro_domain_h1_error(grid_num) = get_h1_error(grid_num);
+        printf("%d: l2=%.4f h1=%.4f\n", grid_num, macro_domain_l2_error(grid_num), macro_domain_h1_error(grid_num));
     }
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
@@ -348,6 +340,42 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
                                       macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
     h1_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
                                                  VectorTools::L2_norm); //Not sure about this norm, although output is consistent
+}
+
+template<int dim>
+double MicroSolver<dim>::get_l2_error(unsigned int grid_num) {
+    pde_data.solution_v.set_macro_point(grid_locations[grid_num]);
+    const unsigned int &n_active = triangulation.n_active_cells();
+    Vector<double> difference_per_cell(n_active);
+    VectorTools::integrate_difference(dof_handler, solutions[grid_num], pde_data.solution_v, difference_per_cell,
+                                      QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
+    const double micro_l2_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                    VectorTools::L2_norm);
+    return micro_l2_error;
+}
+
+template<int dim>
+double MicroSolver<dim>::get_h1_error(unsigned int grid_num) {
+    pde_data.solution_v.set_macro_point(grid_locations[grid_num]);
+    const unsigned int &n_active = triangulation.n_active_cells();
+    Vector<double> difference_per_cell(n_active);
+    VectorTools::integrate_difference(dof_handler, solutions[grid_num], pde_data.solution_v, difference_per_cell,
+                                      QGauss<dim>(fem_q_deg), VectorTools::H1_seminorm);
+    const double micro_h1_error = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                    VectorTools::H1_seminorm);
+    return micro_h1_error;
+}
+
+template<int dim>
+double MicroSolver<dim>::get_residual(unsigned int grid_num) {
+    pde_data.solution_v.set_macro_point(grid_locations[grid_num]);
+    const unsigned int &n_active = triangulation.n_active_cells();
+    Vector<double> difference_per_cell(n_active);
+    VectorTools::integrate_difference(dof_handler, solutions[grid_num], pde_data.solution_v, difference_per_cell,
+                                      QGauss<dim>(fem_q_deg), VectorTools::H1_seminorm);
+    const double residual = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                              VectorTools::H1_seminorm);
+    return residual;
 }
 
 template<int dim>

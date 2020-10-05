@@ -182,7 +182,7 @@ void MicroSolver<dim>::solve() {
 
 
 template<int dim>
-void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
+void MicroSolver<dim>::compute_all_errors(double &l2_error, double &h1_error) {
     Vector<double> macro_domain_l2_error(num_grids);
     Vector<double> macro_domain_h1_error(num_grids);
     for (unsigned int k = 0; k < num_grids; k++) {

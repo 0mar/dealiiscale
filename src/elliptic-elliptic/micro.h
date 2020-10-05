@@ -73,7 +73,7 @@ public:
     /**
      * Post-process the solution (write convergence estimates and other stuff)
      */
-    void compute_error(double &l2_error, double &h1_error);
+    void compute_all_errors(double &l2_error, double &h1_error);
 
     /**
      * Getter for the number of microgrids.

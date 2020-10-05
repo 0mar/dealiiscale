@@ -70,7 +70,7 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
     double micro_l2 = 0;
     double micro_h1 = 0;
     macro_solver.compute_error(macro_l2, macro_h1);
-    micro_solver.compute_error(micro_l2, micro_h1);
+    micro_solver.compute_all_errors(micro_l2, micro_h1);
     convergence_table.add_value("cycle", cycle);
     convergence_table.add_value("cells", macro_solver.triangulation.n_active_cells());
     convergence_table.add_value("dofs", macro_solver.dof_handler.n_dofs());
