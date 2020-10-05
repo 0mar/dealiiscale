@@ -248,7 +248,6 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
     const double &k_2 = micro.data->params.get_double("kappa_2");
     const double &k_4 = micro.data->params.get_double("kappa_4");
     double det_jac;
-    SymmetricTensor<2, dim> kkt;
     for (const auto &cell: micro.dof_handler->active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary()) {
@@ -258,7 +257,7 @@ MacroSolver<dim>::integrate_micro_cells(unsigned int micro_index, const Point<di
                     const double &jxw = fe_face_values.JxW(q_index);
                     const Point<dim> &q_point = fe_face_values.quadrature_point(q_index);
                     const Point<dim> mq_point = micro.data->mapping.mmap(macro_point, q_point);
-                    micro->get_map_info(macro_point, fe_face_values.quadrature_point(q_index), det_jac, kkt);
+                    micro.get_map_det_jac(macro_point, fe_face_values.quadrature_point(q_index), det_jac);
                     switch (cell->face(face_number)->boundary_id()) {
                         case 0: // INFLOW_BOUNDARY // Not clean, should be micro enums
                             u_contribution += (-k_2 * interp_solution[q_index] +

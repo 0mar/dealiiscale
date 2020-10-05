@@ -75,6 +75,11 @@ struct MicroFEMObjects { // Can be moved to a different file if imports would gi
     const MapMap<dim, dim> *mapmap;
     const unsigned int *q_degree;
     const BioMicroData<dim> *data; // Not really nice for the other problems but perhaps we can take a polymorphic solution later.
+    bool cache_map_data;
+
+    void get_map_data(const Point<dim> &px, const Point<dim> &py, double &det_jac,
+                      SymmetricTensor<2, dim> &kkt);
+    void get_map_det_jac(const Point<dim> &px, const Point<dim> &py, double &det_jac);
 };
 
 /**

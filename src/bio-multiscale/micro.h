@@ -184,8 +184,6 @@ private:
      */
     void compute_pullback_objects();
 
-    void get_map_info(const Point<dim> &px, const Point<dim> &py, double &det_jac, SymmetricTensor<2, dim> &kkt);
-
     // The level of refinement (every +1 means a bisection)
     const unsigned int refine_level;
     const FE_Q<dim> fe;

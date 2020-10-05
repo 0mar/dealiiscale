@@ -168,6 +168,32 @@ void TwoPressureData<dim>::set_time(const double time) {
     micro.solution.set_time(time);
 }
 
+template<int dim>
+void MicroFEMObjects<dim>::get_map_data(const Point<dim> &px, const Point<dim> &py, double &det_jac,
+                                        SymmetricTensor<2, dim> &kkt) {
+    if (cache_map_data) {
+        mapmap->get(px, py, det_jac, kkt);
+    } else {
+        Tensor<2, dim> jacobian = data->map_jac.mtensor_value(px, py);
+        Tensor<2, dim> inv_jacobian = invert(jacobian);
+        det_jac = determinant(jacobian);
+        Assert(det_jac > 1E-4, ExcMessage("Determinant of jacobian of mapping is not positive!"))
+        kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
+    }
+
+}
+
+template<int dim>
+void MicroFEMObjects<dim>::get_map_det_jac(const Point<dim> &px, const Point<dim> &py, double &det_jac) {
+    if (cache_map_data) {
+        mapmap->get_det_jac(px, py, det_jac);
+    } else {
+        Tensor<2, dim> jacobian = data->map_jac.mtensor_value(px, py);
+        det_jac = determinant(jacobian);
+        Assert(det_jac > 1E-4, ExcMessage("Determinant of jacobian of mapping is not positive!"))
+    }
+}
+
 // Explicit instantiation
 
 template

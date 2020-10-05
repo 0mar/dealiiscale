@@ -31,8 +31,12 @@ template<int dim>
 MicroSolver<dim>::AssemblyCopyData::AssemblyCopyData(unsigned int num_grids) {
     cell_matrices.resize(num_grids);
     cell_rhs.resize(num_grids);
-    std::fill(cell_matrices.begin(), cell_matrices.end(), FullMatrix<double>());
-    std::fill(cell_rhs.begin(), cell_rhs.end(), Vector<double>());
+//    std::fill(cell_matrices.begin(), cell_matrices.end(), FullMatrix<double>());
+//    std::fill(cell_rhs.begin(), cell_rhs.end(), Vector<double>());
+    for (unsigned int grid_num=0;grid_num < num_grids;grid_num++) {
+        cell_matrices[grid_num] = FullMatrix<double>();
+        cell_rhs[grid_num] = Vector<double>();
+    }
 }
 
 template<int dim>
@@ -48,7 +52,7 @@ MicroSolver<dim>::MicroSolver(BioMicroData<dim> &micro_data, unsigned int refine
         sol_w(nullptr),
         macro_dof_handler(nullptr),
         pde_data(micro_data),
-        fem_objects{&solutions, &dof_handler, &mapmap, &fem_q_deg, &pde_data} {
+        fem_objects{&solutions, &dof_handler, &mapmap, &fem_q_deg, &pde_data, cache_mappings} {
     printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
 }
@@ -58,7 +62,7 @@ void MicroSolver<dim>::setup() {
     make_grid();
     setup_system();
     setup_scatter();
-    if (cache_mappings) {
+    if (fem_objects.cache_map_data) {
         compute_pullback_objects();
     }
 }
@@ -107,9 +111,14 @@ void MicroSolver<dim>::setup_scatter() {
     system_matrices.resize(num_grids);
     compute_macroscopic_contribution();
     unsigned int n_dofs = dof_handler.n_dofs();
-    std::fill(solutions.begin(), solutions.end(), Vector<double>(n_dofs));
-    std::fill(righthandsides.begin(), righthandsides.end(), Vector<double>(n_dofs));
-    std::fill(system_matrices.begin(), system_matrices.end(), SparseMatrix<double>());
+//    std::fill(solutions.begin(), solutions.end(), Vector<double>(n_dofs));
+//    std::fill(righthandsides.begin(), righthandsides.end(), Vector<double>(n_dofs));
+//    std::fill(system_matrices.begin(), system_matrices.end(), SparseMatrix<double>());
+    for (unsigned int grid_num=0;grid_num < num_grids;grid_num++) {
+        solutions[grid_num] = Vector<double>(n_dofs);
+        righthandsides[grid_num] = Vector<double>(n_dofs);
+        system_matrices[grid_num] = SparseMatrix<double>();
+    }
 }
 
 template<int dim>
@@ -150,20 +159,6 @@ void MicroSolver<dim>::compute_pullback_objects() {
     }
 }
 
-template<int dim>
-void MicroSolver<dim>::get_map_info(const Point<dim> &px, const Point<dim> &py, double &det_jac,
-                                    SymmetricTensor<2, dim> &kkt) {
-    if (cache_mappings) {
-        mapmap.get(px, py, det_jac, kkt);
-    } else {
-        Tensor<2, dim> jacobian = pde_data.map_jac.mtensor_value(px, py);
-        Tensor<2, dim> inv_jacobian = invert(jacobian);
-        det_jac = determinant(jacobian);
-        Assert(det_jac > 1E-4, ExcMessage("Determinant of jacobian of mapping is not positive!"))
-        kkt = SymmetricTensor<2, dim>(inv_jacobian * transpose(inv_jacobian));
-    }
-
-}
 
 template<int dim>
 void
@@ -198,7 +193,7 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
         copy_data.cell_rhs[grid_num].reinit(fe.dofs_per_cell);
 
         for (unsigned int q_index = 0; q_index < quadrature_formula.size(); ++q_index) {
-            get_map_info(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac, kkt);
+            fem_objects.get_map_data(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac, kkt);
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int j = 0; j < dofs_per_cell; j++) {
                     copy_data.cell_matrices[grid_num](i, j) += D_2 * sd.fe_values.shape_grad(i, q_index) * kkt
@@ -208,7 +203,7 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
             }
         }
         for (unsigned int q_index = 0; q_index < quadrature_formula.size(); q_index++) {
-            get_map_info(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac, kkt); // only needs jac
+            fem_objects.get_map_det_jac(grid_locations[grid_num], sd.fe_values.quadrature_point(q_index), det_jac);
             const Point<dim> mapped_p = pde_data.mapping.mmap(grid_locations[grid_num],
                                                               sd.fe_values.quadrature_point(q_index));
             double rhs_val = pde_data.bulk_rhs_v.mvalue(grid_locations[grid_num], mapped_p);
@@ -222,8 +217,8 @@ void MicroSolver<dim>::local_assemble_system(const typename DoFHandler<dim>::act
             if (cell->face(face_number)->at_boundary()) {
                 scratch_data.fe_face_values.reinit(cell, face_number);
                 for (unsigned int q_index = 0; q_index < face_quadrature_formula.size(); q_index++) {
-                    get_map_info(grid_locations[grid_num], sd.fe_face_values.quadrature_point(q_index),
-                                       det_jac, kkt); // Todo: Only needs det_jac
+                    fem_objects.get_map_det_jac(grid_locations[grid_num], sd.fe_face_values.quadrature_point(q_index),
+                                       det_jac);
                     Point<dim> mp = pde_data.mapping.mmap(grid_locations[grid_num],
                                                           sd.fe_face_values.quadrature_point(q_index));
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
@@ -307,6 +302,10 @@ void MicroSolver<dim>::solve(int grid_num) {
     solver.solve(system_matrices.at(grid_num), solutions.at(grid_num), righthandsides.at(grid_num),
                  PreconditionIdentity());
     printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
+//    for (unsigned int i=0;i<grid_num;i++) {
+//        std::cout << i << std::endl;
+//        solutions[grid_num].print(std::cout);
+//    }
 }
 
 
