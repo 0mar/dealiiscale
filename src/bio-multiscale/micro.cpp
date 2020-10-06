@@ -308,12 +308,10 @@ void MicroSolver<dim>::assemble_and_solve_all() {
 
 template<int dim>
 void MicroSolver<dim>::solve(int grid_num) {
-    printf("Micro: solving\n");
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrices.at(grid_num), solutions.at(grid_num), righthandsides.at(grid_num),
                  PreconditionIdentity());
-    printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
 }
 
 template<int dim>
@@ -339,9 +337,6 @@ void MicroSolver<dim>::compute_all_errors(double &l2_error, double &h1_error) {
         macro_domain_l2_error(grid_num) = micro_l2_error;
         macro_domain_h1_error(grid_num) = micro_h1_error;
     }
-    double residual;
-    compute_all_residuals(residual);
-    printf("Residual: %.4f\n", residual);
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);

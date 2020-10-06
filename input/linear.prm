@@ -24,3 +24,4 @@ set kappa_3 = 1
 set kappa_4 = 1
 set D_1 = 4
 set D_2 = 1
+set has_solution = true

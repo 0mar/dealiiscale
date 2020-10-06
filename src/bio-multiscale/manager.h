@@ -44,7 +44,12 @@ public:
      */
     void output_results();
 
-    double eps = 1E-2;
+    void check_fixed_point_reached(bool &reached);
+
+    double old_residual, residual;
+    double old_error, error;
+    double error_eps = 1E-2;
+    double residual_eps = 1E-5;
     double max_iterations = 1E4;
 
 
@@ -63,9 +68,9 @@ private:
      * @param old_error The residual in the previous operator splitting iteration.
      * @param error The residual in the current operator splitting iteration.
      */
-    void compute_errors(double &old_error, double &error);
+    void compute_errors();
 
-    void compute_residuals(double &old_residual, double &residual);
+    void compute_residuals();
 
     void patch_and_write_solutions();
 

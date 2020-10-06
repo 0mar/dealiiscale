@@ -5,6 +5,7 @@
 #include <deal.II/base/logstream.h>
 #include "manager.h"
 #include <regex>
+#include <deal.II/base/timer.h>
 
 /**
  * Run that solver
@@ -20,7 +21,7 @@ void run(const std::string &input_path) {
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    for (unsigned int i = 2; i < 7; i++) {
+    for (unsigned int i = 4; i < 5; i++) {
         Manager manager(i - 1, i, input_path, output_path);
         manager.setup();
         manager.run();
@@ -29,13 +30,17 @@ void run(const std::string &input_path) {
 
 int main(int argc, char *argv[]) {
     dealii::deallog.depth_console(0);
-    std::string id = "input/easy_lin.prm";
+    std::string id = "input/linear.prm";
     if (argc == 2) {
         id = argv[1];
     } else if (argc > 2) {
         std::cout << "Too many arguments" << std::endl;
         return 1;
     }
+    dealii::Timer timer;
+    timer.start();
     run(id);
+    timer.stop();
+    printf("Ran in %.2f seconds with %.2f CPU time\n", timer.wall_time(), timer.cpu_time());
     return 0;
 }

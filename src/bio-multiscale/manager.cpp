@@ -14,7 +14,6 @@ Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, c
     printf("Running elliptic-elliptic solver with data from %s, storing results in %s\n", data_file.c_str(),
            out_file.c_str());
     MultithreadInfo::set_thread_limit(4);
-    std::cout<<"Running on max " << MultithreadInfo::n_cores() << std::endl;
     if (MultithreadInfo::is_running_single_threaded()) {
         std::cout << "Running single threaded" << std::endl;
     }
@@ -41,22 +40,21 @@ void Manager::setup() {
 //        ofs.close();
 //    }
     cycle = 0;
+    // Following are dummy values that only ensure a first run is being made
+    old_residual = 0;
+    residual = 1;
+    old_error = 0;
+    error = 1;
 }
 
 void Manager::run() {
-    double old_residual = 2;
-    double residual = 1;
-    double old_error = 2;
-    double error = 1;
-    while (std::fabs(old_error - error)/error > eps) {
+    bool reached = false;
+    while (not reached) {
         fixed_point_iterate();
-//        compute_residuals(old_residual, residual);
-        compute_errors(old_error, error);
-        printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
-        printf("Old error %.2e, new error %.2e\n", old_error, error);
+        check_fixed_point_reached(reached);
         cycle++;
         if (cycle > max_iterations) {
-            std::cout << "Can't get the residual small enough..." << std::endl;
+            printf("Residual too high after %d iterations, stopping\n", cycle);
             break;
         }
     }
@@ -68,7 +66,19 @@ void Manager::fixed_point_iterate() {
     micro_solver.assemble_and_solve_all();
 }
 
-void Manager::compute_errors(double &old_error, double &error) {
+void Manager::check_fixed_point_reached(bool &reached) {
+    if (data.params.get_bool("has_solution")) {
+        compute_errors();
+        printf("Old error %.2e, new error %.2e\n", old_error, error);
+        reached = std::fabs(old_error - error) / error < error_eps;
+    } else {
+        compute_residuals();
+        printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
+        reached = std::fabs(old_residual - residual) < residual_eps;
+    }
+}
+
+void Manager::compute_errors() {
     double macro_l2 = 0;
     double macro_h1 = 0;
     double micro_l2 = 0;
@@ -87,7 +97,7 @@ void Manager::compute_errors(double &old_error, double &error) {
     error = micro_l2 + macro_l2;
 }
 
-void Manager::compute_residuals(double &old_residual, double &residual) {
+void Manager::compute_residuals() {
     double macro_residual = 0;
     double micro_residual = 0;
     macro_solver.compute_residual(macro_residual);
@@ -139,11 +149,11 @@ void Manager::patch_and_write_solutions() {
         DataOut<MICRO_DIMENSIONS> micro_data_out;
         micro_data_out.attach_dof_handler(micro_solver.dof_handler);
         const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
-        Vector<double> error(micro_solver.dof_handler.n_dofs());
-        error += micro_solver.solutions[some_int];
+        Vector<double> error_(micro_solver.dof_handler.n_dofs());
+        error_ += micro_solver.solutions[some_int];
         micro_solver.set_exact_solution();
-        error -= micro_solver.solutions[some_int];
-        micro_data_out.add_data_vector(error, "solution");
+        error_ -= micro_solver.solutions[some_int];
+        micro_data_out.add_data_vector(error_, "solution");
         micro_data_out.build_patches();
         std::ofstream micro_output("results/micro-error.gpl");
         micro_data_out.write_gnuplot(micro_output);

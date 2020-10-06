@@ -38,6 +38,7 @@ MultiscaleData<dim>::MultiscaleData(const std::string &param_file) : macro(param
 template<int dim>
 BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(params) {
     params.declare_entry("macro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
+    params.declare_entry("has_solution", "true", Patterns::Bool());
     params.declare_entry("solution_u", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bulk_rhs_u", " x0^2*sin(x0*x1) + x1^2*sin(x0*x1) + 2*cos(x0 + x1)", Patterns::Anything());
     params.declare_entry("bc_u_1", "sin(x0*x1) + cos(x0 + x1)", Patterns::Anything());

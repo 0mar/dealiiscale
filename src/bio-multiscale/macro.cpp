@@ -200,7 +200,6 @@ void MacroSolver<dim>::solve() {
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix_u, sol_u, system_rhs_u, PreconditionIdentity());
     solver.solve(system_matrix_w, sol_w, system_rhs_w, PreconditionIdentity());
-    printf("\t %d CG iterations to convergence (macro)\n", solver_control.last_step());
 }
 
 template<int dim>
