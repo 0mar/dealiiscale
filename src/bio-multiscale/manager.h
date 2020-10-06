@@ -55,7 +55,6 @@ public:
 
 private:
     int cycle;
-    const bool parallel;
 
     /**
      * One (Banach-like) fixed point iteration. The multiscale system is operator-splitted into two single-scale problems.

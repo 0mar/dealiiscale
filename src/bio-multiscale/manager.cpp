@@ -9,14 +9,15 @@ Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, c
         data(data_file),
         macro_solver(data.macro, macro_refinement),
         micro_solver(data.micro, micro_refinement),
-        parallel(true),
         ct_file_name(out_file) {
     printf("Running elliptic-elliptic solver with data from %s, storing results in %s\n", data_file.c_str(),
            out_file.c_str());
-    MultithreadInfo::set_thread_limit(4);
-    if (MultithreadInfo::is_running_single_threaded()) {
-        std::cout << "Running single threaded" << std::endl;
+    int suggested_threads = (int) (data.params.get_integer("num_threads"));
+    if (suggested_threads > 0) {
+        MultithreadInfo::set_thread_limit(suggested_threads);
+        printf("Parameter file suggests running on %d threads\n", suggested_threads);
     }
+    printf("Running on %d threads\n", MultithreadInfo::n_threads());
 }
 
 void Manager::setup() {
@@ -142,31 +143,34 @@ void Manager::patch_and_write_solutions() {
         const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
         micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
         micro_data_out.build_patches();
-        std::ofstream micro_output("results/v-computed.gpl");
+        std::ofstream micro_output("results/v-solution.gpl");
         micro_data_out.write_gnuplot(micro_output);
     }
-    {
-        DataOut<MICRO_DIMENSIONS> micro_data_out;
-        micro_data_out.attach_dof_handler(micro_solver.dof_handler);
-        const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
-        Vector<double> error_(micro_solver.dof_handler.n_dofs());
-        error_ += micro_solver.solutions[some_int];
-        micro_solver.set_exact_solution();
-        error_ -= micro_solver.solutions[some_int];
-        micro_data_out.add_data_vector(error_, "solution");
-        micro_data_out.build_patches();
-        std::ofstream micro_output("results/micro-error.gpl");
-        micro_data_out.write_gnuplot(micro_output);
+    if (data.params.get_bool("has_solution")) {
+        {
+            DataOut<MICRO_DIMENSIONS> micro_data_out;
+            micro_data_out.attach_dof_handler(micro_solver.dof_handler);
+            const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
+            Vector<double> error_(micro_solver.dof_handler.n_dofs());
+            error_ += micro_solver.solutions[some_int];
+            micro_solver.set_exact_solution();
+            error_ -= micro_solver.solutions[some_int];
+            micro_data_out.add_data_vector(error_, "solution");
+            micro_data_out.build_patches();
+            std::ofstream micro_output("results/micro-error.gpl");
+            micro_data_out.write_gnuplot(micro_output);
+        }
     }
-    {
-        DataOut<MICRO_DIMENSIONS> micro_data_out;
-        micro_data_out.attach_dof_handler(micro_solver.dof_handler);
-        micro_solver.set_exact_solution(); // Superfluous but okay
-        const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
-        micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
-        micro_data_out.build_patches();
-        std::ofstream micro_output("results/micro-exact.gpl");
-        micro_data_out.write_gnuplot(micro_output);
+    if (data.params.get_bool("has_solution")) {
+        {
+            DataOut<MICRO_DIMENSIONS> micro_data_out;
+            micro_data_out.attach_dof_handler(micro_solver.dof_handler);
+            micro_solver.set_exact_solution(); // Superfluous but okay
+            const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
+            micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
+            micro_data_out.build_patches();
+            std::ofstream micro_output("results/micro-exact.gpl");
+            micro_data_out.write_gnuplot(micro_output);
+        }
     }
-
 }

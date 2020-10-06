@@ -62,6 +62,7 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
     params.declare_entry("mapping", "(3+x0+x1)*(1.6*y0 - 1.6*y1);(3+x0+x1)*(2.4*y0 + 2.4*y1);", Patterns::Anything());
     params.declare_entry("jac_mapping", "1.6*(3+x0+x1);-1.6*(3+x0+x1);2.4*(3+x0+x1);2.4*(3+x0+x1);",
                          Patterns::Anything());
+    params.declare_entry("num_threads", "-1", Patterns::Integer());
 
     std::map<std::string, double> constants = {{"D_1",     2},
                                                {"D_2",     2},
