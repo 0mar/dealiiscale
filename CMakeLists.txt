@@ -70,7 +70,7 @@ target_link_libraries(parabolic tools)
 
 add_library(biomath ${BIOMATH_DIR}/manager.h ${BIOMATH_DIR}/manager.cpp ${BIOMATH_DIR}/micro.h ${BIOMATH_DIR}/micro.cpp ${BIOMATH_DIR}/macro.h ${BIOMATH_DIR}/macro.cpp)
 deal_II_setup_target(biomath)
-target_link_libraries(biomath tools Threads::Threads)
+target_link_libraries(biomath tools)
 
 add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
 deal_II_setup_target(solve_elliptic)

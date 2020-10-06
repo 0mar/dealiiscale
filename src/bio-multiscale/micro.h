@@ -42,7 +42,6 @@
 #include <deal.II/base/work_stream.h>
 #include <deal.II/base/multithread_info.h>
 #include "../tools/mapping.h"
-#include "../tools/ctpl.h"
 
 using namespace dealii;
 
