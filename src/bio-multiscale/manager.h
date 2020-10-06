@@ -26,7 +26,7 @@ public:
      * @param data_file String that contains the name of a data file.
      */
     Manager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file,
-            const std::string &output_file);
+            const std::string &output_file, int num_threads);
 
     /**
      * Run all the methods that setup the solvers of the two scales.
@@ -46,6 +46,7 @@ public:
 
     void check_fixed_point_reached(bool &reached);
 
+    int num_threads;
     double old_residual, residual;
     double old_error, error;
     double error_eps = 1E-2;

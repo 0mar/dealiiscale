@@ -5,17 +5,17 @@
 #include "manager.h"
 
 Manager::Manager(unsigned int macro_refinement, unsigned int micro_refinement, const std::string &data_file,
-                 const std::string &out_file) :
+                 const std::string &out_file, int num_threads) :
         data(data_file),
         macro_solver(data.macro, macro_refinement),
         micro_solver(data.micro, micro_refinement),
+        num_threads(num_threads),
         ct_file_name(out_file) {
     printf("Running elliptic-elliptic solver with data from %s, storing results in %s\n", data_file.c_str(),
            out_file.c_str());
-    int suggested_threads = (int) (data.params.get_integer("num_threads"));
-    if (suggested_threads > 0) {
-        MultithreadInfo::set_thread_limit(suggested_threads);
-        printf("Parameter file suggests running on %d threads\n", suggested_threads);
+    if (this->num_threads > 0) {
+        MultithreadInfo::set_thread_limit(this->num_threads);
+        printf("Command line suggests running on %d threads\n", num_threads);
     }
     printf("Running on %d threads\n", MultithreadInfo::n_threads());
 }
