@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
         const std::string time_path = "results/" + id + "_timings.txt";
         std::cout << "Storing timing results in " << time_path << std::endl;
         std::ofstream ofs;
-        ofs.open(time_path, std::ofstream::out);
+        ofs.open(time_path, std::ofstream::app);
         ofs << num_threads << "\t" << timer.wall_time() << "\t" << timer.cpu_time() << std::endl;
         ofs.close();
     }
