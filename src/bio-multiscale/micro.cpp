@@ -342,7 +342,7 @@ void MicroSolver<dim>::compute_all_errors(double &l2_error, double &h1_error) {
     double residual;
     compute_all_residuals(residual);
     printf("Residual: %.4f\n", residual);
-    Vector<double> macro_integral(n_active);
+    Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_error, Functions::ZeroFunction<dim>(),
                                       macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
     l2_error = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,

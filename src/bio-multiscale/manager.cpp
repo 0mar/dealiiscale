@@ -48,7 +48,7 @@ void Manager::run() {
     double residual = 1;
     double old_error = 2;
     double error = 1;
-    while (std::fabs(old_error - error) > eps) {
+    while (std::fabs(old_error - error)/error > eps) {
         fixed_point_iterate();
 //        compute_residuals(old_residual, residual);
         compute_errors(old_error, error);
