@@ -34,7 +34,7 @@ void conv_test(const std::string &input_path, int macro_refinement, int micro_re
     }
 }
 void run(const std::string &input_path, int macro_refinement, int micro_refinement, int num_threads) {
-    const std::string output_path = "/dev/null";
+    const std::string output_path = "results/out.txt";
     Manager manager(macro_refinement, micro_refinement, input_path, output_path, num_threads);
     manager.setup();
     manager.run();
