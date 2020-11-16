@@ -21,7 +21,8 @@ MicroSolver<dim>::MicroSolver(EllipticMicroData<dim> &micro_data, unsigned int r
                                                                                                            &dof_handler,
                                                                                                            &mapmap,
                                                                                                            &fem_q_deg,
-                                                                                                           nullptr} {
+                                                                                                           nullptr,
+                                                                                                           true} {
     printf("Solving micro problem in %d space dimensions\n", dim);
     num_grids = 1;
     fem_q_deg = 12;
