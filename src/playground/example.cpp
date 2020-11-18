@@ -75,7 +75,7 @@ public:
 };
 
 template<int dim>
-double NeumannData<dim>::value(const Point<dim>, const unsigned int) const {
+double NeumannData<dim>::value(const Point<dim> &, const unsigned int) const {
     return -1.875;
 }
 
