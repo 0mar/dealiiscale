@@ -1,8 +1,7 @@
 # deal.II implementation of multiscale PDE
 
 This repository contains a setup for a [deal.II][1] implementation for two-scale systems of equations.
-The main system is described in [this thesis][2], even though the implementation is more general and has a separate framework for elliptic-elliptic systems. A paper that showcases some of the initial results is forthcoming.
-A more detailed description of the mathematical framework behind this implementation is present in `latex/main.tex`.
+The main system is described in [this thesis][2], even though the implementation is more general and has a separate framework for elliptic-elliptic systems. A paper that showcases some of the initial results has been published. A second paper that extends the framework is forthcoming.
 
 ## Requirements
 
@@ -78,6 +77,7 @@ git clone git@github.com:0mar/dealiiscale.git # if you haven't cloned the reposi
 mkdir build
 cd build
 cmake .. # debug version
+# use `cmake -DCMAKE_BUILD_TYPE=Release .. ` for a release version
 make
 ```
 
