@@ -126,16 +126,16 @@ void Manager::patch_and_write_solutions() {
         macro_data_out.attach_dof_handler(macro_solver.dof_handler);
         macro_data_out.add_data_vector(macro_solver.sol_u, "solution");
         macro_data_out.build_patches();
-        std::ofstream macro_output("results/u-solution.gpl");
-        macro_data_out.write_gnuplot(macro_output);
+        std::ofstream macro_output("results/u-solution.vtk");
+        macro_data_out.write_vtk(macro_output);
     }
     {
         DataOut<MACRO_DIMENSIONS> macro_data_out;
         macro_data_out.attach_dof_handler(macro_solver.dof_handler);
         macro_data_out.add_data_vector(macro_solver.sol_w, "solution");
         macro_data_out.build_patches();
-        std::ofstream macro_output("results/w-solution.gpl");
-        macro_data_out.write_gnuplot(macro_output);
+        std::ofstream macro_output("results/w-solution.vtk");
+        macro_data_out.write_vtk(macro_output);
     }
     {
         DataOut<MICRO_DIMENSIONS> micro_data_out;
@@ -143,8 +143,8 @@ void Manager::patch_and_write_solutions() {
         const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
         micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
         micro_data_out.build_patches();
-        std::ofstream micro_output("results/v-solution.gpl");
-        micro_data_out.write_gnuplot(micro_output);
+        std::ofstream micro_output("results/v-solution.vtk");
+        micro_data_out.write_vtk(micro_output);
     }
     if (data.params.get_bool("has_solution")) {
         {
@@ -157,8 +157,8 @@ void Manager::patch_and_write_solutions() {
             error_ -= micro_solver.solutions[some_int];
             micro_data_out.add_data_vector(error_, "solution");
             micro_data_out.build_patches();
-            std::ofstream micro_output("results/micro-error.gpl");
-            micro_data_out.write_gnuplot(micro_output);
+            std::ofstream micro_output("results/micro-error.vtk");
+            micro_data_out.write_vtk(micro_output);
         }
     }
     if (data.params.get_bool("has_solution")) {
@@ -169,8 +169,8 @@ void Manager::patch_and_write_solutions() {
             const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
             micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
             micro_data_out.build_patches();
-            std::ofstream micro_output("results/micro-exact.gpl");
-            micro_data_out.write_gnuplot(micro_output);
+            std::ofstream micro_output("results/micro-exact.vtk");
+            micro_data_out.write_vtk(micro_output);
         }
     }
 }
