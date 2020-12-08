@@ -8,6 +8,7 @@
 #include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/base/point.h>
 #include <map>
+#include <iostream>
 #include <sstream>
 
 using namespace dealii;
