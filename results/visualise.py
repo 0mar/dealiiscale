@@ -47,7 +47,7 @@ def get_transform_function(filename):
     return transform_function
 
 
-param_filename = 'input/biocase.prm'
+param_filename = '../input/biocase.prm'
 transform_func = get_transform_function(param_filename)
 
 sol_filename = 'u-solution.vtk'
@@ -58,7 +58,7 @@ reader.ReadAllScalarsOn()
 reader.Update()
 output = reader.GetOutput()
 transform = vtk.vtkTransform()
-np_trans = np.array([[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+np_trans = transform_func([1,-1])
 
 transform.SetMatrix(np_trans.flatten())
 filter_ = vtk.vtkTransformFilter()
