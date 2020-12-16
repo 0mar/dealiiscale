@@ -109,14 +109,16 @@ void Manager::compute_residuals() {
 }
 
 void Manager::output_results() {
-    std::vector<std::string> error_classes = {"mL2", "mH1", "ML2", "MH1"};
-    for (const std::string &error_class: error_classes) {
-        convergence_table.set_precision(error_class, 3);
-        convergence_table.set_scientific(error_class, true);
+    if (data.params.get_bool("has_solution")) {
+        std::vector<std::string> error_classes = {"mL2", "mH1", "ML2", "MH1"};
+        for (const std::string &error_class: error_classes) {
+            convergence_table.set_precision(error_class, 3);
+            convergence_table.set_scientific(error_class, true);
+        }
+        std::ofstream convergence_output(ct_file_name, std::iostream::app);
+        convergence_table.write_text(convergence_output);
+        convergence_output.close();
     }
-    std::ofstream convergence_output(ct_file_name, std::iostream::app);
-    convergence_table.write_text(convergence_output);
-    convergence_output.close();
     patch_and_write_solutions();
 }
 
@@ -137,13 +139,13 @@ void Manager::patch_and_write_solutions() {
         std::ofstream macro_output("results/w-solution.vtk");
         macro_data_out.write_vtk(macro_output);
     }
-    {
+    write_micro_grid_locations("results/micro-solutions/grid_locations.txt");
+    for (unsigned int grid_num = 0; grid_num < micro_solver.get_num_grids(); grid_num++) {
         DataOut<MICRO_DIMENSIONS> micro_data_out;
         micro_data_out.attach_dof_handler(micro_solver.dof_handler);
-        const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
-        micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
+        micro_data_out.add_data_vector(micro_solver.solutions.at(grid_num), "solution");
         micro_data_out.build_patches();
-        std::ofstream micro_output("results/v-solution.vtk");
+        std::ofstream micro_output("results/micro-solutions/v-solution-" + std::to_string(grid_num) + ".vtk");
         micro_data_out.write_vtk(micro_output);
     }
     if (data.params.get_bool("has_solution")) {
@@ -173,4 +175,21 @@ void Manager::patch_and_write_solutions() {
             micro_data_out.write_vtk(micro_output);
         }
     }
+}
+
+void Manager::write_micro_grid_locations(const std::string &filename) {
+    std::cout << "Writing grid locations to file" << std::endl;
+    std::ofstream loc_file;
+    loc_file.open(filename);
+    auto grid_locations = std::vector<Point<MACRO_DIMENSIONS>>();
+    macro_solver.get_dof_locations(grid_locations);
+    for (unsigned int grid_num = 0; grid_num < micro_solver.get_num_grids(); grid_num++) {
+        for (unsigned int dim = 0; dim < MACRO_DIMENSIONS; dim++) {
+            loc_file << grid_locations[grid_num][dim] << " ";
+        }
+        loc_file << std::endl;
+    }
+    loc_file << "\n";
+    loc_file.close();
+
 }

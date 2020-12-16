@@ -48,24 +48,30 @@ def get_transform_function(filename):
 
 
 param_filename = '../input/biocase.prm'
+loc_file = 'micro-solutions/grid_locations.txt'
+coords = np.loadtxt(loc_file)
 transform_func = get_transform_function(param_filename)
 
-sol_filename = 'u-solution.vtk'
-reader = vtk.vtkUnstructuredGridReader()
-reader.SetFileName(sol_filename)
-reader.ReadAllVectorsOn()
-reader.ReadAllScalarsOn()
-reader.Update()
-output = reader.GetOutput()
-transform = vtk.vtkTransform()
-np_trans = transform_func([1,-1])
+sol_string = 'micro-solutions/v-solution-%d.vtk'
+out_string = 'micro-solutions/v-warped-%d.vtk'
+for i in range(len(coords)):
+    reader = vtk.vtkUnstructuredGridReader()
+    reader.SetFileName(sol_string % i)
+    reader.ReadAllVectorsOn()
+    reader.ReadAllScalarsOn()
+    reader.Update()
+    output = reader.GetOutput()
+    transform = vtk.vtkTransform()
+    np_trans = transform_func(coords[i])
 
-transform.SetMatrix(np_trans.flatten())
-filter_ = vtk.vtkTransformFilter()
-filter_.SetTransform(transform)
-filter_.SetInputDataObject(output)
-filter_.Update()
-writer = vtk.vtkUnstructuredGridWriter()
-writer.SetFileName('test_output.vtk')
-writer.SetInputData(filter_.GetOutput())
-writer.Write()
+    transform.SetMatrix(np_trans.flatten())
+    filter_ = vtk.vtkTransformFilter()
+    filter_.SetTransform(transform)
+    filter_.SetInputDataObject(output)
+    filter_.Update()
+    writer = vtk.vtkUnstructuredGridWriter()
+
+    writer.SetFileName(out_string % i)
+    writer.SetInputData(filter_.GetOutput())
+    writer.Write()
+    print("Wrote number %d on %s" % (i, coords[i]))

@@ -50,7 +50,7 @@ public:
     double old_residual, residual;
     double old_error, error;
     double error_eps = 1E-2;
-    double residual_eps = 1E-5;
+    double residual_eps = 1E-1;
     double max_iterations = 1E4;
 
 
@@ -73,6 +73,8 @@ private:
     void compute_residuals();
 
     void patch_and_write_solutions();
+
+    void write_micro_grid_locations(const std::string &filename);
 
     const std::string &ct_file_name = "convergence.txt";
     ConvergenceTable convergence_table;

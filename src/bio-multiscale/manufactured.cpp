@@ -33,6 +33,7 @@ void conv_test(const std::string &input_path, int macro_refinement, int micro_re
         manager.run();
     }
 }
+
 void run(const std::string &input_path, int macro_refinement, int micro_refinement, int num_threads) {
     const std::string output_path = "results/out.txt";
     dealii::Timer timer;
@@ -48,8 +49,8 @@ void run(const std::string &input_path, int macro_refinement, int micro_refineme
 int main(int argc, char *argv[]) {
     dealii::deallog.depth_console(0);
     std::string input_path = "input/linear.prm";
-    int macro_refinement = 3;
-    int micro_refinement = 3;
+    int macro_refinement = 2;
+    int micro_refinement = 4;
     int num_threads = 0;
     if (argc >= 2) {
         input_path = argv[1];
@@ -63,7 +64,9 @@ int main(int argc, char *argv[]) {
     if (argc >= 5) {
         num_threads = std::stoi(argv[4]);
     } else if (argc > 5) {
-        std::cout << "Too many arguments" << std::endl << "Supply (1) input file, (2) macro refinement, (3) micro refinement, (4) number of cores" << std::endl;
+        std::cout << "Too many arguments" << std::endl
+                  << "Supply (1) input file, (2) macro refinement, (3) micro refinement, (4) number of cores"
+                  << std::endl;
         return 1;
     }
     dealii::Timer timer;
