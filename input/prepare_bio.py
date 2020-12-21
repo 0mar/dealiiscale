@@ -136,8 +136,9 @@ def compute_biomath_problem(u, v, w, chi, xvars, yvars):
     f_w = -D_1 * del_w + mapped_boundary_integral(OUTFLOW_BOUNDARY, k_3 * w - k_4 * v + g_2_v, chi, yvars)
 
     funcs = {"solution_u": u, "bulk_rhs_u": f_u, "bc_u_1": g_1_u, "bc_u_2": g_2_u, "solution_w": w, "bulk_rhs_w": f_w,
-             "bc_w_1": g_1_w, "bc_w_2": g_2_w, "inflow_measure": inflow_func, "outflow_measure": outflow_func,
+             "bc_w_1": g_1_w, "bc_w_2": g_2_w,
              "solution_v": v, "bulk_rhs_v": f_v, "bc_v_1": g_1_v, "bc_v_2": g_2_v, "bc_v_3": g_3_v, "bc_v_4": g_4_v,
+            "inflow_measure": inflow_func, "outflow_measure": outflow_func,
              "mapping": chi, "jac_mapping": jac, 'micro_geometry': "[-1,1]x[-1,1]",
              'macro_geometry': "[-1,1]x[-1,1]", **const_vals}
     return funcs
