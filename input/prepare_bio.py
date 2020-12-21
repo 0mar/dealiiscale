@@ -5,7 +5,6 @@ from sympy.parsing.sympy_parser import parse_expr
 import sys, re
 from configparser import ConfigParser
 
-
 def laplace(f, vars):
     return sum([diff(f, i, i) for i in vars])  # replace with matrices
 
@@ -166,7 +165,13 @@ def write_param_file(filename, data):
         for key, val in data.items():
             if isinstance(val, Matrix):
                 val = matrix_repr(val)
-            formatted_val = str(val).replace('**', '^')
+            formatted_val = str(val)
+            formatted_val = re.sub(r'\bAbs\b', 'abs', formatted_val)
+            formatted_val = re.sub(r'\bTrue\b', 'true', formatted_val)
+            formatted_val = re.sub(r'\bFalse\b', 'false', formatted_val)
+            formatted_val = re.sub(r'\bMin\b', 'min', formatted_val)
+            formatted_val = re.sub(r'\bre\b', '', formatted_val)
+            formatted_val = formatted_val.replace('**', '^')
             param_file.write("set %s = %s\n" % (key, formatted_val))
 
 
