@@ -40,8 +40,7 @@ void MacroSolver<dim>::setup() {
 
 template<int dim>
 void MacroSolver<dim>::make_grid() {
-    GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(refine_level);
+    GridGenerator::subdivided_hyper_cube(triangulation, refine_level,-1, 1);
     const double EPS = 1E-4;
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<2>::faces_per_cell; face_number++) {

@@ -22,16 +22,14 @@ std::string get_id(const std::string &path) {
 }
 
 void conv_test(const std::string &input_path, int num_threads) {
-    int macro_refinement = 0;
-    int macro_refinement = 0;
     const std::string id = get_id(input_path);
     const std::string output_path = "results/" + id + "_" + "convergence_table.txt";
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    for (unsigned int i = 0; i < 9; i++) {
-        macro_refinement = i + 1;
-        micro_refinement = i + 2;
+    for (unsigned int i = 0; i < 5; i++) {
+        auto macro_refinement = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+        auto micro_refinement = (unsigned int) std::round(8 * std::pow(2, i / 2.));
         Manager manager(macro_refinement, micro_refinement, input_path, output_path, num_threads);
         manager.setup();
         manager.run();
@@ -39,15 +37,27 @@ void conv_test(const std::string &input_path, int num_threads) {
 }
 
 void run(const std::string &input_path, int macro_refinement, int micro_refinement, int num_threads) {
-    const std::string output_path = "results/out.txt";
     dealii::Timer timer;
+    timer.start();
+    const std::string output_path = "results/out.txt";
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
-    ofs << "Started running manager at " << timer.cpu_time() << std::endl;
     ofs.close();
     Manager manager(macro_refinement, micro_refinement, input_path, output_path, num_threads);
     manager.setup();
     manager.run();
+    timer.stop();
+    printf("Results: 'macro_refinement', 'micro_refinement', 'num_threads', 'wall_time', 'cpu_time'\n");
+    printf("%d, %d, %d, %.3f, %.3f\n", macro_refinement, micro_refinement, num_threads, timer.wall_time(), timer.cpu_time());
+    if (num_threads != 0) {
+        const std::string id = get_id(input_path);
+        const std::string time_path = "results/" + id + "_timings.txt";
+        std::cout << "Storing timing results in " << time_path << std::endl;
+        std::ofstream ofs;
+        ofs.open(time_path, std::ofstream::app);
+        ofs << num_threads << "\t" << timer.wall_time() << "\t" << timer.cpu_time() << std::endl;
+        ofs.close();
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -73,20 +83,6 @@ int main(int argc, char *argv[]) {
                   << std::endl;
         return 1;
     }
-    dealii::Timer timer;
-    timer.start();
-    run(input_path, macro_refinement, micro_refinement, num_threads);
-    timer.stop();
-    printf("Parameters: macro %d, micro %d, %d threads\n", macro_refinement, micro_refinement, num_threads);
-    printf("Ran in %.2f seconds with %.2f CPU time\n", timer.wall_time(), timer.cpu_time());
-    if (num_threads != 0) {
-        const std::string id = get_id(input_path);
-        const std::string time_path = "results/" + id + "_timings.txt";
-        std::cout << "Storing timing results in " << time_path << std::endl;
-        std::ofstream ofs;
-        ofs.open(time_path, std::ofstream::app);
-        ofs << num_threads << "\t" << timer.wall_time() << "\t" << timer.cpu_time() << std::endl;
-        ofs.close();
-    }
+    conv_test(input_path, num_threads);
     return 0;
 }

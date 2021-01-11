@@ -71,8 +71,7 @@ void MicroSolver<dim>::setup() {
 template<int dim>
 void MicroSolver<dim>::make_grid() {
     printf("Creating micro grid\n");
-    GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(refine_level);
+    GridGenerator::subdivided_hyper_cube(triangulation, refine_level,-1, 1);
     const double EPS = 1E-4;
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
