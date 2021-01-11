@@ -21,13 +21,17 @@ std::string get_id(const std::string &path) {
     return id;
 }
 
-void conv_test(const std::string &input_path, int macro_refinement, int micro_refinement, int num_threads) {
+void conv_test(const std::string &input_path, int num_threads) {
+    int macro_refinement = 0;
+    int macro_refinement = 0;
     const std::string id = get_id(input_path);
     const std::string output_path = "results/" + id + "_" + "convergence_table.txt";
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    for (unsigned int i = 4; i < 5; i++) {
+    for (unsigned int i = 0; i < 9; i++) {
+        macro_refinement = i + 1;
+        micro_refinement = i + 2;
         Manager manager(macro_refinement, micro_refinement, input_path, output_path, num_threads);
         manager.setup();
         manager.run();

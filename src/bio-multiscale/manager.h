@@ -50,7 +50,7 @@ public:
     double old_residual, residual;
     double old_error, error;
     double error_eps = 1E-2;
-    double residual_eps = 1E-1;
+    double residual_eps = 1E-5;
     double max_iterations = 1E4;
 
 
