@@ -33,7 +33,7 @@ def plot_convergence(filename,key,errors=None):
     for num, column in enumerate(errors):
         df[column] = pd.to_numeric(df[column])
         plt.loglog(df.dofs,df[column],'*-')
-        conv_rate = np.log(df[column].iloc[-1]/df[column].iloc[-2])/np.log(0.5)
+        conv_rate = np.log(df[column].iloc[-2]/df[column].iloc[-1])/np.log(np.sqrt(df['dofs'].iloc[-1]/df['dofs'].iloc[-2]))
         conv_rates.append(conv_rate)
 #         ax = axs.flatten()[num]
 #         ax.loglog(df.dofs,df[column],'*-')
@@ -49,4 +49,4 @@ def plot_convergence(filename,key,errors=None):
 
 folders = {'benchmark':'Benchmark'}
 for folder in folders:
-    plot_convergence('%s/linear_convergence_table.txt'%folder,'%s (linear map)'%folders[folder])
+    plot_convergence('%s/linear_convergence_table.txt'%folder,'%s ($P_B$)'%folders[folder])
