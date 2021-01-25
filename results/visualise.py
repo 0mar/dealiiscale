@@ -129,7 +129,8 @@ transform_macro(u_sol_file, level=1)
 transform_macro(w_sol_file, level=2)
 
 # Transform micro-coordinates
-param_filename = '../input/biocase.prm'
+import sys
+param_filename = sys.argv[1]
 loc_file = 'micro-solutions/grid_locations.txt'
 coords = np.loadtxt(loc_file)
 num_els_x0 = num_els_x1 = int(np.sqrt(len(coords)))

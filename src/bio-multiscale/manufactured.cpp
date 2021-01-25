@@ -43,7 +43,9 @@ void run(const std::string &input_path, int macro_refinement, int micro_refineme
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    Manager manager(macro_refinement, micro_refinement, input_path, output_path, num_threads);
+    int macro_subdiv = std::pow(2, macro_refinement);
+    int micro_subdiv = std::pow(2, micro_refinement);
+    Manager manager(macro_subdiv, micro_subdiv, input_path, output_path, num_threads);
     manager.setup();
     manager.run();
     timer.stop();
@@ -83,6 +85,6 @@ int main(int argc, char *argv[]) {
                   << std::endl;
         return 1;
     }
-    conv_test(input_path, num_threads);
+    run(input_path, macro_refinement, micro_refinement, num_threads);
     return 0;
 }

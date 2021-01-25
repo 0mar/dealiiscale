@@ -126,7 +126,7 @@ void Manager::patch_and_write_solutions() {
     {
         DataOut<MACRO_DIMENSIONS> macro_data_out;
         macro_data_out.attach_dof_handler(macro_solver.dof_handler);
-        macro_data_out.add_data_vector(macro_solver.sol_u, "solution");
+        macro_data_out.add_data_vector(macro_solver.sol_u, "u");
         macro_data_out.build_patches();
         std::ofstream macro_output("results/u-solution.vtk");
         macro_data_out.write_vtk(macro_output);
@@ -134,7 +134,7 @@ void Manager::patch_and_write_solutions() {
     {
         DataOut<MACRO_DIMENSIONS> macro_data_out;
         macro_data_out.attach_dof_handler(macro_solver.dof_handler);
-        macro_data_out.add_data_vector(macro_solver.sol_w, "solution");
+        macro_data_out.add_data_vector(macro_solver.sol_w, "w");
         macro_data_out.build_patches();
         std::ofstream macro_output("results/w-solution.vtk");
         macro_data_out.write_vtk(macro_output);
@@ -143,7 +143,7 @@ void Manager::patch_and_write_solutions() {
     for (unsigned int grid_num = 0; grid_num < micro_solver.get_num_grids(); grid_num++) {
         DataOut<MICRO_DIMENSIONS> micro_data_out;
         micro_data_out.attach_dof_handler(micro_solver.dof_handler);
-        micro_data_out.add_data_vector(micro_solver.solutions.at(grid_num), "solution");
+        micro_data_out.add_data_vector(micro_solver.solutions.at(grid_num), "v");
         micro_data_out.build_patches();
         std::ofstream micro_output("results/micro-solutions/v-solution-" + std::to_string(grid_num) + ".vtk");
         micro_data_out.write_vtk(micro_output);
@@ -157,7 +157,7 @@ void Manager::patch_and_write_solutions() {
             error_ += micro_solver.solutions[some_int];
             micro_solver.set_exact_solution();
             error_ -= micro_solver.solutions[some_int];
-            micro_data_out.add_data_vector(error_, "solution");
+            micro_data_out.add_data_vector(error_, "v");
             micro_data_out.build_patches();
             std::ofstream micro_output("results/micro-error.vtk");
             micro_data_out.write_vtk(micro_output);
@@ -169,7 +169,7 @@ void Manager::patch_and_write_solutions() {
             micro_data_out.attach_dof_handler(micro_solver.dof_handler);
             micro_solver.set_exact_solution(); // Superfluous but okay
             const unsigned int some_int = (int) (micro_solver.get_num_grids() / 2);
-            micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "solution");
+            micro_data_out.add_data_vector(micro_solver.solutions.at(some_int), "v");
             micro_data_out.build_patches();
             std::ofstream micro_output("results/micro-exact.vtk");
             micro_data_out.write_vtk(micro_output);
