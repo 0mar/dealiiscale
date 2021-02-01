@@ -187,7 +187,7 @@ void MacroSolver<dim>::assemble_system() {
                     &MacroSolver::copy_local_to_global, AssemblyScratchData(fe), AssemblyCopyData());
 //    std::cout << "Finishing assembly" << std::endl;
     std::map<types::global_dof_index, double> boundary_values;
-    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.solution_u, boundary_values);
+    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.bc_u_1, boundary_values);
     MatrixTools::apply_boundary_values(boundary_values, system_matrix_u, sol_u, system_rhs_u);
 }
 
