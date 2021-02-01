@@ -1,6 +1,6 @@
 set solution_u = 0
 set bulk_rhs_u = 0
-set bc_u_1 = 5*sin(x1)*(1-x0)/2
+set bc_u_1 = cos(x1*1.5)*(1-x0)
 set bc_u_2 = 0
 set solution_w = 0
 set bulk_rhs_w = 0
