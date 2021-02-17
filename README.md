@@ -1,7 +1,7 @@
 # deal.II implementation of multiscale PDE
 
 This repository contains a setup for a [deal.II][1] implementation for two-scale systems of equations.
-The main system is described in [this thesis][2], even though the implementation is more general and has a separate framework for elliptic-elliptic systems. A paper that showcases some of the initial results has been published. A second paper that extends the framework is forthcoming.
+The main system is described in [this thesis][2], even though the implementation is more general and has a separate framework for elliptic-elliptic systems. A [paper](7) that showcases some of the initial results has been published. A second paper that extends the framework is forthcoming.
 
 ## Requirements
 
@@ -96,6 +96,11 @@ cd bin
 make test
 ```
 Currently, tests are only present for self-developed extensions of the deal.II library.
+
+## Visualisation
+
+The latest binary `solve_biomath` has support for visualisation in [ParaView](paraview). Follow the [extended instructions][6] to get started.
+
 ## Solver gallery
 
 deal.II comes with many examples, located in `/Applications/deal.II-9.1.1.app/Contents/Resources/examples`, also found in a more legible format on the [tutorial page][5].
@@ -103,6 +108,8 @@ deal.II comes with many examples, located in `/Applications/deal.II-9.1.1.app/Co
 This repo has a number of working implementations, most of which are used to test the performance of certain deal.II characteristics.
 Currently, the working implementations are:
 
+- `biomath`
+    * `solve_biomath`, a multiscale elliptic-elliptic solver with convergence benchmarking and parallel-speed-up benchmarking.
 - `elliptic-elliptic`
     * `solve_elliptic`, a multiscale elliptic-elliptic solver with convergence testing.
 - `elliptic-parabolic`
@@ -128,10 +135,6 @@ make
 
 This will post-process the output of the binaries into a (slightly outdated) latex report and compile it (requires `pdftex`)
 
-## Disclaimer
-
-This is a work in progress. Structure and implementations can change and break at any time.
-However, effort will be taken to ensure the `master` branch always contains a working version of the software.
 
 [1]: https://www.dealii.org/
 [2]: http://urn.kb.se/resolve?urn=urn:nbn:se:kau:diva-68686
