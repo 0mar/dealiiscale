@@ -31,17 +31,12 @@ def matrix_function(filename, var):
     :param var: dictionary of (multiscale) variables
     :return: vector as a function of multiscale vars
     """
-    with open(filename, 'r') as config:
-        data = config.read()
-    if has_line := re.search('^set mapping = (.+)$', data, re.MULTILINE):
-        map_eq_line = has_line.group(1)
-        map_eq_lines = map_eq_line.split(';')
-        map_eq = [parse_expr(map_eq_line, local_dict=var, transformations=[convert_xor]) for map_eq_line in
-                  map_eq_lines]
-        map_eq_matrix = sp.Matrix(map_eq)
-        return map_eq_matrix
-    else:
-        raise ValueError("Not found any mapping in config file %s" % filename)
+    map_eq_line = "y0;y1"
+    map_eq_lines = map_eq_line.split(';')
+    map_eq = [parse_expr(map_eq_line, local_dict=var, transformations=[convert_xor]) for map_eq_line in
+              map_eq_lines]
+    map_eq_matrix = sp.Matrix(map_eq)
+    return map_eq_matrix
 
 
 def transform_dataset(name, transformation_matrix, out_name=None):
@@ -124,9 +119,7 @@ def get_transform_function(filename, num_points_x0, num_points_x1):
 
 # Transform macro-coordinates
 u_sol_file = 'u-solution.vtk'
-w_sol_file = 'w-solution.vtk'
 transform_macro(u_sol_file, level=1)
-transform_macro(w_sol_file, level=2)
 
 # Transform micro-coordinates
 import sys

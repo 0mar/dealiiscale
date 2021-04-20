@@ -38,11 +38,8 @@ include_directories(${Boost_INCLUDE_DIRS}) # Todo: Generalize this for all archi
 
 deal_II_initialize_cached_variables()
 
-set(ELLIPTIC_DIR src/elliptic-elliptic) # Todo: Make a CMakeLists for each subdirectory
-set(PARABOLIC_DIR src/elliptic-parabolic)
+set(VESICLE_DIR src/vesicles) # Todo: Make a CMakeLists for each subdirectory
 set(TOOLS_DIR src/tools)
-set(BIOMATH_DIR src/bio-multiscale)
-set(DEMO_DIR src/playground)
 set(TEST_DIR tests)
 add_executable(test_tools ${TEST_DIR}/test_tools.cpp ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h ${TOOLS_DIR}/mapping.h ${TOOLS_DIR}/mapping.cpp)
 deal_II_setup_target(test_tools)
@@ -51,59 +48,14 @@ target_link_libraries(test_tools ${Boost_LIBRARIES})
 add_library(tools ${TOOLS_DIR}/multiscale_function_parser.cpp ${TOOLS_DIR}/multiscale_function_parser.h ${TOOLS_DIR}/pde_data.cpp ${TOOLS_DIR}/pde_data.h ${TOOLS_DIR}/mapping.cpp ${TOOLS_DIR}/mapping.h)
 deal_II_setup_target(tools)
 
-add_library(elliptic ${ELLIPTIC_DIR}/manager.h ${ELLIPTIC_DIR}/manager.cpp ${ELLIPTIC_DIR}/micro.h ${ELLIPTIC_DIR}/micro.cpp ${ELLIPTIC_DIR}/macro.h ${ELLIPTIC_DIR}/macro.cpp)
-deal_II_setup_target(elliptic)
-target_link_libraries(elliptic tools)
-
-add_library(parabolic ${PARABOLIC_DIR}/time_manager.h ${PARABOLIC_DIR}/time_manager.cpp ${PARABOLIC_DIR}/rho_solver.h ${PARABOLIC_DIR}/rho_solver.cpp ${PARABOLIC_DIR}/pi_solver.h ${PARABOLIC_DIR}/pi_solver.cpp)
-deal_II_setup_target(parabolic)
-target_link_libraries(parabolic tools)
-
-add_library(biomath ${BIOMATH_DIR}/manager.h ${BIOMATH_DIR}/manager.cpp ${BIOMATH_DIR}/micro.h ${BIOMATH_DIR}/micro.cpp ${BIOMATH_DIR}/macro.h ${BIOMATH_DIR}/macro.cpp)
-deal_II_setup_target(biomath)
-target_link_libraries(biomath tools)
-
-add_executable(solve_elliptic ${ELLIPTIC_DIR}/manufactured.cpp)
-deal_II_setup_target(solve_elliptic)
-target_link_libraries(solve_elliptic elliptic)
-
-add_executable(solve_biomath ${BIOMATH_DIR}/manufactured.cpp)
-deal_II_setup_target(solve_biomath)
-target_link_libraries(solve_biomath biomath)
+add_library(vesicles ${VESICLE_DIR}/manager.h ${VESICLE_DIR}/manager.cpp ${VESICLE_DIR}/micro.h ${VESICLE_DIR}/micro.cpp ${VESICLE_DIR}/macro.h ${VESICLE_DIR}/macro.cpp)
+deal_II_setup_target(vesicles)
+target_link_libraries(vesicles tools)
 
 set(PLOT_NOTEBOOK plot_convergence.ipynb)
-
-add_executable(solve_parabolic ${PARABOLIC_DIR}/two_scale.cpp)
-deal_II_setup_target(solve_parabolic)
-target_link_libraries(solve_parabolic parabolic)
-
-add_executable(simple ${DEMO_DIR}/simple.cpp)
-deal_II_setup_target(simple)
-
-add_executable(robin ${DEMO_DIR}/robin.cpp)
-deal_II_setup_target(robin)
-
-add_executable(transform ${DEMO_DIR}/transform.cpp)
-deal_II_setup_target(transform)
-
-add_executable(example ${DEMO_DIR}/example.cpp)
-deal_II_setup_target(example)
-
-add_executable(demo ${DEMO_DIR}/demo.cpp)
-deal_II_setup_target(demo)
-
-add_executable(integration ${DEMO_DIR}/integration.cpp)
-deal_II_setup_target(integration)
-
-add_executable(dof_mapper ${DEMO_DIR}/dof_mapper.cpp)
-deal_II_setup_target(dof_mapper)
-
-add_executable(compare_solutions ${DEMO_DIR}/compare_solutions.cpp)
-deal_II_setup_target(compare_solutions)
-
-add_executable(parsing ${DEMO_DIR}/parsing.cpp)
-deal_II_setup_target(parsing)
-target_link_libraries(parsing tools)
+add_executable(solve_vesicles ${VESICLE_DIR}/vesicles.cpp)
+deal_II_setup_target(solve_vesicles)
+target_link_libraries(solve_vesicles vesicles)
 
 enable_testing()
 add_definitions(-DBOOST_TEST_DYN_LINK)
