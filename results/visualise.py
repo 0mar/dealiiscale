@@ -109,7 +109,7 @@ def get_transform_function(filename, num_points_x0, num_points_x1):
         macro_offset = x0, x1
         transformation = np.eye(4)
         transformation[:2, :2] = rc.subs({var['x0']: x0, var['x1']: x1})
-        transformation /= num_points_x0
+        transformation /= num_points_x0/2
         transformation[:2, 3] = macro_offset
         print(transformation)
         return transformation
