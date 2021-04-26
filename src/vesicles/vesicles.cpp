@@ -16,26 +16,27 @@
 void run(const std::string &input_path) {
     const std::regex r("input/(.+).prm");
     std::smatch m;
-    std::regex_search(input_path,m,r);
+    std::regex_search(input_path, m, r);
     const std::string id = m[1];
     const std::string output_path = "results/" + id + "_" + "convergence_table.txt";
     std::ofstream ofs;
     ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    for (int i = 0; i < 7; i++) {
-        auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
-        auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
-        auto t_inv = (unsigned int) std::round(4 * std::pow(2, i));
-        Manager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
-        manager.setup();
-        manager.run();
-    }
+    int i = 4;
+    auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+    auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
+    auto t_inv = (unsigned int) std::round(4 * std::pow(2, i));
+    Manager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+    manager.setup();
+    manager.run();
+}
+
 }
 
 void plot(const std::string &input_path) {
     const std::regex r("input/(.+).prm");
     std::smatch m;
-    std::regex_search(input_path,m,r);
+    std::regex_search(input_path, m, r);
     const std::string id = m[1];
     const std::string output_path = "/dev/null";
     std::ofstream ofs;

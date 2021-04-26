@@ -5,14 +5,14 @@
 #include "manager.h"
 
 Manager::Manager(unsigned int macro_h_inv, unsigned int micro_h_inv, unsigned int t_inv,
-                         const std::string &data_file, const std::string &out_file) : data(data_file),
-                                                                                      macro(data.macro,
-                                                                                                macro_h_inv),
-                                                                                      micro(data.micro,
-                                                                                                 micro_h_inv),
-                                                                                      time_step(1. / t_inv),
-                                                                                      final_time(0.5),
-                                                                                      ct_file_name(out_file) {
+                 const std::string &data_file, const std::string &out_file) : data(data_file),
+                                                                              macro(data.macro,
+                                                                                    macro_h_inv),
+                                                                              micro(data.micro,
+                                                                                    micro_h_inv),
+                                                                              time_step(1. / t_inv),
+                                                                              final_time(0.5),
+                                                                              ct_file_name(out_file) {
     printf("Using a time step of %.2e\n", time_step);
 }
 
@@ -26,7 +26,7 @@ void Manager::setup() {
     // Couple the macro structures with the micro structures.
 
     micro.set_macro_solutions(&macro.solution, &macro.solution,
-                                   &macro.dof_handler);
+                              &macro.dof_handler);
     macro.set_micro_solutions(&micro.solutions, &micro.dof_handler);
 //    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
 //                                               "micro_convergence.txt"};
@@ -55,6 +55,7 @@ void Manager::run() {
 //            micro.patch_micro_solutions(locations);
 //            output_results();
 //        }
+        break;
     }
     output_results();
 //    macro.write_solution_to_file(macro.solution, macro.dof_handler);
@@ -66,7 +67,6 @@ void Manager::iterate() {
     data.set_time(time);
     macro.iterate();
     micro.iterate(time_step);
-    write_plot();
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
@@ -89,7 +89,7 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
     residual = micro_l2 + macro_l2;
 }
 
-void Manager::write_plot() {
+void Manager::write_plot(double time) {
     {
         DataOut<MICRO_DIMENSIONS> data_out;
         data_out.attach_dof_handler(micro.dof_handler);

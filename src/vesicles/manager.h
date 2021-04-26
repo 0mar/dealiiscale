@@ -49,7 +49,7 @@ public:
     /**
      * Write plots to VTK format so they can be opened with Paraview.
      */
-    void write_plot();
+    void write_plot(double time);
 
     // Time step size
     double time_step;
