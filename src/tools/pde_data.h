@@ -94,17 +94,19 @@ struct MicroFEMObjects { // Can be moved to a different file if imports would gi
  * @tparam dim dimension of functions
  */
 template<int dim>
-struct MacroData {
+struct ParabolicMacroData {
     FunctionParser<dim> solution;
     FunctionParser<dim> rhs;
     FunctionParser<dim> bc;
+    FunctionParser<dim> diffusion;
+    FunctionParser<dim> init_u;
     ParameterHandler &params;
 
     /**
      * Initialize struct with parameter object
      * @param params parameterhandler object
      */
-    MacroData(ParameterHandler &params) : params(params) {
+    ParabolicMacroData(ParameterHandler &params) : params(params) {
         // Needed because this is a reference
     }
 };
@@ -132,9 +134,11 @@ template<int dim>
 struct ParabolicMicroData {
     MultiscaleFunctionParser<dim> solution;
     MultiscaleFunctionParser<dim> rhs;
+    MultiscaleFunctionParser<dim> ode_rhs;
     MultiscaleFunctionParser<dim> neumann_bc;
     MultiscaleFunctionParser<dim> robin_bc;
-    MultiscaleFunctionParser<dim> init_rho;
+    MultiscaleFunctionParser<dim> init_v;
+    MultiscaleFunctionParser<dim> init_w;
     ParameterHandler &params;
 
     ParabolicMicroData(ParameterHandler &params)
@@ -154,7 +158,7 @@ public:
     MultiscaleData(const std::string &param_file);
 
     ParameterHandler params;
-    MacroData<dim> macro;
+    ParabolicMacroData<dim> macro;
     EllipticMicroData<dim> micro;
 
     static std::string multiscale_variables();
@@ -168,12 +172,12 @@ public:
  * @tparam dim dimensions of functions
  */
 template<int dim>
-class TwoPressureData {
+class VesicleData {
 public:
-    TwoPressureData(const std::string &param_file);
+    VesicleData(const std::string &param_file);
 
     ParameterHandler params;
-    MacroData<dim> macro;
+    ParabolicMacroData<dim> macro;
     ParabolicMicroData<dim> micro;
 
     void set_time(const double time);
@@ -260,7 +264,7 @@ std::string BioData<dim>::macro_variables() {
 }
 
 template<int dim>
-std::string TwoPressureData<dim>::multiscale_variables() {
+std::string VesicleData<dim>::multiscale_variables() {
     switch (dim) {
         case 1:
             return "x0,y0,t";
@@ -274,7 +278,7 @@ std::string TwoPressureData<dim>::multiscale_variables() {
 }
 
 template<int dim>
-std::string TwoPressureData<dim>::macro_variables() {
+std::string VesicleData<dim>::macro_variables() {
     switch (dim) {
         case 1:
             return "x0,t";

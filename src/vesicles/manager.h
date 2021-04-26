@@ -15,7 +15,7 @@ class Manager {
 public:
     const static int MACRO_DIMENSIONS = 2;
     const static int MICRO_DIMENSIONS = 2;
-    TwoPressureData<MACRO_DIMENSIONS> data; // todo: unify twopressure naming
+    VesicleData<MACRO_DIMENSIONS> data;
     MacroSolver<MACRO_DIMENSIONS> macro;
     MicroSolver<MICRO_DIMENSIONS> micro;
 

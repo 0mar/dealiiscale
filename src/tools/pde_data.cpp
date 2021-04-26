@@ -106,31 +106,29 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
 }
 
 template<int dim>
-TwoPressureData<dim>::TwoPressureData(const std::string &param_file) : macro(params), micro(params) {
+VesicleData<dim>::VesicleData(const std::string &param_file) : macro(params), micro(params) {
     params.declare_entry("macro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
     params.declare_entry("macro_rhs",
-                         "-A*(2*(2*x0^2 + 1)*exp(t^2 + x0^2 + x1^2) + 2*(2*x1^2 + 1)*exp(t^2 + x0^2 + x1^2)) - 12*theta*exp(t^2 + x0^2 + x1^2)",
+                         "-*(2*(2*x0^2 + 1)*exp(t^2 + x0^2 + x1^2) + 2*(2*x1^2 + 1)*exp(t^2 + x0^2 + x1^2)) - 12*exp(t^2 + x0^2 + x1^2)",
                          Patterns::Anything());
     params.declare_entry("macro_solution", "exp(t^2 + x0^2 + x1^2)", Patterns::Anything());
+    params.declare_entry("macro_diffusion","1", Patterns::Anything());
+    params.declare_entry("init_u","1", Patterns::Anything());
     params.declare_entry("macro_bc", "exp(t^2 + x0^2 + x1^2)", Patterns::Anything());
 
-    params.declare_entry("micro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
-    params.declare_entry("micro_rhs", "-D*(2*(sin(y0)^2 - cos(y0)^2) + 2*(-sin(y1)^2 + cos(y1)^2))",
+    params.declare_entry("micro_geometry", "x^2 + y^2 < 1", Patterns::Anything());
+    params.declare_entry("micro_rhs", "-d*(2*(sin(y0)^2 - cos(y0)^2) + 2*(-sin(y1)^2 + cos(y1)^2))",Patterns::Anything());
+    params.declare_entry("micro_ode_rhs", "-d*(2*(sin(y0)^2 - cos(y0)^2) + 2*(-sin(y1)^2 + cos(y1)^2))",
                          Patterns::Anything());
     params.declare_entry("micro_solution", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
-    params.declare_entry("micro_bc_neumann", "-2*D*y0*sin(y0)*cos(y0)", Patterns::Anything());
+    params.declare_entry("micro_bc_neumann", "-2*d*y0*sin(y0)*cos(y0)", Patterns::Anything());
     params.declare_entry("micro_bc_robin",
-                         "2*D*y1*sin(y1)*cos(y1) - kappa*(-R*(sin(y1)^2 + cos(y0)^2 + 2) + p_F + exp(t^2 + x0^2 + x1^2))",
+                         "2*d*y1*sin(y1)*cos(y1) - (-(sin(y1)^2 + cos(y0)^2 + 2)  + exp(t^2 + x0^2 + x1^2))",
                          Patterns::Anything());
-    params.declare_entry("init_rho", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
-    params.declare_entry("nonlinear", "false", Patterns::Bool());
+    params.declare_entry("init_v", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
+    params.declare_entry("init_w", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
 
-    std::map<std::string, double> constants = {{"A",     0.8},
-                                               {"D",     1},
-                                               {"theta", 0.5},
-                                               {"kappa", 1},
-                                               {"p_F",   4},
-                                               {"R",     2}};
+    std::map<std::string, double> constants = {{"d",     0.8}};
     // All the constants will be declared in the file
     for (const auto &pair: constants) {
         params.declare_entry(pair.first, std::to_string(pair.second), Patterns::Double());
@@ -142,29 +140,36 @@ TwoPressureData<dim>::TwoPressureData(const std::string &param_file) : macro(par
     }
 
 
-    macro.rhs.initialize(TwoPressureData<dim>::macro_variables(), params.get("macro_rhs"), constants, true);
-    macro.bc.initialize(TwoPressureData<dim>::macro_variables(), params.get("macro_bc"), constants, true);
-    macro.solution.initialize(TwoPressureData<dim>::macro_variables(), params.get("macro_solution"), constants, true);
+    macro.rhs.initialize(VesicleData<dim>::macro_variables(), params.get("macro_rhs"), constants, true);
+    macro.bc.initialize(VesicleData<dim>::macro_variables(), params.get("macro_bc"), constants, true);
+    macro.diffusion.initialize(VesicleData<dim>::macro_variables(), params.get("macro_diffusion"), constants, false);
+    macro.solution.initialize(VesicleData<dim>::macro_variables(), params.get("macro_solution"), constants, true);
+    macro.init_u.initialize(VesicleData<dim>::macro_variables(), params.get("init_u"), constants, false);
 
-    micro.rhs.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_rhs"), constants, nullptr,
+    micro.rhs.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_rhs"), constants, nullptr,
                          true);
-    micro.neumann_bc.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_bc_neumann"), constants,
+    micro.ode_rhs.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_ode_rhs"), constants, nullptr,
+                         true);
+    micro.neumann_bc.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_bc_neumann"), constants,
                                 nullptr, true);
-    micro.robin_bc.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_bc_robin"), constants,
+    micro.robin_bc.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_bc_robin"), constants,
                               nullptr, true);
-    micro.solution.initialize(TwoPressureData<dim>::multiscale_variables(), params.get("micro_solution"), constants,
+    micro.solution.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_solution"), constants,
                               nullptr, true);
-    micro.init_rho.initialize(MultiscaleData<dim>::multiscale_variables(), params.get("init_rho"), constants, nullptr,
+
+    micro.init_v.initialize(VesicleData<dim>::multiscale_variables(), params.get("init_v"), constants, nullptr,false);
+    micro.init_w.initialize(VesicleData<dim>::multiscale_variables(), params.get("init_w"), constants, nullptr,
                               false);
 }
 
 template<int dim>
-void TwoPressureData<dim>::set_time(const double time) {
+void VesicleData<dim>::set_time(const double time) {
     macro.rhs.set_time(time);
     macro.bc.set_time(time);
     macro.solution.set_time(time);
 
     micro.rhs.set_time(time);
+    micro.ode_rhs.set_time(time);
     micro.neumann_bc.set_time(time);
     micro.robin_bc.set_time(time);
     micro.solution.set_time(time);
@@ -220,11 +225,11 @@ template
 struct MicroFEMObjects<3>;
 
 template
-struct MacroData<1>;
+struct ParabolicMacroData<1>;
 template
-struct MacroData<2>;
+struct ParabolicMacroData<2>;
 template
-struct MacroData<3>;
+struct ParabolicMacroData<3>;
 
 template
 struct BioMacroData<1>;
@@ -267,10 +272,10 @@ template
 class MultiscaleData<3>;
 
 template
-class TwoPressureData<1>;
+class VesicleData<1>;
 
 template
-class TwoPressureData<2>;
+class VesicleData<2>;
 
 template
-class TwoPressureData<3>;
+class VesicleData<3>;

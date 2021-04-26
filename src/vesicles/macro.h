@@ -51,7 +51,7 @@ public:
      * Create and run a macroscopic solver with the given resolution (number of unit square bisections)
      * @param refine_level Number of macroscopic and microscopic bisections.
      */
-    MacroSolver(MacroData<dim> &macro_data, unsigned int refine_level);
+    MacroSolver(ParabolicMacroData<dim> &macro_data, unsigned int refine_level);
 
     /**
      * All the methods that setup the system.
@@ -165,7 +165,7 @@ private:
     DoFHandler<dim> *micro_dof_handler;
     Vector<double> system_rhs;
     std::vector<Vector<double>> *micro_solutions;
-    MacroData<dim> &pde_data;
+    ParabolicMacroData<dim> &pde_data;
     int integration_order;
     unsigned int h_inv;
     double diffusion_coefficient;

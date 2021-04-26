@@ -73,7 +73,8 @@ void MicroSolver<dim>::setup_scatter() {
     constraints.close();
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int k = 0; k < num_grids; k++) {
-        pde_data.init_rho.set_macro_point(grid_locations[k]);
+        pde_data.init_v.set_macro_point(grid_locations[k]);
+        pde_data.init_w.set_macro_point(grid_locations[k]);
         Vector<double> solution(n_dofs);
         VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_rho, solution);
         solutions.push_back(solution);
