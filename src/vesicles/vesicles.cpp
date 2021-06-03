@@ -31,7 +31,6 @@ void run(const std::string &input_path) {
     manager.run();
 }
 
-}
 
 void plot(const std::string &input_path) {
     const std::regex r("input/(.+).prm");

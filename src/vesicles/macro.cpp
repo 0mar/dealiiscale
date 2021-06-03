@@ -8,7 +8,7 @@
 using namespace dealii;
 
 template<int dim>
-MacroSolver<dim>::MacroSolver(MacroData<dim> &macro_data, unsigned int h_inv):dof_handler(triangulation), fe(1),
+MacroSolver<dim>::MacroSolver(ParabolicMacroData<dim> &macro_data, unsigned int h_inv):dof_handler(triangulation), fe(1),
                                                                         micro_dof_handler(nullptr),
                                                                         micro_solutions(nullptr),
                                                                         pde_data(macro_data),

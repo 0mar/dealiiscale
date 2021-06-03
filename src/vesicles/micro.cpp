@@ -75,12 +75,14 @@ void MicroSolver<dim>::setup_scatter() {
     for (unsigned int k = 0; k < num_grids; k++) {
         pde_data.init_v.set_macro_point(grid_locations[k]);
         pde_data.init_w.set_macro_point(grid_locations[k]);
-        Vector<double> solution(n_dofs);
-        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_rho, solution);
-        solutions.push_back(solution);
-        Vector<double> old_solution(n_dofs);
-        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_rho, old_solution);
-        old_solutions.push_back(old_solution);
+        Vector<double> solution_v(n_dofs), solution_w(n_dofs);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, solution_v);
+        solutions.push_back(solution_v);
+        solutions.push_back(solution_w);
+        Vector<double> old_solution_v(n_dofs), old_solution_w(n_dofs);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, solution_w);
+        old_solutions.push_back(old_solution_v);
+        old_solutions.push_back(old_solution_w);
 
         Vector<double> rhs(n_dofs);
         righthandsides.push_back(rhs);
