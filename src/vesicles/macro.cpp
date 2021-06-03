@@ -32,9 +32,10 @@ void MacroSolver<dim>::setup() {
 
 template<int dim>
 void MacroSolver<dim>::make_grid() {
-    GridGenerator::subdivided_hyper_cube(triangulation, h_inv, -1, 1);
+    Point<dim> p1(0,0);
+    Point<dim> p2(5,1);
+    GridGenerator::hyper_rectangle(triangulation, p1, p2);
     printf("%d active macro cells\n", triangulation.n_active_cells());
-
 }
 
 template<int dim>
