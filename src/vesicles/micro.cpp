@@ -9,14 +9,14 @@ using namespace dealii;
 
 template<int dim>
 MicroSolver<dim>::MicroSolver(ParabolicMicroData<dim> &micro_data, unsigned int h_inv):  dof_handler(triangulation),
-                                                                                     fe(1),
-                                                                                     h_inv(h_inv),
-                                                                                     num_grids(1),
-                                                                                     macro_solution(nullptr),
-                                                                                     old_macro_solution(nullptr),
-                                                                                     macro_dof_handler(nullptr),
-                                                                                     pde_data(micro_data),
-                                                                                     euler(1), integration_order(
+                                                                                         fe(1),
+                                                                                         h_inv(h_inv),
+                                                                                         num_grids(1),
+                                                                                         macro_solution(nullptr),
+                                                                                         old_macro_solution(nullptr),
+                                                                                         macro_dof_handler(nullptr),
+                                                                                         pde_data(micro_data),
+                                                                                         euler(1), integration_order(
                 fe.degree + 1) {
     printf("Solving micro problem in %d space dimensions\n", dim);
     init_macro_field.reinit(num_grids);
@@ -67,6 +67,8 @@ template<int dim>
 void MicroSolver<dim>::setup_scatter() {
     solutions.clear();
     old_solutions.clear();
+    solutions_w.clear();
+    old_solutions_w.clear();
     righthandsides.clear();
     system_matrices.clear();
     compute_macroscopic_contribution();
@@ -78,15 +80,14 @@ void MicroSolver<dim>::setup_scatter() {
         Vector<double> solution_v(n_dofs), solution_w(n_dofs);
         VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, solution_v);
         solutions.push_back(solution_v);
-        solutions.push_back(solution_w);
+        solutions_w.push_back(solution_w);
         Vector<double> old_solution_v(n_dofs), old_solution_w(n_dofs);
         VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, solution_w);
         old_solutions.push_back(old_solution_v);
-        old_solutions.push_back(old_solution_w);
+        old_solutions_w.push_back(old_solution_w);
 
         Vector<double> rhs(n_dofs);
         righthandsides.push_back(rhs);
-
         SparseMatrix<double> system_matrix;
         system_matrices.push_back(system_matrix);
         intermediate_vector.reinit(dof_handler.n_dofs());
@@ -96,7 +97,7 @@ void MicroSolver<dim>::setup_scatter() {
 
 template<int dim>
 void MicroSolver<dim>::set_macro_solutions(Vector<double> *_solution, Vector<double> *_old_solution,
-                                         DoFHandler<dim> *_dof_handler) {
+                                           DoFHandler<dim> *_dof_handler) {
     this->macro_solution = _solution;
     this->old_macro_solution = _old_solution;
     this->macro_dof_handler = _dof_handler;
@@ -121,9 +122,10 @@ void MicroSolver<dim>::assemble_system() {
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_face_points = face_quadrature_formula.size();
-
+    const unsigned int n_q_points = quadrature_formula.size();
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
+    Vector<double> local_w(dofs_per_cell);
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     // Todo: this is a break from Crank Nicholson implementation
@@ -149,9 +151,36 @@ void MicroSolver<dim>::assemble_system() {
         system_matrices.at(k).copy_from(mass_matrix);
         system_matrices.at(k).add(dt * D * euler, laplace_matrix);
     }
+    std::vector<double> old_sol_v;
+    std::vector<double> old_sol_w;
     // kappa * euler * dt * R // Todo: Put dt and euler into params
     const double bilin_param = pde_data.params.get_double("kappa") * euler * dt * pde_data.params.get_double("R");
+    const double k1 = pde_data.params.get_double("k1");
+    const double k2 = pde_data.params.get_double("k2");
+    const double k3 = pde_data.params.get_double("k3");
+    const double k4 = pde_data.params.get_double("k4");
     for (const auto &cell: dof_handler.active_cell_iterators()) {
+        fe_values.reinit(cell);
+        for (unsigned int k = 0; k < num_grids; k++) {
+            cell_rhs = 0;
+            local_w = 0;
+            fe_values.get_function_values(old_solutions[k], old_sol_v);
+            fe_values.get_function_values(old_solutions_w[k], old_sol_w);
+            for (unsigned int i = 0; i < dofs_per_cell; i++) {
+                for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
+                    const double w_sq = old_sol_w[q_index] * old_sol_w[q_index]; // w^2
+                    const double g1 = -k1 * old_sol_v[q_index] + k2 * w_sq;
+                    const double g2 = -k4 * old_sol_w[q_index] + 2 * k1 * old_sol_v[q_index] - k2 * w_sq -
+                                      k3 * old_sol_v[q_index] * old_sol_w[q_index];
+                    cell_rhs(i) += fe_values.shape_value(i, q_index) * g1 * euler * dt;
+                    local_w(i) = fe_values.shape_value(i, q_index) * g2 * euler * dt;
+                }
+                righthandsides[k](local_dof_indices[i]) += cell_rhs(i);
+                //soft forward euler
+                solutions_w[k](local_dof_indices[i]) = old_solutions[k](local_dof_indices[i]) + local_w(i);
+            }
+        }
+
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary() and cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
                 fe_face_values.reinit(cell, face_number);
@@ -253,7 +282,7 @@ Point<dim> MicroSolver<dim>::get_micro_grid_size(const std::vector<Point<dim>> &
 
 template<int dim>
 void MicroSolver<dim>::write_solutions_to_file(const std::vector<Vector<double>> &sols,
-                                             const DoFHandler<dim> &corr_dof_handler) {
+                                               const DoFHandler<dim> &corr_dof_handler) {
     const std::string filename = "results/test_rho_" + std::to_string(h_inv) + ".txt";
     std::ofstream output(filename);
     output << h_inv << std::endl;

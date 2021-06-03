@@ -67,7 +67,7 @@ public:
      * 5. Solve the system
      * 6. Process the solution (numerically)
      */
-    void iterate();
+    void iterate(const double &time_step);
 
     /**
      * Compute residual/convergence estimates.
@@ -92,6 +92,7 @@ public:
     Vector<double> old_solution;
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
+    double dt = 0.1; // todo: lift up
     double residual;
 
 private:
@@ -161,9 +162,10 @@ private:
     SparsityPattern sparsity_pattern;
     SparseMatrix<double> system_matrix;
     SparseMatrix<double> laplace_matrix;
-    Vector<double> macro_contribution;
+    SparseMatrix<double> mass_matrix;
     DoFHandler<dim> *micro_dof_handler;
     Vector<double> system_rhs;
+    Vector<double> init_macro_field;
     std::vector<Vector<double>> *micro_solutions;
     ParabolicMacroData<dim> &pde_data;
     int integration_order;
@@ -172,6 +174,7 @@ private:
     double max_support;
     AffineConstraints<double> constraints;
     int count = 0; //debug
+    const double euler=1;
 
 };
 

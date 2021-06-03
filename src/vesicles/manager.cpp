@@ -21,7 +21,7 @@ void Manager::setup() {
     macro.setup();
     std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
     macro.get_dof_locations(dof_locations);
-    micro.set_grid_locations(dof_locations);
+    micro.set_grid_locations(dof_locations); // todo: fix a small number of structures
     micro.setup();
     // Couple the macro structures with the micro structures.
 
@@ -65,7 +65,7 @@ void Manager::run() {
 
 void Manager::iterate() {
     data.set_time(time);
-    macro.iterate();
+    macro.iterate(time_step);
     micro.iterate(time_step);
 }
 

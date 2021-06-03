@@ -102,7 +102,8 @@ public:
     DoFHandler<dim> dof_handler;
     std::vector<Vector<double>> solutions;
     std::vector<Vector<double>> old_solutions;
-    std::vector<Vector<double>> w_solutions;
+    std::vector<Vector<double>> solutions_w;
+    std::vector<Vector<double>> old_solutions_w;
     double dt = 0.1;
     double time;
     double residual = 1;
