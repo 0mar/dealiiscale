@@ -128,7 +128,16 @@ VesicleData<dim>::VesicleData(const std::string &param_file) : macro(params), mi
     params.declare_entry("init_v", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
     params.declare_entry("init_w", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
 
-    std::map<std::string, double> constants = {{"d",     0.8}};
+    std::map<std::string, double> constants = {{"d",     0.8},
+                                               {"alpha", 1},
+                                               {"beta", 2},
+                                               {"H", 1},
+                                               {"k1", 1},
+                                               {"k2", 1},
+                                               {"k3", 1},
+                                               {"k4", 1},
+                                               {"euler", 1},
+                                               {"dt", 0.1}};
     // All the constants will be declared in the file
     for (const auto &pair: constants) {
         params.declare_entry(pair.first, std::to_string(pair.second), Patterns::Double());
