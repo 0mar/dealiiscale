@@ -267,11 +267,11 @@ template<int dim>
 std::string VesicleData<dim>::multiscale_variables() {
     switch (dim) {
         case 1:
-            return "x0,y0,t";
+            return "x0,y0";
         case 2:
-            return "x0,x1,y0,y1,t";
+            return "x0,x1,y0,y1";
         case 3:
-            return "x0,x1,x2,y0,y1,y2,t";
+            return "x0,x1,x2,y0,y1,y2";
         default: Assert(false, ExcNotImplemented())
     }
     return "";
@@ -281,11 +281,11 @@ template<int dim>
 std::string VesicleData<dim>::macro_variables() {
     switch (dim) {
         case 1:
-            return "x0,t";
+            return "x0";
         case 2:
-            return "x0,x1,t";
+            return "x0,x1";
         case 3:
-            return "x0,x1,x2,t";
+            return "x0,x1,x2";
         default: Assert(false, ExcNotImplemented())
     }
     return "";

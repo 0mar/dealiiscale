@@ -35,17 +35,17 @@ template<int dim>
 void MicroSolver<dim>::make_grid() {
     GridGenerator::hyper_ball(triangulation);
     triangulation.refine_global(3);
-    for (const auto &cell: triangulation.active_cell_iterators()) {
-        for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-            if (cell->face(face_number)->at_boundary()) {
-                const double y1_abs = std::fabs(cell->face(face_number)->center()(1));
-                if (y1_abs < 0) {
-                    cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
-                } // Else: Robin by default.
-                // Note that this arrangement is implicitly coupled with ./prepare_two_scale.py
-            }
-        }
-    }
+//    for (const auto &cell: triangulation.active_cell_iterators()) {
+//        for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+//            if (cell->face(face_number)->at_boundary()) {
+//                const double y1_abs = std::fabs(cell->face(face_number)->center()(1));
+//                if (y1_abs < 0) {
+//                    cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
+//                } // Else: Robin by default.
+//                // Note that this arrangement is implicitly coupled with ./prepare_two_scale.py
+//            }
+//        }
+//    } // no need to lable
     printf("%d active micro cells\n", triangulation.n_active_cells());
 }
 
@@ -128,13 +128,12 @@ void MicroSolver<dim>::assemble_system() {
     Vector<double> local_w(dofs_per_cell);
 
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    // Todo: this is a break from Crank Nicholson implementation
+    // this is a break from Crank Nicholson implementation
     // Fix by: Storing a copy of the previously projected RHS in a persistent vector.
     const double alpha = pde_data.params.get_double("alpha");
     const double beta = pde_data.params.get_double("beta");
     const double H = pde_data.params.get_double("H");
-    const double R = pde_data.params.get_double("dt");
-    const double D = pde_data.params.get_double("D");
+    const double d = pde_data.params.get_double("d");
     const double k1 = pde_data.params.get_double("k1");
     const double k2 = pde_data.params.get_double("k2");
     const double k3 = pde_data.params.get_double("k3");
@@ -147,7 +146,7 @@ void MicroSolver<dim>::assemble_system() {
         system_matrices.at(k).reinit(sparsity_pattern);
         mass_matrix.vmult(righthandsides.at(k), old_solutions.at(k));
         laplace_matrix.vmult(intermediate_vector, old_solutions.at(k));
-        righthandsides.at(k).add(-dt * D * (1 - euler), intermediate_vector); // scalar factor, matrix
+        righthandsides.at(k).add(-dt * d * (1 - euler), intermediate_vector); // scalar factor, matrix
 
         // For now, implicit euler only
         Vector<double> rhs_func(dof_handler.n_dofs());
@@ -156,7 +155,7 @@ void MicroSolver<dim>::assemble_system() {
         righthandsides.at(k).add(dt * (euler), rhs_func);
         // Missing: rhs_func * dt * (1- euler) from the previous time step
         system_matrices.at(k).add(1 + k1 * dt, mass_matrix);
-        system_matrices.at(k).add(dt * D * euler, laplace_matrix);
+        system_matrices.at(k).add(dt * d * euler, laplace_matrix);
     }
     std::vector<double> old_sol_v;
     std::vector<double> old_sol_w;
@@ -183,7 +182,7 @@ void MicroSolver<dim>::assemble_system() {
         }
 
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-            if (cell->face(face_number)->at_boundary() and cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
+            if (cell->face(face_number)->at_boundary()) {
                 fe_face_values.reinit(cell, face_number);
                 cell_matrix = 0;
                 cell->get_dof_indices(local_dof_indices);
@@ -210,8 +209,8 @@ void MicroSolver<dim>::assemble_system() {
 
         for (unsigned int k = 0; k < num_grids; k++) {
             for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-                fe_face_values.reinit(cell, face_number); // pretty sure this can be moved inside the if body
                 if (cell->face(face_number)->at_boundary()) {
+                    fe_face_values.reinit(cell, face_number);
                     cell->get_dof_indices(local_dof_indices);
                     cell_rhs = 0;
                     std::vector<double> old_interpolated_solution(n_q_face_points);
@@ -347,53 +346,14 @@ template<int dim>
 unsigned int MicroSolver<dim>::get_num_grids() {
     return num_grids;
 }
-//
-//template<int dim>
-//void MicroSolver<dim>::read_solutions_from_file(const std::string &filename, std::vector<Vector<double>> &sols,
-//                                              DoFHandler<dim> &corr_dof_handler) {
-//    std::ifstream input(filename);
-//    int refine_lvl;
-//    std::string line;
-//    std::getline(input, line);
-//    std::istringstream iss(line);
-//    iss >> refine_lvl;
-//    Triangulation<dim> tria;
-//    DoFHandler<dim> new_dof_handler(tria);
-//    GridGenerator::hyper_cube(tria, -1, 1);
-//    tria.refine_global(refine_lvl);
-//    new_dof_handler.distribute_dofs(fe);
-//    std::vector<Point<dim>> locations(new_dof_handler.n_dofs());
-//    DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
-//    std::vector<Point<dim>> check_locations(locations.size());
-//    sols.resize(num_grids);
-//    for (unsigned int k = 0; k < num_grids; k++) {
-//        sols.at(k) = Vector<double>(locations.size());
-//    }
-//    for (unsigned long i = 0; i < locations.size(); i++) {
-//        std::getline(input, line);
-//        std::istringstream iss1(line);
-//        for (unsigned int k = 0; k < num_grids; k++) {
-//            iss1 >> sols.at(k)(i);
-//        }
-//        Point<dim> point;
-//        for (unsigned int j = 0; j < dim; j++) {
-//            iss1 >> point(j);
-//        }
-//        check_locations.at(i) = point;
-//    }
-//    std::getline(input, line);
-//    Assert(line.empty(), ExcInternalError("Too many locations in file"))
-//    input.close();
-//    // Check if the points match
-//    bool is_correct = true;
-//    double eps = 1E-4;
-//    for (unsigned long i = 0; i < check_locations.size(); i++) {
-//        for (unsigned int j = 0; j < dim; j++) {
-//            is_correct &= std::fabs(check_locations.at(i)[j] - locations.at(i)[j]) < eps;
-//        }
-//    }
-//}
 
+template<int dim>
+void MicroSolver<dim>::get_color(Vector<double> &color) {
+    AssertDimension(color.size(), solutions_w.size());
+    for (unsigned int k=0;k<solutions_w.size();k++) {
+        color(k) = solutions_w[k].l1_norm();
+    }
+}
 
 // Explicit instantiation
 

@@ -91,6 +91,8 @@ public:
 
     unsigned int get_num_grids();
 
+    void get_color(Vector<double> &color);
+
     void write_solutions_to_file(const std::vector<Vector<double>> &sols,
                                  const DoFHandler<dim> &corr_dof_handler);
 

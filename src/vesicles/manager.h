@@ -48,7 +48,7 @@ public:
     /**
      * Write plots to VTK format so they can be opened with Paraview.
      */
-    void write_plot(double time);
+    void write_plot();
 
     // Time variable
     double time = 0;

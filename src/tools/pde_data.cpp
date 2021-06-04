@@ -108,23 +108,9 @@ BioData<dim>::BioData(const std::string &param_file) : macro(params), micro(para
 template<int dim>
 VesicleData<dim>::VesicleData(const std::string &param_file) : macro(params), micro(params) {
     params.declare_entry("macro_geometry", "[-1,1]x[-1,1]", Patterns::Anything());
-    params.declare_entry("macro_rhs",
-                         "-*(2*(2*x0^2 + 1)*exp(t^2 + x0^2 + x1^2) + 2*(2*x1^2 + 1)*exp(t^2 + x0^2 + x1^2)) - 12*exp(t^2 + x0^2 + x1^2)",
-                         Patterns::Anything());
-    params.declare_entry("macro_solution", "exp(t^2 + x0^2 + x1^2)", Patterns::Anything());
-    params.declare_entry("macro_diffusion","1", Patterns::Anything());
-    params.declare_entry("init_u","1", Patterns::Anything());
-    params.declare_entry("macro_bc", "exp(t^2 + x0^2 + x1^2)", Patterns::Anything());
-
     params.declare_entry("micro_geometry", "x^2 + y^2 < 1", Patterns::Anything());
-    params.declare_entry("micro_rhs", "-d*(2*(sin(y0)^2 - cos(y0)^2) + 2*(-sin(y1)^2 + cos(y1)^2))",Patterns::Anything());
-    params.declare_entry("micro_ode_rhs", "-d*(2*(sin(y0)^2 - cos(y0)^2) + 2*(-sin(y1)^2 + cos(y1)^2))",
-                         Patterns::Anything());
-    params.declare_entry("micro_solution", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
-    params.declare_entry("micro_bc_neumann", "-2*d*y0*sin(y0)*cos(y0)", Patterns::Anything());
-    params.declare_entry("micro_bc_robin",
-                         "2*d*y1*sin(y1)*cos(y1) - (-(sin(y1)^2 + cos(y0)^2 + 2)  + exp(t^2 + x0^2 + x1^2))",
-                         Patterns::Anything());
+    params.declare_entry("macro_diffusion","1", Patterns::Anything());
+    params.declare_entry("init_u", "sin(x1)^2 + cos(x0)^2 + 2", Patterns::Anything());
     params.declare_entry("init_v", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
     params.declare_entry("init_w", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
 
@@ -149,23 +135,8 @@ VesicleData<dim>::VesicleData(const std::string &param_file) : macro(params), mi
     }
 
 
-    macro.rhs.initialize(VesicleData<dim>::macro_variables(), params.get("macro_rhs"), constants, true);
-    macro.bc.initialize(VesicleData<dim>::macro_variables(), params.get("macro_bc"), constants, true);
     macro.diffusion.initialize(VesicleData<dim>::macro_variables(), params.get("macro_diffusion"), constants, false);
-    macro.solution.initialize(VesicleData<dim>::macro_variables(), params.get("macro_solution"), constants, true);
     macro.init_u.initialize(VesicleData<dim>::macro_variables(), params.get("init_u"), constants, false);
-
-    micro.rhs.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_rhs"), constants, nullptr,
-                         true);
-    micro.ode_rhs.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_ode_rhs"), constants, nullptr,
-                         true);
-    micro.neumann_bc.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_bc_neumann"), constants,
-                                nullptr, true);
-    micro.robin_bc.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_bc_robin"), constants,
-                              nullptr, true);
-    micro.solution.initialize(VesicleData<dim>::multiscale_variables(), params.get("micro_solution"), constants,
-                              nullptr, true);
-
     micro.init_v.initialize(VesicleData<dim>::multiscale_variables(), params.get("init_v"), constants, nullptr,false);
     micro.init_w.initialize(VesicleData<dim>::multiscale_variables(), params.get("init_w"), constants, nullptr,
                               false);

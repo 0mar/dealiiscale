@@ -26,13 +26,12 @@ void Manager::setup() {
     micro.set_macro_solutions(&macro.solution, &macro.solution,
                               &macro.dof_handler);
     macro.set_micro_solutions(&micro.solutions, &micro.dof_handler);
-//    std::vector<std::string> out_file_names = {"macro_vals.txt", "micro_vals.txt", "macro_convergence.txt",
-//                                               "micro_convergence.txt"};
-//    for (const std::string &out_file_name: out_file_names) {
-//        std::ofstream ofs;
-//        ofs.open("results/" + out_file_name, std::ofstream::out | std::ofstream::trunc);
-//        ofs.close();
-//    }
+    std::vector<std::string> out_file_names = {"results/w-color.txt"};
+    for (const std::string &out_file_name: out_file_names) {
+        std::ofstream ofs;
+        ofs.open("results/" + out_file_name, std::ofstream::out | std::ofstream::trunc);
+        ofs.close();
+    }
     it = 0;
 }
 
@@ -65,6 +64,7 @@ void Manager::iterate() {
     data.set_time(time);
     macro.iterate();
     micro.iterate();
+    write_plot();
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
@@ -87,13 +87,21 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
     residual = micro_l2 + macro_l2;
 }
 
-void Manager::write_plot(double time) {
-    {
+void Manager::write_plot() {
+    for (unsigned int k=0;k<micro.solutions.size();k++){
         DataOut<MICRO_DIMENSIONS> data_out;
         data_out.attach_dof_handler(micro.dof_handler);
-        data_out.add_data_vector(micro.solutions.at(0), "solution");
+        data_out.add_data_vector(micro.solutions.at(k), "v");
         data_out.build_patches();
-        std::ofstream output("results/micro-solution" + Utilities::int_to_string(it, 3) + ".vtk");
+        std::ofstream output("results/v("+Utilities::int_to_string(k)+")-solution-slice" + Utilities::int_to_string(it, 3) + ".vtk");
+        data_out.write_vtk(output);
+    }
+    for (unsigned int k=0;k<micro.solutions.size();k++){
+        DataOut<MICRO_DIMENSIONS> data_out;
+        data_out.attach_dof_handler(micro.dof_handler);
+        data_out.add_data_vector(micro.solutions_w.at(k), "w");
+        data_out.build_patches();
+        std::ofstream output("results/w("+Utilities::int_to_string(k)+")-solution-slice" + Utilities::int_to_string(it, 3) + ".vtk");
         data_out.write_vtk(output);
     }
     {
@@ -101,8 +109,19 @@ void Manager::write_plot(double time) {
         data_out.attach_dof_handler(macro.dof_handler);
         data_out.add_data_vector(macro.solution, "solution");
         data_out.build_patches();
-        std::ofstream output("results/macro-solution" + Utilities::int_to_string(it, 3) + ".vtk");
+        std::ofstream output("results/macro-solution-slice" + Utilities::int_to_string(it, 3) + ".vtk");
         data_out.write_vtk(output);
+    }
+    {
+        Vector<double> color(micro.get_num_grids());
+        micro.get_color(color);
+        std::ofstream output("results/w-color.txt", std::ofstream::app);
+        output << it << "," << color(0) << std::endl;
+        for (unsigned int k=1;k<color.size();k++) {
+            output << "," << color(k);
+        }
+        output << std::endl;
+        output.close();
     }
 }
 
@@ -138,32 +157,13 @@ void Manager::patch_and_write_solutions() {
         std::ofstream micro_output("results/micro-solutions/v-solution-" + std::to_string(grid_num) + ".vtk");
         micro_data_out.write_vtk(micro_output);
     }
-    if (false) {
-        {
-            DataOut<MICRO_DIMENSIONS> micro_data_out;
-            micro_data_out.attach_dof_handler(micro.dof_handler);
-            const unsigned int some_int = (int) (micro.get_num_grids() / 2);
-            Vector<double> error_(micro.dof_handler.n_dofs());
-            error_ += micro.solutions[some_int];
-            micro.set_exact_solution();
-            error_ -= micro.solutions[some_int];
-            micro_data_out.add_data_vector(error_, "v");
-            micro_data_out.build_patches();
-            std::ofstream micro_output("results/micro-error.vtk");
-            micro_data_out.write_vtk(micro_output);
-        }
-    }
-    if (false) {
-        {
-            DataOut<MICRO_DIMENSIONS> micro_data_out;
-            micro_data_out.attach_dof_handler(micro.dof_handler);
-            micro.set_exact_solution(); // Superfluous but okay
-            const unsigned int some_int = (int) (micro.get_num_grids() / 2);
-            micro_data_out.add_data_vector(micro.solutions.at(some_int), "v");
-            micro_data_out.build_patches();
-            std::ofstream micro_output("results/micro-exact.vtk");
-            micro_data_out.write_vtk(micro_output);
-        }
+    for (unsigned int grid_num = 0; grid_num < micro.get_num_grids(); grid_num++) {
+        DataOut<MICRO_DIMENSIONS> micro_data_out;
+        micro_data_out.attach_dof_handler(micro.dof_handler);
+        micro_data_out.add_data_vector(micro.solutions_w.at(grid_num), "w");
+        micro_data_out.build_patches();
+        std::ofstream micro_output("results/micro-solutions/w-solution-" + std::to_string(grid_num) + ".vtk");
+        micro_data_out.write_vtk(micro_output);
     }
 }
 

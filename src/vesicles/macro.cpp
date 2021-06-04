@@ -17,11 +17,6 @@ MacroSolver<dim>::MacroSolver(ParabolicMacroData<dim> &macro_data, unsigned int 
                                                                                        h_inv(h_inv) {
     residual = 1;
     printf("Solving macro problem in %d space dimensions\n", dim);
-    if (pde_data.params.get_bool("nonlinear")) {
-        printf("Running nonlinear right hand side in macroscopic part\n");
-    } else {
-        printf("Running linear right hand side in macroscopic part\n");
-    }
 }
 
 
@@ -53,12 +48,12 @@ void MacroSolver<dim>::setup_system() {
     solution.reinit(dof_handler.n_dofs());
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
+    constraints.close();
     VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_u, solution);
     laplace_matrix.reinit(sparsity_pattern);
     mass_matrix.reinit(sparsity_pattern);
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
     MatrixTools::create_mass_matrix(dof_handler, QGauss<dim>(integration_order), mass_matrix);
-    constraints.close();
 }
 
 template<int dim>
@@ -95,6 +90,7 @@ void MacroSolver<dim>::assemble_system() {
     const double dt = pde_data.params.get_double("dt");
     const double euler = pde_data.params.get_double("euler");
     Vector<double> aux_vector;
+    aux_vector.reinit(dof_handler.n_dofs());
     system_matrix = 0;
     system_rhs = 0; // superfluous I think
     mass_matrix.vmult(system_rhs, old_solution);
@@ -204,8 +200,6 @@ double MacroSolver<dim>::get_micro_mass(unsigned int micro_index) const {
 
 template<int dim>
 double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
-    const int ROBIN_BOUNDARY = 0; //Not linked, a bit ugly
-    // Computed as: f(x) = \int_\Gamma_R \nabla_y \rho(x,y) \cdot n_y d_\sigma_y
     double integral = 0;
     QGauss<dim - 1> quadrature_formula(integration_order);
     FEFaceValues<dim> fe_face_values(micro_dof_handler->get_fe(),
@@ -214,7 +208,7 @@ double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
     const unsigned int n_q_face_points = quadrature_formula.size();
     for (const auto &cell: micro_dof_handler->active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
-            if (cell->face(face_number)->at_boundary() && cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
+            if (cell->face(face_number)->at_boundary()) {
                 fe_face_values.reinit(cell, face_number);
                 std::vector<Tensor<1, dim>> solution_gradient(n_q_face_points);
                 fe_face_values.get_function_gradients(micro_solutions->at(micro_index), solution_gradient);
