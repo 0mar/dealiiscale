@@ -4,7 +4,7 @@
 
 #include "manager.h"
 
-Manager::Manager(unsigned int macro_h_inv, unsigned int micro_h_inv, unsigned int t_inv,
+Manager::Manager(unsigned int macro_h_inv, unsigned int micro_h_inv,
                  const std::string &data_file, const std::string &out_file) : data(data_file),
                                                                               macro(data.macro,
                                                                                     macro_h_inv),
