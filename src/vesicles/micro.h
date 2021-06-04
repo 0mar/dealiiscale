@@ -77,6 +77,12 @@ public:
     void compute_error(double &l2_error, double &h1_error);
 
     /**
+     * Compute residuals of the microscopic grid
+     * @param micro_residual
+     */
+    void compute_all_residuals(double &l2_residual);
+
+    /**
    * Set the locations of the microgrids with respect to the macrogrids.
    * in practice, these are the locations of the macroscopic degrees of freedom, although other options are possible.
    */
@@ -146,11 +152,14 @@ private:
      */
     void compute_macroscopic_contribution();
 
+    double get_residual(unsigned int grid_num);
+
     Point<dim> get_micro_grid_size(const std::vector<Point<dim>> &locations) const;
 
     const unsigned int ROBIN_BOUNDARY = 0;
     const unsigned int NEUMANN_BOUNDARY = 1;
     FE_Q<dim> fe;
+    unsigned int fem_q_deg = 8;
     unsigned int h_inv;
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;

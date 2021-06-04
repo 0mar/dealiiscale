@@ -148,17 +148,11 @@ void MicroSolver<dim>::assemble_system() {
         laplace_matrix.vmult(intermediate_vector, old_solutions.at(k));
         righthandsides.at(k).add(-dt * d * (1 - euler), intermediate_vector); // scalar factor, matrix
 
-        // For now, implicit euler only
-        Vector<double> rhs_func(dof_handler.n_dofs());
-        pde_data.rhs.set_macro_point(grid_locations[k]);
-        VectorTools::create_right_hand_side(dof_handler, QGauss<dim>(fe.degree + 1), pde_data.rhs, rhs_func);
-        righthandsides.at(k).add(dt * (euler), rhs_func);
-        // Missing: rhs_func * dt * (1- euler) from the previous time step
         system_matrices.at(k).add(1 + k1 * dt, mass_matrix);
         system_matrices.at(k).add(dt * d * euler, laplace_matrix);
     }
-    std::vector<double> old_sol_v;
-    std::vector<double> old_sol_w;
+    std::vector<double> old_sol_v(n_q_points);
+    std::vector<double> old_sol_w(n_q_points);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         for (unsigned int k = 0; k < num_grids; k++) {
@@ -326,6 +320,32 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     printf("Micro mass:  %.3e\n", macro_integral.l1_norm());
 }
 
+template<int dim>
+void MicroSolver<dim>::compute_all_residuals(double &l2_residual) {
+    Vector<double> macro_domain_l2_residual(num_grids);
+    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
+        macro_domain_l2_residual(grid_num) = get_residual(grid_num);
+    }
+    Vector<double> macro_integral(num_grids);
+    VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_residual, Functions::ZeroFunction<dim>(),
+                                      macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
+    l2_residual = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
+                                                    VectorTools::L2_norm);
+}
+
+
+template<int dim>
+double MicroSolver<dim>::get_residual(unsigned int grid_num) {
+    Vector<double> error(dof_handler.n_dofs());
+    error += solutions[grid_num];
+    error -= old_solutions[grid_num];
+    Vector<double> difference_per_cell(triangulation.n_active_cells());
+    VectorTools::integrate_difference(dof_handler, error, Functions::ZeroFunction<dim>(), difference_per_cell,
+                                      QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
+    const double l2_residual = VectorTools::compute_global_error(triangulation, difference_per_cell,
+                                                                 VectorTools::L2_norm);
+    return l2_residual;
+}
 template<int dim>
 void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations) {
     grid_locations = locations;

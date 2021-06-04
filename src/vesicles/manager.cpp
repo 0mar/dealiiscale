@@ -68,23 +68,16 @@ void Manager::iterate() {
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
-    double macro_l2 = 0;
-    double macro_h1 = 0;
-    double micro_l2 = 0;
-    double micro_h1 = 0;
-    macro.compute_error(macro_l2, macro_h1);
-    micro.compute_error(micro_l2, micro_h1);
-    convergence_table.add_value("iteration", it);
-    convergence_table.add_value("time", time);
-    convergence_table.add_value("cells", macro.triangulation.n_active_cells());
-    convergence_table.add_value("dofs", macro.dof_handler.n_dofs());
-    convergence_table.add_value("mL2", micro_l2);
-    convergence_table.add_value("ML2", macro_l2);
-    convergence_table.add_value("mH1", micro_h1);
-    convergence_table.add_value("MH1", macro_h1);
+    double macro_residual = 0;
+    double micro_residual = 0;
+    macro.compute_residual(macro_residual);
+    micro.compute_all_residuals(micro_residual);
     const double res = residual;
     old_residual = res;
-    residual = micro_l2 + macro_l2;
+    residual = macro_residual + micro_residual;
+    convergence_table.add_value("iteration", it);
+    convergence_table.add_value("time", time);
+    convergence_table.add_value("residual", residual);
 }
 
 void Manager::write_plot() {

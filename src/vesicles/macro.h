@@ -70,9 +70,15 @@ public:
     void iterate();
 
     /**
-     * Compute residual/convergence estimates.
+     * Compute convergence estimates.
      */
     void compute_error(double &l2_error, double &h1_error);
+
+    /**
+     * Compute residual
+     * @param macro_residual output
+     */
+    void compute_residual(double &l2_residual);
 
     /**
      * Set the microscopic solutions pointers, so that this solver can compute its contribution from it.
@@ -121,7 +127,7 @@ private:
     /**
      * Use the (probably updated) microscopic data to compute new elements of the macroscopic system.
      */
-    void get_microscopic_contribution(Vector<double> &micro_contribution, bool nonlinear);
+    void get_microscopic_contribution(Vector<double> &micro_contribution);
 
     /**
     * Compute the right hand side of the Macroscopic function;

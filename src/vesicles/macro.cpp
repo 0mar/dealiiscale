@@ -100,7 +100,7 @@ void MacroSolver<dim>::assemble_system() {
     system_matrix.copy_from(mass_matrix);
     system_matrix.add(dt*D*euler, laplace_matrix);
     Vector<double> micro_contribution(dof_handler.n_dofs());
-    get_microscopic_contribution(micro_contribution, false);
+    get_microscopic_contribution(micro_contribution);
     std::vector<double> rho_rhs_points(n_q_points);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
@@ -170,10 +170,20 @@ void MacroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
 }
 
 template<int dim>
+void MacroSolver<dim>::compute_residual(double &l2_residual) {
+    Vector<double> error(dof_handler.n_dofs());
+    error += solution;
+    error -= old_solution;
+    Vector<double> difference_per_cell(triangulation.n_active_cells());
+    VectorTools::integrate_difference(dof_handler, error, Functions::ZeroFunction<dim>(), difference_per_cell,
+                                      QGauss<dim>(8), VectorTools::L2_norm);
+    l2_residual = VectorTools::compute_global_error(triangulation, difference_per_cell, VectorTools::L2_norm);
+}
+
+template<int dim>
 void MacroSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler) {
     this->micro_solutions = _solutions;
     this->micro_dof_handler = _dof_handler;
-
 }
 
 template<int dim>
@@ -232,7 +242,7 @@ void MacroSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
 }
 
 template<int dim>
-void MacroSolver<dim>::get_microscopic_contribution(Vector<double> &micro_contribution, bool nonlinear) {
+void MacroSolver<dim>::get_microscopic_contribution(Vector<double> &micro_contribution) {
     AssertDimension(micro_contribution.size(), dof_handler.n_dofs())
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
         micro_contribution[i] = get_micro_flux(i);
