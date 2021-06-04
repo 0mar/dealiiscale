@@ -69,6 +69,7 @@ void Manager::iterate() {
 void Manager::compute_residuals(double &old_residual, double &residual) {
     double macro_residual = 0;
     double micro_residual = 0;
+    printf("Macro residual: %.2f\nMicro residual: %.2f",macro_residual,micro_residual);
     macro.compute_residual(macro_residual);
     micro.compute_all_residuals(micro_residual);
     const double res = residual;

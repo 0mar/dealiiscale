@@ -165,8 +165,8 @@ void MicroSolver<dim>::assemble_system() {
                     const double g1 = k2 * w_sq;
                     const double g2 = -k4 * old_sol_w[q_index] + 2 * k1 * old_sol_v[q_index] - k2 * w_sq -
                                       k3 * old_sol_v[q_index] * old_sol_w[q_index];
-                    cell_rhs(i) += fe_values.shape_value(i, q_index) * g1 * euler * dt;
-                    local_w(i) = fe_values.shape_value(i, q_index) * g2 * euler * dt;
+                    cell_rhs(i) += fe_values.shape_value(i, q_index) * g1 * euler * dt * fe_values.JxW(q_index);
+                    local_w(i) = fe_values.shape_value(i, q_index) * g2 * euler * dt* fe_values.JxW(q_index);
                 }
                 righthandsides[k](local_dof_indices[i]) += cell_rhs(i);
                 //soft forward euler
