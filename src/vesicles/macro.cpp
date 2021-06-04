@@ -28,9 +28,24 @@ void MacroSolver<dim>::setup() {
 
 template<int dim>
 void MacroSolver<dim>::make_grid() {
-    Point<dim> p1(0, 0);
-    Point<dim> p2(5, 1);
+    Point <dim> p1(0, 0);
+    Point <dim> p2(5, 1);
     GridGenerator::hyper_rectangle(triangulation, p1, p2);
+    triangulation.refine_global(2);
+    const double EPS = 1E-4;
+    for (const auto &cell: triangulation.active_cell_iterators()) {
+        for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
+            if (cell->face(face_number)->at_boundary()) {
+                const double x_abs = std::fabs(cell->face(face_number)->center()(0));
+                if (x_abs < EPS) {
+                    cell->face(face_number)->set_boundary_id(DIRICHLET_BOUNDARY);
+                } else {
+                    cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
+                }
+                // Note that this arrangement is implicitly coupled with ./prepare_two_scale.py
+            }
+        }
+    } // no need to lable
     printf("%d active macro cells\n", triangulation.n_active_cells());
 }
 
@@ -49,7 +64,7 @@ void MacroSolver<dim>::setup_system() {
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     constraints.close();
-    VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_u, solution);
+//    VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_u, old_solution);
     laplace_matrix.reinit(sparsity_pattern);
     mass_matrix.reinit(sparsity_pattern);
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
@@ -72,11 +87,11 @@ MacroSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<doubl
 
 template<int dim>
 void MacroSolver<dim>::assemble_system() {
-    QGauss<dim> quadrature_formula(integration_order);
+    QGauss <dim> quadrature_formula(integration_order);
 
-    FEValues<dim> fe_values(fe, quadrature_formula,
-                            update_values | update_gradients |
-                            update_quadrature_points | update_JxW_values);
+    FEValues <dim> fe_values(fe, quadrature_formula,
+                             update_values | update_gradients |
+                             update_quadrature_points | update_JxW_values);
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
@@ -84,8 +99,8 @@ void MacroSolver<dim>::assemble_system() {
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
 
-    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-    Point<dim> _point;
+    std::vector <types::global_dof_index> local_dof_indices(dofs_per_cell);
+    Point <dim> _point;
     const double D = pde_data.diffusion.value(_point);
     const double dt = pde_data.params.get_double("dt");
     const double euler = pde_data.params.get_double("euler");
@@ -98,7 +113,7 @@ void MacroSolver<dim>::assemble_system() {
     system_rhs.add(-dt * D * (1 - euler), aux_vector);
 
     system_matrix.copy_from(mass_matrix);
-    system_matrix.add(dt*D*euler, laplace_matrix);
+    system_matrix.add(dt * D * euler, laplace_matrix);
     Vector<double> micro_contribution(dof_handler.n_dofs());
     get_microscopic_contribution(micro_contribution);
     std::vector<double> rho_rhs_points(n_q_points);
@@ -118,9 +133,9 @@ void MacroSolver<dim>::assemble_system() {
         }
     }
 //    std::cout << "Macro rhs: " << system_rhs << std::endl;
-//    std::map<types::global_dof_index, double> boundary_values;
-//    VectorTools::interpolate_boundary_values(dof_handler, 0, pde_data.bc, boundary_values);
-//    MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
+    std::map<types::global_dof_index, double> boundary_values;
+    VectorTools::interpolate_boundary_values(dof_handler, DIRICHLET_BOUNDARY, pde_data.bc, boundary_values);
+    MatrixTools::apply_boundary_values(boundary_values, system_matrix, solution, system_rhs);
 }
 
 template<int dim>
@@ -144,6 +159,7 @@ void MacroSolver<dim>::interpolate_function(const Vector<double> &func, Vector<d
 
 template<int dim>
 void MacroSolver<dim>::solve() {
+    solution = old_solution;
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
@@ -256,7 +272,6 @@ void MacroSolver<dim>::iterate() {
     solve();
 //    std::cout << "Macro: " << solution << std::endl;
     count++;
-    old_solution = solution;
 }
 
 template<int dim>

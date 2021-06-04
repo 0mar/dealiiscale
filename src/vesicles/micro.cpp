@@ -78,11 +78,11 @@ void MicroSolver<dim>::setup_scatter() {
         pde_data.init_v.set_macro_point(grid_locations[k]);
         pde_data.init_w.set_macro_point(grid_locations[k]);
         Vector<double> solution_v(n_dofs), solution_w(n_dofs);
-        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, solution_v);
         solutions.push_back(solution_v);
         solutions_w.push_back(solution_w);
         Vector<double> old_solution_v(n_dofs), old_solution_w(n_dofs);
-        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, solution_w);
+//        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, old_solution_v);
+//        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, old_solution_w);
         old_solutions.push_back(old_solution_v);
         old_solutions_w.push_back(old_solution_w);
 
@@ -142,7 +142,6 @@ void MicroSolver<dim>::assemble_system() {
     const double dt = pde_data.params.get_double("dt");
     for (unsigned int k = 0; k < num_grids; k++) {
         righthandsides.at(k) = 0;
-        solutions.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
         mass_matrix.vmult(righthandsides.at(k), old_solutions.at(k));
         laplace_matrix.vmult(intermediate_vector, old_solutions.at(k));
@@ -217,10 +216,8 @@ void MicroSolver<dim>::assemble_system() {
                                     euler * (*macro_solution)(k) + (1 - euler) * (*old_macro_solution)(k);
                             cell_rhs(i) += alpha * beta * macro_part * dtxvixJxW;
                         }
+                        righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
                     }
-                }
-                for (unsigned int i = 0; i < dofs_per_cell; i++) {
-                    righthandsides.at(k)(local_dof_indices[i]) += cell_rhs(i);
                 }
             }
         }
@@ -233,7 +230,11 @@ void MicroSolver<dim>::solve_time_step() {
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     for (unsigned int k = 0; k < num_grids; k++) {
+        old_solutions[k] = solutions[k];
+        old_solutions_w[k] = solutions_w[k];
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
+//        std::cout << righthandsides.at(k) << "\n";
+//        system_matrices.at(k).print(std::cout);
     }
     printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
 }
@@ -242,7 +243,6 @@ template<int dim>
 void MicroSolver<dim>::iterate() {
     assemble_system();
     solve_time_step();
-    old_solutions = solutions;
 }
 
 template<int dim>
@@ -331,6 +331,7 @@ void MicroSolver<dim>::compute_all_residuals(double &l2_residual) {
                                       macro_integral, QGauss<dim>(fem_q_deg), VectorTools::L2_norm);
     l2_residual = VectorTools::compute_global_error(macro_dof_handler->get_triangulation(), macro_integral,
                                                     VectorTools::L2_norm);
+    std::cout << l2_residual << std::endl;
 }
 
 
@@ -346,6 +347,7 @@ double MicroSolver<dim>::get_residual(unsigned int grid_num) {
                                                                  VectorTools::L2_norm);
     return l2_residual;
 }
+
 template<int dim>
 void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations) {
     grid_locations = locations;
@@ -370,8 +372,8 @@ unsigned int MicroSolver<dim>::get_num_grids() {
 template<int dim>
 void MicroSolver<dim>::get_color(Vector<double> &color) {
     AssertDimension(color.size(), solutions_w.size());
-    for (unsigned int k=0;k<solutions_w.size();k++) {
-        color(k) = solutions_w[k].l1_norm();
+    for (unsigned int k = 0; k < solutions_w.size(); k++) {
+        color(k) = solutions[k].l1_norm();
     }
 }
 

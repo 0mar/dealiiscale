@@ -113,6 +113,7 @@ VesicleData<dim>::VesicleData(const std::string &param_file) : macro(params), mi
     params.declare_entry("init_u", "sin(x1)^2 + cos(x0)^2 + 2", Patterns::Anything());
     params.declare_entry("init_v", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
     params.declare_entry("init_w", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
+    params.declare_entry("u_bc", "sin(y1)^2 + cos(y0)^2 + 2", Patterns::Anything());
 
     std::map<std::string, double> constants = {{"d",     0.8},
                                                {"alpha", 1},
@@ -136,6 +137,7 @@ VesicleData<dim>::VesicleData(const std::string &param_file) : macro(params), mi
 
 
     macro.diffusion.initialize(VesicleData<dim>::macro_variables(), params.get("macro_diffusion"), constants, false);
+    macro.bc.initialize(VesicleData<dim>::macro_variables(), params.get("u_bc"), constants, false);
     macro.init_u.initialize(VesicleData<dim>::macro_variables(), params.get("init_u"), constants, false);
     micro.init_v.initialize(VesicleData<dim>::multiscale_variables(), params.get("init_v"), constants, nullptr,false);
     micro.init_w.initialize(VesicleData<dim>::multiscale_variables(), params.get("init_w"), constants, nullptr,

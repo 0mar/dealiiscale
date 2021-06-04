@@ -175,11 +175,11 @@ private:
     ParabolicMacroData<dim> &pde_data;
     int integration_order;
     unsigned int h_inv;
-    double diffusion_coefficient;
-    double max_support;
     AffineConstraints<double> constraints;
     int count = 0; //debug
-
+    const unsigned int DIRICHLET_BOUNDARY=1;
+    const unsigned int NEUMANN_BOUNDARY=2;
+    const unsigned int ROBIN_BOUNDARY=3;
 };
 
 #endif //PISOLVER_H

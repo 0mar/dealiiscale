@@ -156,8 +156,6 @@ private:
 
     Point<dim> get_micro_grid_size(const std::vector<Point<dim>> &locations) const;
 
-    const unsigned int ROBIN_BOUNDARY = 0;
-    const unsigned int NEUMANN_BOUNDARY = 1;
     FE_Q<dim> fe;
     unsigned int fem_q_deg = 8;
     unsigned int h_inv;
@@ -176,6 +174,9 @@ private:
     int integration_order;
     Vector<double> intermediate_vector;
     AffineConstraints<double> constraints;
+    const unsigned int DIRICHLET_BOUNDARY=1;
+    const unsigned int NEUMANN_BOUNDARY=2;
+    const unsigned int ROBIN_BOUNDARY=3;
 };
 
 #endif //RHO_SOLVER_H

@@ -1,6 +1,7 @@
 set macro_geometry = [-1,1]x[-1,1]
 set micro_geometry = x^2 + y^2 < 1
 set macro_diffusion = 1
+set u_bc = 1
 set init_u = sin(x1)^2 + cos(x0)^2 + 2
 set init_v = sin(y1)^2 + cos(y0)^2 + 2
 set init_w = sin(y1)^2 + cos(y0)^2 + 2

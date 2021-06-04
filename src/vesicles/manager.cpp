@@ -36,7 +36,7 @@ void Manager::setup() {
 }
 
 void Manager::run() {
-    double old_residual = 1;
+    double old_residual = -1;
     double residual = 0;
     while (time < final_time) {
         time += data.params.get_double("dt");
@@ -52,7 +52,6 @@ void Manager::run() {
 //            micro.patch_micro_solutions(locations);
 //            output_results();
 //        }
-        break;
     }
     output_results();
 //    macro.write_solution_to_file(macro.solution, macro.dof_handler);
@@ -119,16 +118,6 @@ void Manager::write_plot() {
 }
 
 void Manager::output_results() {
-    if (false) {
-        std::vector<std::string> error_classes = {"mL2", "mH1", "ML2", "MH1"};
-        for (const std::string &error_class: error_classes) {
-            convergence_table.set_precision(error_class, 3);
-            convergence_table.set_scientific(error_class, true);
-        }
-        std::ofstream convergence_output(ct_file_name, std::iostream::app);
-        convergence_table.write_text(convergence_output);
-        convergence_output.close();
-    }
     patch_and_write_solutions();
 }
 
