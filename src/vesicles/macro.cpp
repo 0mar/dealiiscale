@@ -92,6 +92,8 @@ void MacroSolver<dim>::assemble_system() {
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     Point<dim> _point;
     const double D = pde_data.diffusion.value(_point);
+    const double dt = pde_data.params.get_double("dt");
+    const double euler = pde_data.params.get_double("euler");
     Vector<double> aux_vector;
     system_matrix = 0;
     system_rhs = 0; // superfluous I think
@@ -245,8 +247,7 @@ void MacroSolver<dim>::get_microscopic_contribution(Vector<double> &micro_contri
 }
 
 template<int dim>
-void MacroSolver<dim>::iterate(const double &time_step) {
-    dt = time_step;
+void MacroSolver<dim>::iterate() {
     assemble_system();
     solve();
 //    std::cout << "Macro: " << solution << std::endl;

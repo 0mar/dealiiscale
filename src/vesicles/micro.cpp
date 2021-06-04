@@ -16,7 +16,7 @@ MicroSolver<dim>::MicroSolver(ParabolicMicroData<dim> &micro_data, unsigned int 
                                                                                          old_macro_solution(nullptr),
                                                                                          macro_dof_handler(nullptr),
                                                                                          pde_data(micro_data),
-                                                                                         euler(1), integration_order(
+                                                                                         integration_order(
                 fe.degree + 1) {
     printf("Solving micro problem in %d space dimensions\n", dim);
     init_macro_field.reinit(num_grids);
@@ -130,10 +130,16 @@ void MicroSolver<dim>::assemble_system() {
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     // Todo: this is a break from Crank Nicholson implementation
     // Fix by: Storing a copy of the previously projected RHS in a persistent vector.
-    const double kappa = pde_data.params.get_double("kappa");
-    const double p_F = pde_data.params.get_double("p_F");
-    const double R = pde_data.params.get_double("R");
+    const double alpha = pde_data.params.get_double("alpha");
+    const double beta = pde_data.params.get_double("beta");
+    const double H = pde_data.params.get_double("H");
+    const double R = pde_data.params.get_double("dt");
     const double D = pde_data.params.get_double("D");
+    const double k1 = pde_data.params.get_double("k1");
+    const double k2 = pde_data.params.get_double("k2");
+    const double k3 = pde_data.params.get_double("k3");
+    const double k4 = pde_data.params.get_double("k4");
+    const double euler = pde_data.params.get_double("euler");
     for (unsigned int k = 0; k < num_grids; k++) {
         righthandsides.at(k) = 0;
         solutions.at(k) = 0;
@@ -148,17 +154,11 @@ void MicroSolver<dim>::assemble_system() {
         VectorTools::create_right_hand_side(dof_handler, QGauss<dim>(fe.degree + 1), pde_data.rhs, rhs_func);
         righthandsides.at(k).add(dt * (euler), rhs_func);
         // Missing: rhs_func * dt * (1- euler) from the previous time step
-        system_matrices.at(k).copy_from(mass_matrix);
+        system_matrices.at(k).add(1 + k1*dt,mass_matrix);
         system_matrices.at(k).add(dt * D * euler, laplace_matrix);
     }
     std::vector<double> old_sol_v;
     std::vector<double> old_sol_w;
-    // kappa * euler * dt * R // Todo: Put dt and euler into params
-    const double bilin_param = pde_data.params.get_double("kappa") * euler * dt * pde_data.params.get_double("R");
-    const double k1 = pde_data.params.get_double("k1");
-    const double k2 = pde_data.params.get_double("k2");
-    const double k3 = pde_data.params.get_double("k3");
-    const double k4 = pde_data.params.get_double("k4");
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         for (unsigned int k = 0; k < num_grids; k++) {
@@ -169,7 +169,7 @@ void MicroSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; i++) {
                 for (unsigned int q_index = 0; q_index < n_q_points; q_index++) {
                     const double w_sq = old_sol_w[q_index] * old_sol_w[q_index]; // w^2
-                    const double g1 = -k1 * old_sol_v[q_index] + k2 * w_sq;
+                    const double g1 = k2 * w_sq;
                     const double g2 = -k4 * old_sol_w[q_index] + 2 * k1 * old_sol_v[q_index] - k2 * w_sq -
                                       k3 * old_sol_v[q_index] * old_sol_w[q_index];
                     cell_rhs(i) += fe_values.shape_value(i, q_index) * g1 * euler * dt;
@@ -190,7 +190,7 @@ void MicroSolver<dim>::assemble_system() {
                     for (unsigned int j = 0; j < dofs_per_cell; j++) {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                             cell_matrix(i, j) +=
-                                    bilin_param * fe_face_values.shape_value(i, q_index) *
+                                    alpha*H*dt * fe_face_values.shape_value(i, q_index) *
                                     fe_face_values.shape_value(j, q_index) * fe_face_values.JxW(q_index);
                         }
                     }
@@ -219,23 +219,10 @@ void MicroSolver<dim>::assemble_system() {
                         for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
                             const double dtxvixJxW =
                                     dt * fe_face_values.shape_value(i, q_index) * fe_face_values.JxW(q_index);
-                            if (cell->face(face_number)->boundary_id() == ROBIN_BOUNDARY) {
-                                const double pi_part =
+                                const double macro_part =
                                         euler * (*macro_solution)(k) + (1 - euler) * (*old_macro_solution)(k);
-                                // add (1-euler)*robin_bc
-                                const double func_part = euler * pde_data.robin_bc.mvalue(grid_locations.at(k),
-                                                                                          fe_face_values.quadrature_point(
-                                                                                                  q_index));
-                                cell_rhs(i) += (kappa *
-                                                (pi_part + p_F - R * (1 - euler) * old_interpolated_solution[q_index]) +
-                                                func_part) * dtxvixJxW;
-                            } else {
-                                const double func_part = euler * pde_data.neumann_bc.mvalue(grid_locations.at(k),
-                                                                                            fe_face_values.quadrature_point(
-                                                                                                    q_index));
-                                cell_rhs(i) += dtxvixJxW * func_part;
+                                cell_rhs(i) += alpha * beta * macro_part * dtxvixJxW;
                             }
-
                         }
                     }
                     for (unsigned int i = 0; i < dofs_per_cell; i++) {
@@ -259,8 +246,7 @@ void MicroSolver<dim>::solve_time_step() {
 }
 
 template<int dim>
-void MicroSolver<dim>::iterate(const double &time_step) {
-    dt = time_step;
+void MicroSolver<dim>::iterate() {
     assemble_system();
     solve_time_step();
     old_solutions = solutions;

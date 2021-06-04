@@ -67,7 +67,7 @@ public:
      * 5. Solve the system
      * 6. Process the solution (numerically)
      */
-    void iterate(const double &time_step);
+    void iterate();
 
     /**
      * Compute residual/convergence estimates.
@@ -92,7 +92,6 @@ public:
     Vector<double> old_solution;
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
-    double dt = 0.1; // todo: lift up
     double residual;
 
 private:
@@ -174,7 +173,6 @@ private:
     double max_support;
     AffineConstraints<double> constraints;
     int count = 0; //debug
-    const double euler=1;
 
 };
 

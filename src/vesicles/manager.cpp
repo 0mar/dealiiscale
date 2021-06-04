@@ -10,10 +10,8 @@ Manager::Manager(unsigned int macro_h_inv, unsigned int micro_h_inv, unsigned in
                                                                                     macro_h_inv),
                                                                               micro(data.micro,
                                                                                     micro_h_inv),
-                                                                              time_step(1. / t_inv),
                                                                               final_time(0.5),
                                                                               ct_file_name(out_file) {
-    printf("Using a time step of %.2e\n", time_step);
 }
 
 void Manager::setup() {
@@ -42,7 +40,7 @@ void Manager::run() {
     double old_residual = 1;
     double residual = 0;
     while (time < final_time) {
-        time += time_step;
+        time += data.params.get_double("dt");
         it++;
         printf("\nSolving for t = %f\n", time);
         iterate();
@@ -65,8 +63,8 @@ void Manager::run() {
 
 void Manager::iterate() {
     data.set_time(time);
-    macro.iterate(time_step);
-    micro.iterate(time_step);
+    macro.iterate();
+    micro.iterate();
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {

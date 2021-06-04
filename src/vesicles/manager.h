@@ -24,8 +24,7 @@ public:
      * @param macro_refinement Resolution of the macro solver.
      * @param micro_refinement Resolution of the micro solver.
      */
-    Manager(unsigned int macro_h_inv, unsigned int micro_h_inv, unsigned int t_inv,
-                const std::string &data_file,
+    Manager(unsigned int macro_h_inv, unsigned int micro_h_inv, const std::string &data_file,
                 const std::string &output_file);
 
     /**
@@ -50,9 +49,6 @@ public:
      * Write plots to VTK format so they can be opened with Paraview.
      */
     void write_plot(double time);
-
-    // Time step size
-    double time_step;
 
     // Time variable
     double time = 0;

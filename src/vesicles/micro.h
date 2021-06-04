@@ -61,7 +61,7 @@ public:
      * Collection method for solving the micro systems for one time step
      * @param time_step Time step size.
      */
-    void iterate(const double &time_step);
+    void iterate();
 
     /**
      * Set the macroscopic solution so that the solver can compute its contribution from it.
@@ -104,7 +104,6 @@ public:
     std::vector<Vector<double>> old_solutions;
     std::vector<Vector<double>> solutions_w;
     std::vector<Vector<double>> old_solutions_w;
-    double dt = 0.1;
     double time;
     double residual = 1;
 private:
@@ -163,7 +162,6 @@ private:
     SparseMatrix<double> laplace_matrix;
     std::vector<Point<dim>> grid_locations;
     ParabolicMicroData<dim> &pde_data;
-    double euler; // Todo: Test thoroughly if euler<1 works as well
     int integration_order;
     Vector<double> intermediate_vector;
     AffineConstraints<double> constraints;

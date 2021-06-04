@@ -25,8 +25,7 @@ void run(const std::string &input_path) {
     int i = 4;
     auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
     auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
-    auto t_inv = (unsigned int) std::round(4 * std::pow(2, i));
-    Manager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+    Manager manager(macro_h_inv, micro_h_inv, input_path, output_path);
     manager.setup();
     manager.run();
 }
@@ -44,8 +43,7 @@ void plot(const std::string &input_path) {
     {
         unsigned int macro_h_inv = 4;
         unsigned int micro_h_inv = 16;
-        unsigned int t_inv = 16;
-        Manager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+        Manager manager(macro_h_inv, micro_h_inv, input_path, output_path);
         manager.setup();
         manager.run();
         const int succeeded = std::rename("results/patched_micro_solution.gpl", "results/patched_plot.gpl");
@@ -54,8 +52,7 @@ void plot(const std::string &input_path) {
     {
         unsigned int macro_h_inv = 4;
         unsigned int micro_h_inv = 32;
-        unsigned int t_inv = 16;
-        Manager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+        Manager manager(macro_h_inv, micro_h_inv, input_path, output_path);
         manager.setup();
         manager.run();
         const int succeeded = std::rename("results/final_micro_solution.gpl", "results/micro_plot.gpl");
@@ -64,8 +61,7 @@ void plot(const std::string &input_path) {
     {
         unsigned int macro_h_inv = 32;
         unsigned int micro_h_inv = 32;
-        unsigned int t_inv = 16;
-        Manager manager(macro_h_inv, micro_h_inv, t_inv, input_path, output_path);
+        Manager manager(macro_h_inv, micro_h_inv, input_path, output_path);
         manager.setup();
         manager.run();
         const int succeeded = std::rename("results/final_macro_solution.gpl", "results/macro_plot.gpl");
