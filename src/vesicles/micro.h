@@ -112,6 +112,7 @@ public:
     std::vector<Vector<double>> old_solutions;
     std::vector<Vector<double>> solutions_w;
     std::vector<Vector<double>> old_solutions_w;
+    std::vector<unsigned int> grid_indicator;
     double time;
     double residual = 1;
 private:
@@ -170,7 +171,6 @@ private:
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
     std::vector<Vector<double>> righthandsides;
-    std::vector<int> grid_indicator;
     SparseMatrix<double> mass_matrix;
     SparseMatrix<double> laplace_matrix;
     std::vector<Point<dim>> grid_locations;

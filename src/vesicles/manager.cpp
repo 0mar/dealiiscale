@@ -17,7 +17,8 @@ Manager::Manager(unsigned int macro_h_inv, unsigned int micro_h_inv,
 void Manager::setup() {
     // Create the grids and solution data structures for each grid
     macro.setup();
-    std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
+    std::vector <Point<MACRO_DIMENSIONS>>
+            dof_locations;
     macro.get_dof_locations(dof_locations);
     micro.set_grid_locations(dof_locations);
     micro.setup();
@@ -26,7 +27,7 @@ void Manager::setup() {
     micro.set_macro_solutions(&macro.solution, &macro.solution,
                               &macro.dof_handler);
     macro.set_micro_solutions(&micro.solutions, &micro.dof_handler);
-    std::vector<std::string> out_file_names = {"w-color.txt"};
+    std::vector <std::string> out_file_names = {"w-color.txt"};
     for (const std::string &out_file_name: out_file_names) {
         std::ofstream ofs;
         ofs.open("results/" + out_file_name, std::ofstream::out | std::ofstream::trunc);
@@ -60,16 +61,16 @@ void Manager::run() {
 
 
 void Manager::iterate() {
+    write_plot();
     data.set_time(time);
     macro.iterate();
     micro.iterate();
-    write_plot();
 }
 
 void Manager::compute_residuals(double &old_residual, double &residual) {
     double macro_residual = 0;
     double micro_residual = 0;
-    printf("Macro residual: %.2f\nMicro residual: %.2f",macro_residual,micro_residual);
+    printf("Macro residual: %.2f\nMicro residual: %.2f", macro_residual, micro_residual);
     macro.compute_residual(macro_residual);
     micro.compute_all_residuals(micro_residual);
     const double res = residual;
@@ -81,24 +82,28 @@ void Manager::compute_residuals(double &old_residual, double &residual) {
 }
 
 void Manager::write_plot() {
-    for (unsigned int k=0;k<micro.solutions.size();k++){
-        DataOut<MICRO_DIMENSIONS> data_out;
+    for (unsigned int k: micro.grid_indicator) {
+        DataOut <MICRO_DIMENSIONS> data_out;
         data_out.attach_dof_handler(micro.dof_handler);
         data_out.add_data_vector(micro.solutions.at(k), "v");
         data_out.build_patches();
-        std::ofstream output("results/v("+Utilities::int_to_string(k)+")-solution-slice" + Utilities::int_to_string(it, 3) + ".vtk");
+        std::ofstream output(
+                "results/v(" + Utilities::int_to_string(k) + ")-solution-slice" + Utilities::int_to_string(it, 3) +
+                ".vtk");
         data_out.write_vtk(output);
     }
-    for (unsigned int k=0;k<micro.solutions.size();k++){
-        DataOut<MICRO_DIMENSIONS> data_out;
+    for (unsigned int k: micro.grid_indicator) {
+        DataOut <MICRO_DIMENSIONS> data_out;
         data_out.attach_dof_handler(micro.dof_handler);
         data_out.add_data_vector(micro.solutions_w.at(k), "w");
         data_out.build_patches();
-        std::ofstream output("results/w("+Utilities::int_to_string(k)+")-solution-slice" + Utilities::int_to_string(it, 3) + ".vtk");
+        std::ofstream output(
+                "results/w(" + Utilities::int_to_string(k) + ")-solution-slice" + Utilities::int_to_string(it, 3) +
+                ".vtk");
         data_out.write_vtk(output);
     }
     {
-        DataOut<MACRO_DIMENSIONS> data_out;
+        DataOut <MACRO_DIMENSIONS> data_out;
         data_out.attach_dof_handler(macro.dof_handler);
         data_out.add_data_vector(macro.solution, "solution");
         data_out.build_patches();
@@ -110,7 +115,7 @@ void Manager::write_plot() {
         micro.get_color(color);
         std::ofstream output("results/w-color.txt", std::ofstream::app);
         output << color(0);
-        for (unsigned int k=1;k<color.size();k++) {
+        for (unsigned int k: micro.grid_indicator) {
             output << "," << color(k);
         }
         output << std::endl;
@@ -124,7 +129,7 @@ void Manager::output_results() {
 
 void Manager::patch_and_write_solutions() {
     {
-        DataOut<MACRO_DIMENSIONS> macro_data_out;
+        DataOut <MACRO_DIMENSIONS> macro_data_out;
         macro_data_out.attach_dof_handler(macro.dof_handler);
         macro_data_out.add_data_vector(macro.solution, "u");
         macro_data_out.build_patches();
@@ -133,7 +138,7 @@ void Manager::patch_and_write_solutions() {
     }
     write_micro_grid_locations("results/micro-solutions/grid_locations.txt");
     for (unsigned int grid_num = 0; grid_num < micro.get_num_grids(); grid_num++) {
-        DataOut<MICRO_DIMENSIONS> micro_data_out;
+        DataOut <MICRO_DIMENSIONS> micro_data_out;
         micro_data_out.attach_dof_handler(micro.dof_handler);
         micro_data_out.add_data_vector(micro.solutions.at(grid_num), "v");
         micro_data_out.build_patches();
@@ -141,7 +146,7 @@ void Manager::patch_and_write_solutions() {
         micro_data_out.write_vtk(micro_output);
     }
     for (unsigned int grid_num = 0; grid_num < micro.get_num_grids(); grid_num++) {
-        DataOut<MICRO_DIMENSIONS> micro_data_out;
+        DataOut <MICRO_DIMENSIONS> micro_data_out;
         micro_data_out.attach_dof_handler(micro.dof_handler);
         micro_data_out.add_data_vector(micro.solutions_w.at(grid_num), "w");
         micro_data_out.build_patches();
@@ -154,7 +159,7 @@ void Manager::write_micro_grid_locations(const std::string &filename) {
     std::cout << "Writing grid locations to file" << std::endl;
     std::ofstream loc_file;
     loc_file.open(filename);
-    auto grid_locations = std::vector<Point<MACRO_DIMENSIONS>>();
+    auto grid_locations = std::vector < Point < MACRO_DIMENSIONS >> ();
     macro.get_dof_locations(grid_locations);
     for (unsigned int grid_num = 0; grid_num < micro.get_num_grids(); grid_num++) {
         for (unsigned int dim = 0; dim < MACRO_DIMENSIONS; dim++) {

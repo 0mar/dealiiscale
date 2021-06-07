@@ -81,8 +81,8 @@ void MicroSolver<dim>::setup_scatter() {
         old_solutions.emplace_back(n_dofs);
         solutions_w.emplace_back(n_dofs);
         old_solutions_w.emplace_back(n_dofs);
-        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, old_solutions[k]);
-        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, old_solutions_w[k]);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, solutions[k]);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, solutions_w[k]);
         Vector<double> rhs(n_dofs);
         righthandsides.emplace_back(n_dofs);
         system_matrices.emplace_back();
@@ -135,7 +135,7 @@ void MicroSolver<dim>::assemble_system() {
     const double k4 = pde_data.params.get_double("k4");
     const double euler = pde_data.params.get_double("euler");
     const double dt = pde_data.params.get_double("dt");
-    for (unsigned int k = 0; k < num_grids; k++) {
+    for (unsigned int k: grid_indicator) {
         old_solutions[k] = solutions[k];
         old_solutions_w[k] = solutions_w[k];
         solutions[k] = 0;
@@ -154,7 +154,7 @@ void MicroSolver<dim>::assemble_system() {
     iteration += 1;//debug
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
-        for (unsigned int k = 0; k < num_grids; k++) {
+        for (unsigned int k: grid_indicator) {
 //            std::cout << grid_locations[k] << std::endl;
             for (unsigned int i = 0; i < old_solutions[k].size(); i++) {
 //                std::cout << "it " << iteration << ", " << k << ": " << solutions[k](i) << ", " << old_solutions[k](i) << std::endl;
@@ -194,7 +194,7 @@ void MicroSolver<dim>::assemble_system() {
                 }
                 for (unsigned int i = 0; i < dofs_per_cell; i++) {
                     for (unsigned int j = 0; j < dofs_per_cell; j++) {
-                        for (unsigned int k = 0; k < num_grids; k++) {
+                        for (unsigned int k: grid_indicator) {
                             system_matrices.at(k).add(local_dof_indices[i],
                                                       local_dof_indices[j],
                                                       cell_matrix(i, j));
@@ -204,7 +204,7 @@ void MicroSolver<dim>::assemble_system() {
             }
         }
 
-        for (unsigned int k = 0; k < num_grids; k++) {
+        for (unsigned int k: grid_indicator) {
             for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
                 if (cell->face(face_number)->at_boundary()) {
                     fe_face_values.reinit(cell, face_number);
@@ -231,7 +231,7 @@ void MicroSolver<dim>::assemble_system() {
 
 template<int dim>
 void MicroSolver<dim>::solve_time_step() {
-    for (unsigned int k = 0; k < num_grids; k++) {
+    for (unsigned int k: grid_indicator) {
         SolverControl solver_control(10000, 1e-12);
         SolverCG<> solver(solver_control);
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
@@ -286,7 +286,7 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
     Vector<double> macro_domain_l2_error(num_grids);
     Vector<double> macro_domain_h1_error(num_grids);
     Vector<double> macro_domain_mass(num_grids);
-    for (unsigned int k = 0; k < num_grids; k++) {
+    for (unsigned int k: grid_indicator) {
         pde_data.solution.set_macro_point(grid_locations.at(k));
         const unsigned int n_active = triangulation.n_active_cells();
         Vector<double> difference_per_cell(n_active);
@@ -323,8 +323,8 @@ void MicroSolver<dim>::compute_error(double &l2_error, double &h1_error) {
 template<int dim>
 void MicroSolver<dim>::compute_all_residuals(double &l2_residual) {
     Vector<double> macro_domain_l2_residual(num_grids);
-    for (unsigned int grid_num = 0; grid_num < num_grids; grid_num++) {
-        macro_domain_l2_residual(grid_num) = get_residual(grid_num);
+    for (unsigned int k: grid_indicator) {
+        macro_domain_l2_residual(k) = get_residual(k);
     }
     Vector<double> macro_integral(num_grids);
     VectorTools::integrate_difference(*macro_dof_handler, macro_domain_l2_residual, Functions::ZeroFunction<dim>(),
@@ -362,11 +362,13 @@ void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locatio
     num_grids = locations.size();
     grid_indicator.clear();
     const double EPS = 1E-4;
-    for (unsigned int k=0;k<num_grids;k++) {
+    for (unsigned int k = 0; k < num_grids; k++) {
         double dist_to_line = std::fabs(grid_locations[k](1) - 0.5);
-        grid_indicator.push_back((int)(dist_to_line<EPS));
-        std::cout << grid_indicator[k] << " "<<grid_locations[k]<< std::endl;
+        if (dist_to_line < EPS) {
+            grid_indicator.push_back(k);
+        }
     }
+    printf("Instantiated %ld microgrids\n", grid_indicator.size());
 }
 
 
@@ -387,7 +389,7 @@ unsigned int MicroSolver<dim>::get_num_grids() {
 template<int dim>
 void MicroSolver<dim>::get_color(Vector<double> &color) {
     AssertDimension(color.size(), solutions_w.size());
-    for (unsigned int k = 0; k < solutions_w.size(); k++) {
+    for (unsigned int k: grid_indicator) {
         color(k) = solutions[k].l1_norm();
     }
 }

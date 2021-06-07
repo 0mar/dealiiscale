@@ -67,7 +67,7 @@ void MacroSolver<dim>::setup_system() {
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     constraints.close();
-    VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_u, old_solution);
+    VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_u, solution);
     laplace_matrix.reinit(sparsity_pattern);
     mass_matrix.reinit(sparsity_pattern);
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
@@ -268,7 +268,6 @@ void MacroSolver<dim>::get_microscopic_contribution(Vector<double> &micro_contri
     for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
         micro_contribution[i] = get_micro_flux(i);
     }
-//    std::cout << "Micro Mass " << micro_contribution << std::endl;
 }
 
 template<int dim>
