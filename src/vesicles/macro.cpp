@@ -163,7 +163,7 @@ void MacroSolver<dim>::interpolate_function(const Vector<double> &func, Vector<d
 
 template<int dim>
 void MacroSolver<dim>::solve() {
-    old_solution = solution;
+    old_solution.swap(solution);
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
