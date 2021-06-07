@@ -48,7 +48,7 @@ void MacroSolver<dim>::make_grid() {
                 // Note that this arrangement is implicitly coupled with ./prepare_two_scale.py
             }
         }
-    } // no need to lable
+    }
     printf("%d active macro cells\n", triangulation.n_active_cells());
 }
 
@@ -67,7 +67,7 @@ void MacroSolver<dim>::setup_system() {
     old_solution.reinit(dof_handler.n_dofs());
     system_rhs.reinit(dof_handler.n_dofs());
     constraints.close();
-//    VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_u, old_solution);
+    VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_u, old_solution);
     laplace_matrix.reinit(sparsity_pattern);
     mass_matrix.reinit(sparsity_pattern);
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
@@ -110,7 +110,7 @@ void MacroSolver<dim>::assemble_system() {
     Vector<double> aux_vector;
     aux_vector.reinit(dof_handler.n_dofs());
     system_matrix = 0;
-    system_rhs = 0; // superfluous I think
+    system_rhs = 0;
     mass_matrix.vmult(system_rhs, old_solution);
     laplace_matrix.vmult(aux_vector, old_solution);
     system_rhs.add(-dt * D * (1 - euler), aux_vector);
@@ -130,6 +130,7 @@ void MacroSolver<dim>::assemble_system() {
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
                 const double functional = rho_rhs_points[q_index];
                 cell_rhs(i) += fe_values.shape_value(i, q_index) * functional * fe_values.JxW(q_index) * euler * dt;
+                //todo: can be collapsed into system_rhs MV computation below
             }
         for (unsigned int i = 0; i < dofs_per_cell; ++i) {
             system_rhs(local_dof_indices[i]) += cell_rhs(i);
@@ -162,7 +163,7 @@ void MacroSolver<dim>::interpolate_function(const Vector<double> &func, Vector<d
 
 template<int dim>
 void MacroSolver<dim>::solve() {
-    solution = old_solution;
+    old_solution = solution;
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());

@@ -73,6 +73,7 @@ void MicroSolver<dim>::setup_scatter() {
     system_matrices.clear();
     compute_macroscopic_contribution();
     constraints.close();
+    num_grids = grid_locations.size();
     unsigned int n_dofs = dof_handler.n_dofs();
     for (unsigned int k = 0; k < num_grids; k++) {
         pde_data.init_v.set_macro_point(grid_locations[k]);
@@ -81,8 +82,8 @@ void MicroSolver<dim>::setup_scatter() {
         solutions.push_back(solution_v);
         solutions_w.push_back(solution_w);
         Vector<double> old_solution_v(n_dofs), old_solution_w(n_dofs);
-//        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, old_solution_v);
-//        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, old_solution_w);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, old_solution_v);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, old_solution_w);
         old_solutions.push_back(old_solution_v);
         old_solutions_w.push_back(old_solution_w);
 
@@ -152,9 +153,14 @@ void MicroSolver<dim>::assemble_system() {
     }
     std::vector<double> old_sol_v(n_q_points);
     std::vector<double> old_sol_w(n_q_points);
+    iteration += 1;//debug
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         for (unsigned int k = 0; k < num_grids; k++) {
+//            std::cout << grid_locations[k] << std::endl;
+            for (unsigned int i = 0; i < old_solutions[k].size(); i++) {
+//                std::cout << "it " << iteration << ", " << k << ": " << solutions[k](i) << ", " << old_solutions[k](i) << std::endl;
+            }
             cell_rhs = 0;
             local_w = 0;
             fe_values.get_function_values(old_solutions[k], old_sol_v);
@@ -166,7 +172,7 @@ void MicroSolver<dim>::assemble_system() {
                     const double g2 = -k4 * old_sol_w[q_index] + 2 * k1 * old_sol_v[q_index] - k2 * w_sq -
                                       k3 * old_sol_v[q_index] * old_sol_w[q_index];
                     cell_rhs(i) += fe_values.shape_value(i, q_index) * g1 * euler * dt * fe_values.JxW(q_index);
-                    local_w(i) = fe_values.shape_value(i, q_index) * g2 * euler * dt* fe_values.JxW(q_index);
+                    local_w(i) = fe_values.shape_value(i, q_index) * g2 * euler * dt * fe_values.JxW(q_index);
                 }
                 righthandsides[k](local_dof_indices[i]) += cell_rhs(i);
                 //soft forward euler
@@ -227,16 +233,32 @@ void MicroSolver<dim>::assemble_system() {
 
 template<int dim>
 void MicroSolver<dim>::solve_time_step() {
-    SolverControl solver_control(10000, 1e-12);
-    SolverCG<> solver(solver_control);
     for (unsigned int k = 0; k < num_grids; k++) {
-        old_solutions[k] = solutions[k];
-        old_solutions_w[k] = solutions_w[k];
+        SolverControl solver_control(10000, 1e-12);
+        SolverCG<> solver(solver_control);
+        if (false) {
+            printf("old_solutions\n");
+            print(old_solutions.at(k));
+            printf("righthandside\n");
+            print(righthandsides.at(k));
+            printf("w\n");
+            print(solutions_w.at(k));
+        }
+        old_solutions[k].swap(solutions[k]);
+        old_solutions_w[k].swap(solutions_w[k]);
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
+        printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
+        if (false) {
+            printf("old_solutions\n");
+            print(old_solutions.at(k));
+            printf("righthandside\n");
+            print(righthandsides.at(k));
+            printf("w\n");
+            print(solutions_w.at(k));
+        }
 //        std::cout << righthandsides.at(k) << "\n";
 //        system_matrices.at(k).print(std::cout);
     }
-    printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
 }
 
 template<int dim>
@@ -334,6 +356,14 @@ void MicroSolver<dim>::compute_all_residuals(double &l2_residual) {
     std::cout << l2_residual << std::endl;
 }
 
+template<int dim>
+void MicroSolver<dim>::print(Vector<double> vec) {
+    std::cout << vec[0];
+    for (unsigned int k = 1; k < vec.size(); k++) {
+        std::cout << ", " << vec[k];
+    }
+    std::cout << std::endl;
+}
 
 template<int dim>
 double MicroSolver<dim>::get_residual(unsigned int grid_num) {

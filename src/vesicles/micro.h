@@ -152,6 +152,8 @@ private:
      */
     void compute_macroscopic_contribution();
 
+    void print(Vector<double> vec);
+
     double get_residual(unsigned int grid_num);
 
     Point<dim> get_micro_grid_size(const std::vector<Point<dim>> &locations) const;
@@ -159,6 +161,7 @@ private:
     FE_Q<dim> fe;
     unsigned int fem_q_deg = 8;
     unsigned int h_inv;
+    int iteration = 0;
     unsigned int num_grids;
     SparsityPattern sparsity_pattern;
     Vector<double> *macro_solution;
