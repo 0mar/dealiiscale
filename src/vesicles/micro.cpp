@@ -53,7 +53,6 @@ template<int dim>
 void MicroSolver<dim>::setup_system() {
     dof_handler.distribute_dofs(fe);
     printf("%d micro DoFs\n", dof_handler.n_dofs());
-
     DynamicSparsityPattern dsp(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
     sparsity_pattern.copy_from(dsp);
@@ -361,6 +360,13 @@ template<int dim>
 void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations) {
     grid_locations = locations;
     num_grids = locations.size();
+    grid_indicator.clear();
+    const double EPS = 1E-4;
+    for (unsigned int k=0;k<num_grids;k++) {
+        double dist_to_line = std::fabs(grid_locations[k](1) - 0.5);
+        grid_indicator.push_back((int)(dist_to_line<EPS));
+        std::cout << grid_indicator[k] << " "<<grid_locations[k]<< std::endl;
+    }
 }
 
 

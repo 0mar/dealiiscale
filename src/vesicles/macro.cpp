@@ -31,8 +31,8 @@ template<int dim>
 void MacroSolver<dim>::make_grid() {
     const double length = 5;
     const double height = 1;
-    Point <dim> p1(0, 0);
-    Point <dim> p2(length, height);
+    Point<dim> p1(0, 0);
+    Point<dim> p2(length, height);
     GridGenerator::hyper_rectangle(triangulation, p1, p2);
     triangulation.refine_global(2);
     const double EPS = 1E-4;
@@ -306,6 +306,7 @@ void MacroSolver<dim>::print(Vector<double> vec) {
     }
     std::cout << std::endl;
 }
+
 template<int dim>
 void MacroSolver<dim>::write_solution_to_file(const Vector<double> &sol,
                                               const DoFHandler <dim> &corr_dof_handler) {

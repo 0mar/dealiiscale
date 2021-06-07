@@ -19,7 +19,7 @@ void Manager::setup() {
     macro.setup();
     std::vector<Point<MACRO_DIMENSIONS>> dof_locations;
     macro.get_dof_locations(dof_locations);
-    micro.set_grid_locations(dof_locations); // todo: fix a small number of structures
+    micro.set_grid_locations(dof_locations);
     micro.setup();
     // Couple the macro structures with the micro structures.
 

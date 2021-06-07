@@ -170,6 +170,7 @@ private:
     DoFHandler<dim> *macro_dof_handler;
     std::vector<SparseMatrix<double>> system_matrices;
     std::vector<Vector<double>> righthandsides;
+    std::vector<int> grid_indicator;
     SparseMatrix<double> mass_matrix;
     SparseMatrix<double> laplace_matrix;
     std::vector<Point<dim>> grid_locations;
