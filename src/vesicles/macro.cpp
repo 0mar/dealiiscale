@@ -107,6 +107,8 @@ void MacroSolver<dim>::assemble_system() {
     const double D = pde_data.diffusion.value(_point);
     const double dt = pde_data.params.get_double("dt");
     const double euler = pde_data.params.get_double("euler");
+    old_solution = solution;
+    solution = 0;
     Vector<double> aux_vector;
     aux_vector.reinit(dof_handler.n_dofs());
     system_matrix = 0;
@@ -163,7 +165,6 @@ void MacroSolver<dim>::interpolate_function(const Vector<double> &func, Vector<d
 
 template<int dim>
 void MacroSolver<dim>::solve() {
-    old_solution.swap(solution);
     SolverControl solver_control(10000, 1e-12);
     SolverCG<> solver(solver_control);
     solver.solve(system_matrix, solution, system_rhs, PreconditionIdentity());
@@ -297,6 +298,14 @@ void MacroSolver<dim>::set_exact_solution() {
 }
 
 
+template<int dim>
+void MacroSolver<dim>::print(Vector<double> vec) {
+    std::cout << vec[0];
+    for (unsigned int k = 1; k < vec.size(); k++) {
+        std::cout << ", " << vec[k];
+    }
+    std::cout << std::endl;
+}
 template<int dim>
 void MacroSolver<dim>::write_solution_to_file(const Vector<double> &sol,
                                               const DoFHandler <dim> &corr_dof_handler) {

@@ -158,6 +158,7 @@ private:
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
      */
     void solve();
+    void print(Vector<double> vec);
 
     void set_exact_solution();
 

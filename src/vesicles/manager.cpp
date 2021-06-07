@@ -26,7 +26,7 @@ void Manager::setup() {
     micro.set_macro_solutions(&macro.solution, &macro.solution,
                               &macro.dof_handler);
     macro.set_micro_solutions(&micro.solutions, &micro.dof_handler);
-    std::vector<std::string> out_file_names = {"results/w-color.txt"};
+    std::vector<std::string> out_file_names = {"w-color.txt"};
     for (const std::string &out_file_name: out_file_names) {
         std::ofstream ofs;
         ofs.open("results/" + out_file_name, std::ofstream::out | std::ofstream::trunc);
@@ -109,7 +109,7 @@ void Manager::write_plot() {
         Vector<double> color(micro.get_num_grids());
         micro.get_color(color);
         std::ofstream output("results/w-color.txt", std::ofstream::app);
-        output << it << "," << color(0) << std::endl;
+        output << color(0);
         for (unsigned int k=1;k<color.size();k++) {
             output << "," << color(k);
         }

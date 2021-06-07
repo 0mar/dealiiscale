@@ -78,19 +78,15 @@ void MicroSolver<dim>::setup_scatter() {
     for (unsigned int k = 0; k < num_grids; k++) {
         pde_data.init_v.set_macro_point(grid_locations[k]);
         pde_data.init_w.set_macro_point(grid_locations[k]);
-        Vector<double> solution_v(n_dofs), solution_w(n_dofs);
-        solutions.push_back(solution_v);
-        solutions_w.push_back(solution_w);
-        Vector<double> old_solution_v(n_dofs), old_solution_w(n_dofs);
-        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, old_solution_v);
-        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, old_solution_w);
-        old_solutions.push_back(old_solution_v);
-        old_solutions_w.push_back(old_solution_w);
-
+        solutions.emplace_back(n_dofs);
+        old_solutions.emplace_back(n_dofs);
+        solutions_w.emplace_back(n_dofs);
+        old_solutions_w.emplace_back(n_dofs);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_v, old_solutions[k]);
+        VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_w, old_solutions_w[k]);
         Vector<double> rhs(n_dofs);
-        righthandsides.push_back(rhs);
-        SparseMatrix<double> system_matrix;
-        system_matrices.push_back(system_matrix);
+        righthandsides.emplace_back(n_dofs);
+        system_matrices.emplace_back();
         intermediate_vector.reinit(dof_handler.n_dofs());
     }
 }
@@ -127,7 +123,6 @@ void MicroSolver<dim>::assemble_system() {
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
     Vector<double> local_w(dofs_per_cell);
-
     std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     // this is a break from Crank Nicholson implementation
     // Fix by: Storing a copy of the previously projected RHS in a persistent vector.
@@ -142,6 +137,10 @@ void MicroSolver<dim>::assemble_system() {
     const double euler = pde_data.params.get_double("euler");
     const double dt = pde_data.params.get_double("dt");
     for (unsigned int k = 0; k < num_grids; k++) {
+        old_solutions[k] = solutions[k];
+        old_solutions_w[k] = solutions_w[k];
+        solutions[k] = 0;
+        solutions_w[k] = 0;
         righthandsides.at(k) = 0;
         system_matrices.at(k).reinit(sparsity_pattern);
         mass_matrix.vmult(righthandsides.at(k), old_solutions.at(k));
@@ -236,28 +235,8 @@ void MicroSolver<dim>::solve_time_step() {
     for (unsigned int k = 0; k < num_grids; k++) {
         SolverControl solver_control(10000, 1e-12);
         SolverCG<> solver(solver_control);
-        if (false) {
-            printf("old_solutions\n");
-            print(old_solutions.at(k));
-            printf("righthandside\n");
-            print(righthandsides.at(k));
-            printf("w\n");
-            print(solutions_w.at(k));
-        }
-        old_solutions[k].swap(solutions[k]);
-        old_solutions_w[k].swap(solutions_w[k]);
         solver.solve(system_matrices.at(k), solutions.at(k), righthandsides.at(k), PreconditionIdentity());
         printf("\t %d CG iterations to convergence (micro)\n", solver_control.last_step());
-        if (false) {
-            printf("old_solutions\n");
-            print(old_solutions.at(k));
-            printf("righthandside\n");
-            print(righthandsides.at(k));
-            printf("w\n");
-            print(solutions_w.at(k));
-        }
-//        std::cout << righthandsides.at(k) << "\n";
-//        system_matrices.at(k).print(std::cout);
     }
 }
 
