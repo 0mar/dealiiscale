@@ -20,7 +20,7 @@ void Manager::setup() {
     std::vector <Point<MACRO_DIMENSIONS>>
             dof_locations;
     macro.get_dof_locations(dof_locations);
-    micro.set_grid_locations(dof_locations);
+    micro.set_grid_locations(dof_locations, macro.micro_indicator);
     micro.setup();
     // Couple the macro structures with the micro structures.
 
@@ -46,17 +46,12 @@ void Manager::run() {
         iterate();
         compute_residuals(old_residual, residual);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
-//        if (it==10) {
-//            printf("Storing patched micro and corresponding macro solutions at time %.2f\n",time);
-//            std::vector<Point<2>> locations;
-//            macro.get_dof_locations(locations);
-//            micro.patch_micro_solutions(locations);
-//            output_results();
-//        }
+        if (time > 0.5) {
+            output_results();
+            exit(0);
+        }
     }
     output_results();
-//    macro.write_solution_to_file(macro.solution, macro.dof_handler);
-//    micro.write_solutions_to_file(micro.solutions, micro.dof_handler);
 }
 
 
@@ -161,9 +156,10 @@ void Manager::write_micro_grid_locations(const std::string &filename) {
     loc_file.open(filename);
     auto grid_locations = std::vector < Point < MACRO_DIMENSIONS >> ();
     macro.get_dof_locations(grid_locations);
-    for (unsigned int grid_num = 0; grid_num < micro.get_num_grids(); grid_num++) {
+    for (unsigned int k: micro.grid_indicator) {
+        loc_file << k << " ";
         for (unsigned int dim = 0; dim < MACRO_DIMENSIONS; dim++) {
-            loc_file << grid_locations[grid_num][dim] << " ";
+            loc_file << grid_locations[k][dim] << " ";
         }
         loc_file << std::endl;
     }

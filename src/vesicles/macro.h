@@ -96,6 +96,7 @@ public:
 
     Vector<double> solution;
     Vector<double> old_solution;
+    std::vector<unsigned int> micro_indicator;
     Triangulation<dim> triangulation;
     DoFHandler<dim> dof_handler;
     double residual;

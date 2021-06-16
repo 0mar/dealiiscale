@@ -70,6 +70,7 @@ void MacroSolver<dim>::setup_system() {
     VectorTools::project(dof_handler, constraints, QGauss<dim>(3), pde_data.init_u, solution);
     laplace_matrix.reinit(sparsity_pattern);
     mass_matrix.reinit(sparsity_pattern);
+
     MatrixTools::create_laplace_matrix(dof_handler, QGauss<dim>(integration_order), laplace_matrix);
     MatrixTools::create_mass_matrix(dof_handler, QGauss<dim>(integration_order), mass_matrix);
 }
@@ -121,16 +122,16 @@ void MacroSolver<dim>::assemble_system() {
     system_matrix.add(dt * D * euler, laplace_matrix);
     Vector<double> micro_contribution(dof_handler.n_dofs());
     get_microscopic_contribution(micro_contribution);
-    std::vector<double> rho_rhs_points(n_q_points);
+    std::vector<double> micro_rhs_points(n_q_points);
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         cell_matrix = 0;
         cell_rhs = 0;
-        fe_values.get_function_values(micro_contribution, rho_rhs_points);
+        fe_values.get_function_values(micro_contribution, micro_rhs_points);
         cell->get_dof_indices(local_dof_indices);
         for (unsigned int q_index = 0; q_index < n_q_points; ++q_index)
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
-                const double functional = rho_rhs_points[q_index];
+                const double functional = micro_rhs_points[q_index];
                 cell_rhs(i) += fe_values.shape_value(i, q_index) * functional * fe_values.JxW(q_index) * euler * dt;
                 //todo: can be collapsed into system_rhs MV computation below
             }
@@ -265,8 +266,9 @@ void MacroSolver<dim>::get_dof_locations(std::vector <Point<dim>> &locations) {
 template<int dim>
 void MacroSolver<dim>::get_microscopic_contribution(Vector<double> &micro_contribution) {
     AssertDimension(micro_contribution.size(), dof_handler.n_dofs())
-    for (unsigned int i = 0; i < dof_handler.n_dofs(); i++) {
-        micro_contribution[i] = get_micro_flux(i);
+    micro_contribution = 0;
+    for (unsigned int k: micro_indicator) {
+        micro_contribution[k] = get_micro_flux(k);
     }
 }
 

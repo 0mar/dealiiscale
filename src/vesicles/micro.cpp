@@ -151,14 +151,9 @@ void MicroSolver<dim>::assemble_system() {
     }
     std::vector<double> old_sol_v(n_q_points);
     std::vector<double> old_sol_w(n_q_points);
-    iteration += 1;//debug
     for (const auto &cell: dof_handler.active_cell_iterators()) {
         fe_values.reinit(cell);
         for (unsigned int k: grid_indicator) {
-//            std::cout << grid_locations[k] << std::endl;
-            for (unsigned int i = 0; i < old_solutions[k].size(); i++) {
-//                std::cout << "it " << iteration << ", " << k << ": " << solutions[k](i) << ", " << old_solutions[k](i) << std::endl;
-            }
             cell_rhs = 0;
             local_w = 0;
             fe_values.get_function_values(old_solutions[k], old_sol_v);
@@ -357,7 +352,7 @@ double MicroSolver<dim>::get_residual(unsigned int grid_num) {
 }
 
 template<int dim>
-void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations) {
+void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locations, std::vector<unsigned int> &indicator) {
     grid_locations = locations;
     num_grids = locations.size();
     grid_indicator.clear();
@@ -368,6 +363,7 @@ void MicroSolver<dim>::set_grid_locations(const std::vector<Point<dim>> &locatio
             grid_indicator.push_back(k);
         }
     }
+    indicator = grid_indicator;
     printf("Instantiated %ld microgrids\n", grid_indicator.size());
 }
 

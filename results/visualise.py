@@ -125,12 +125,16 @@ transform_macro(u_sol_file, level=1)
 import sys
 param_filename = sys.argv[1]
 loc_file = 'micro-solutions/grid_locations.txt'
-coords = np.loadtxt(loc_file)
+data = np.loadtxt(loc_file)
+coords = data[:, 1:]
+els = data[:,0].astype(int)
+print(els, coords)
 num_els_x0 = num_els_x1 = int(np.sqrt(len(coords)))
 transform_func = get_transform_function(param_filename, num_els_x0, num_els_x1)
 sol_string = 'micro-solutions/v-solution-%d.vtk'
 out_string = 'micro-solutions/v-warped-%d.vtk'
 for i in range(len(coords)):
+    grid_num = els[i]
     np_trans = transform_func(coords[i])
-    transform_dataset(sol_string % i, np_trans, out_name=out_string%i)
-    print("Wrote number %d on %s" % (i, coords[i]))
+    transform_dataset(sol_string % grid_num, np_trans, out_name=out_string%grid_num)
+    print("Wrote number %d on %s" % (grid_num, coords[i]))
