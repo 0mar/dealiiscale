@@ -40,7 +40,7 @@ void MacroSolver<dim>::make_grid() {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary()) {
                 const double x_abs = std::fabs(cell->face(face_number)->center()(0));
-                if (x_abs < EPS or x_abs > length - EPS) {
+                if (x_abs < EPS) {
                     cell->face(face_number)->set_boundary_id(DIRICHLET_BOUNDARY);
                 } else {
                     cell->face(face_number)->set_boundary_id(NEUMANN_BOUNDARY);
