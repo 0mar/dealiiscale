@@ -383,13 +383,20 @@ unsigned int MicroSolver<dim>::get_num_grids() {
 }
 
 template<int dim>
-void MicroSolver<dim>::get_color(Vector<double> &color) {
+void MicroSolver<dim>::get_v_int(Vector<double> &color) {
     AssertDimension(color.size(), solutions_w.size());
     for (unsigned int k: grid_indicator) {
         color(k) = solutions[k].l1_norm();
     }
 }
 
+template<int dim>
+void MicroSolver<dim>::get_w_int(Vector<double> &color) {
+    AssertDimension(color.size(), solutions_w.size());
+    for (unsigned int k: grid_indicator) {
+        color(k) = solutions_w[k].l1_norm();
+    }
+}
 // Explicit instantiation
 
 template

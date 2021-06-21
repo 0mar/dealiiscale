@@ -10,7 +10,7 @@ Manager::Manager(unsigned int macro_h_inv, unsigned int micro_h_inv,
                                                                                     macro_h_inv),
                                                                               micro(data.micro,
                                                                                     micro_h_inv),
-                                                                              final_time(0.5),
+                                                                              final_time(5),
                                                                               ct_file_name(out_file) {
 }
 
@@ -46,10 +46,6 @@ void Manager::run() {
         iterate();
         compute_residuals(old_residual, residual);
         printf("Old residual %.2e, new residual %.2e\n", old_residual, residual);
-        if (time > 0.5) {
-            output_results();
-            exit(0);
-        }
     }
     output_results();
 }
@@ -107,8 +103,19 @@ void Manager::write_plot() {
     }
     {
         Vector<double> color(micro.get_num_grids());
-        micro.get_color(color);
-        std::ofstream output("results/w-color.txt", std::ofstream::app);
+        micro.get_w_int(color);
+        std::ofstream output("results/w-int.txt", std::ofstream::app);
+        output << color(0);
+        for (unsigned int k: micro.grid_indicator) {
+            output << "," << color(k);
+        }
+        output << std::endl;
+        output.close();
+    }
+    {
+        Vector<double> color(micro.get_num_grids());
+        micro.get_v_int(color);
+        std::ofstream output("results/v-int.txt", std::ofstream::app);
         output << color(0);
         for (unsigned int k: micro.grid_indicator) {
             output << "," << color(k);

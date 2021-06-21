@@ -41,6 +41,7 @@
 #include <deal.II/base/logstream.h>
 #include "../tools/multiscale_function_parser.h"
 #include "../tools/pde_data.h"
+
 using namespace dealii;
 
 template<int dim>
@@ -97,7 +98,9 @@ public:
 
     unsigned int get_num_grids();
 
-    void get_color(Vector<double> &color);
+    void get_v_int(Vector<double> &color);
+
+    void get_w_int(Vector<double> &color);
 
     void write_solutions_to_file(const std::vector<Vector<double>> &sols,
                                  const DoFHandler<dim> &corr_dof_handler);
@@ -178,9 +181,9 @@ private:
     int integration_order;
     Vector<double> intermediate_vector;
     AffineConstraints<double> constraints;
-    const unsigned int DIRICHLET_BOUNDARY=1;
-    const unsigned int NEUMANN_BOUNDARY=2;
-    const unsigned int ROBIN_BOUNDARY=3;
+    const unsigned int DIRICHLET_BOUNDARY = 1;
+    const unsigned int NEUMANN_BOUNDARY = 2;
+    const unsigned int ROBIN_BOUNDARY = 3;
 };
 
 #endif //RHO_SOLVER_H

@@ -8,14 +8,14 @@
 using namespace dealii;
 
 template<int dim>
-MacroSolver<dim>::MacroSolver(ParabolicMacroData <dim> &macro_data, unsigned int h_inv):dof_handler(triangulation),
-                                                                                        fe(1),
-                                                                                        micro_dof_handler(nullptr),
-                                                                                        micro_solutions(nullptr),
-                                                                                        pde_data(macro_data),
-                                                                                        integration_order(
-                                                                                                fe.degree + 1),
-                                                                                        h_inv(h_inv) {
+MacroSolver<dim>::MacroSolver(ParabolicMacroData<dim> &macro_data, unsigned int h_inv):dof_handler(triangulation),
+                                                                                       fe(1),
+                                                                                       micro_dof_handler(nullptr),
+                                                                                       micro_solutions(nullptr),
+                                                                                       pde_data(macro_data),
+                                                                                       integration_order(
+                                                                                               fe.degree + 1),
+                                                                                       h_inv(h_inv) {
     residual = 1;
     printf("Solving macro problem in %d space dimensions\n", dim);
 }
@@ -34,7 +34,7 @@ void MacroSolver<dim>::make_grid() {
     Point<dim> p1(0, 0);
     Point<dim> p2(length, height);
     GridGenerator::hyper_rectangle(triangulation, p1, p2);
-    triangulation.refine_global(2);
+    triangulation.refine_global(4);
     const double EPS = 1E-4;
     for (const auto &cell: triangulation.active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
@@ -91,11 +91,11 @@ MacroSolver<dim>::get_pi_contribution_rhs(const Vector<double> &pi, Vector<doubl
 
 template<int dim>
 void MacroSolver<dim>::assemble_system() {
-    QGauss <dim> quadrature_formula(integration_order);
+    QGauss<dim> quadrature_formula(integration_order);
 
-    FEValues <dim> fe_values(fe, quadrature_formula,
-                             update_values | update_gradients |
-                             update_quadrature_points | update_JxW_values);
+    FEValues<dim> fe_values(fe, quadrature_formula,
+                            update_values | update_gradients |
+                            update_quadrature_points | update_JxW_values);
 
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
@@ -103,9 +103,9 @@ void MacroSolver<dim>::assemble_system() {
     FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
     Vector<double> cell_rhs(dofs_per_cell);
 
-    std::vector <types::global_dof_index> local_dof_indices(dofs_per_cell);
-    Point <dim> _point;
-    const double D = pde_data.diffusion.value(_point);
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+    Point<dim> _point;
+    const double D = 1;// pde_data.diffusion.value(_point);
     const double dt = pde_data.params.get_double("dt");
     const double euler = pde_data.params.get_double("euler");
     old_solution = solution;
@@ -155,7 +155,7 @@ void MacroSolver<dim>::interpolate_function(const Vector<double> &func, Vector<d
         throw std::invalid_argument("func lengths:" + std::to_string(interp_func.size()) + "/" +
                                     std::to_string(triangulation.n_active_cells()));
     }
-    FEValues <dim> fe_value(fe, QMidpoint<dim>(), update_values | update_quadrature_points | update_JxW_values);
+    FEValues<dim> fe_value(fe, QMidpoint<dim>(), update_values | update_quadrature_points | update_JxW_values);
     std::vector<double> mid_point_value(1);
     for (const auto &cell:dof_handler.active_cell_iterators()) {
         fe_value.reinit(cell);
@@ -203,7 +203,7 @@ void MacroSolver<dim>::compute_residual(double &l2_residual) {
 }
 
 template<int dim>
-void MacroSolver<dim>::set_micro_solutions(std::vector <Vector<double>> *_solutions, DoFHandler <dim> *_dof_handler) {
+void MacroSolver<dim>::set_micro_solutions(std::vector<Vector<double>> *_solutions, DoFHandler<dim> *_dof_handler) {
     this->micro_solutions = _solutions;
     this->micro_dof_handler = _dof_handler;
 }
@@ -212,12 +212,12 @@ template<int dim>
 double MacroSolver<dim>::get_micro_mass(unsigned int micro_index) const {
     // computed as: f(x) = \int_Y \rho(x,y) dy
     double integral = 0;
-    QGauss <dim> quadrature_formula(integration_order);
-    FEValues <dim> fe_values(micro_dof_handler->get_fe(), quadrature_formula,
-                             update_values | update_quadrature_points | update_JxW_values);
+    QGauss<dim> quadrature_formula(integration_order);
+    FEValues<dim> fe_values(micro_dof_handler->get_fe(), quadrature_formula,
+                            update_values | update_quadrature_points | update_JxW_values);
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points = quadrature_formula.size();
-    std::vector <types::global_dof_index> local_dof_indices(dofs_per_cell);
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
     for (const auto &cell: micro_dof_handler->active_cell_iterators()) {
         fe_values.reinit(cell);
         cell->get_dof_indices(local_dof_indices);
@@ -233,20 +233,26 @@ double MacroSolver<dim>::get_micro_mass(unsigned int micro_index) const {
 template<int dim>
 double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
     double integral = 0;
-    QGauss < dim - 1 > quadrature_formula(integration_order);
-    FEFaceValues <dim> fe_face_values(micro_dof_handler->get_fe(),
-                                      quadrature_formula, update_values | update_quadrature_points | update_JxW_values |
-                                                          update_normal_vectors | update_gradients);
+    QGauss<dim - 1> quadrature_formula(integration_order);
+    FEFaceValues<dim> fe_face_values(micro_dof_handler->get_fe(),
+                                     quadrature_formula, update_values | update_quadrature_points | update_JxW_values |
+                                                         update_normal_vectors | update_gradients);
     const unsigned int n_q_face_points = quadrature_formula.size();
+    std::vector<double> micro_sol(n_q_face_points);
     for (const auto &cell: micro_dof_handler->active_cell_iterators()) {
         for (unsigned int face_number = 0; face_number < GeometryInfo<dim>::faces_per_cell; face_number++) {
             if (cell->face(face_number)->at_boundary()) {
                 fe_face_values.reinit(cell, face_number);
-                std::vector <Tensor<1, dim>> solution_gradient(n_q_face_points);
-                fe_face_values.get_function_gradients(micro_solutions->at(micro_index), solution_gradient);
+//                std::vector <Tensor<1, dim>> solution_gradient(n_q_face_points);
+//                fe_face_values.get_function_gradients(micro_solutions->at(micro_index), solution_gradient);
+                fe_face_values.get_function_values(micro_solutions->at(micro_index), micro_sol);
                 for (unsigned int q_index = 0; q_index < n_q_face_points; q_index++) {
-                    double neumann = solution_gradient[q_index] * fe_face_values.normal_vector(q_index);
-                    integral += -pde_data.params.get_double("d") * neumann * fe_face_values.JxW(q_index);
+//                    double neumann = solution_gradient[q_index] * fe_face_values.normal_vector(q_index);
+//                    integral += -pde_data.params.get_double("d") * neumann * fe_face_values.JxW(q_index);
+                    integral += pde_data.params.get_double("alpha") *
+                                (pde_data.params.get_double("H") * micro_sol[q_index] -
+                                 pde_data.params.get_double("beta") *
+                                 solution[micro_index]) * fe_face_values.JxW(q_index);
                 }
             }
         }
@@ -255,8 +261,8 @@ double MacroSolver<dim>::get_micro_flux(unsigned int micro_index) const {
 }
 
 template<int dim>
-void MacroSolver<dim>::get_dof_locations(std::vector <Point<dim>> &locations) {
-    MappingQ1 <dim> mapping;
+void MacroSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
+    MappingQ1<dim> mapping;
     locations.clear();
     locations.resize(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(mapping, dof_handler, locations);
@@ -267,8 +273,9 @@ template<int dim>
 void MacroSolver<dim>::get_microscopic_contribution(Vector<double> &micro_contribution) {
     AssertDimension(micro_contribution.size(), dof_handler.n_dofs())
     micro_contribution = 0;
+    const double dirac_weight = std::sqrt(dof_handler.n_dofs())*0.05;
     for (unsigned int k: micro_indicator) {
-        micro_contribution[k] = get_micro_flux(k);
+        micro_contribution[k] = get_micro_flux(k) * dirac_weight;
     }
 }
 
@@ -310,12 +317,12 @@ void MacroSolver<dim>::print(Vector<double> vec) {
 
 template<int dim>
 void MacroSolver<dim>::write_solution_to_file(const Vector<double> &sol,
-                                              const DoFHandler <dim> &corr_dof_handler) {
+                                              const DoFHandler<dim> &corr_dof_handler) {
     const std::string filename = "results/test_pi_" + std::to_string(h_inv) + ".txt";
 
     std::ofstream output(filename);
     output << h_inv << std::endl;
-    std::vector <Point<dim>> locations;
+    std::vector<Point<dim>> locations;
     locations.resize(dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
     AssertDimension(locations.size(), sol.size())
@@ -332,27 +339,27 @@ void MacroSolver<dim>::write_solution_to_file(const Vector<double> &sol,
 
 template<int dim>
 void MacroSolver<dim>::read_solution_from_file(const std::string &filename, Vector<double> &sol,
-                                               DoFHandler <dim> &corr_dof_handler) {
+                                               DoFHandler<dim> &corr_dof_handler) {
     std::ifstream input(filename);
     int refine_lvl;
     std::string line;
     std::getline(input, line);
     std::istringstream iss(line);
     iss >> refine_lvl;
-    Triangulation <dim> tria;
-    DoFHandler <dim> new_dof_handler(tria);
+    Triangulation<dim> tria;
+    DoFHandler<dim> new_dof_handler(tria);
     GridGenerator::hyper_cube(tria, -1, 1);
     tria.refine_global(refine_lvl);
     new_dof_handler.distribute_dofs(fe);
-    std::vector <Point<dim>> locations(new_dof_handler.n_dofs());
+    std::vector<Point<dim>> locations(new_dof_handler.n_dofs());
     DoFTools::map_dofs_to_support_points(MappingQ1<dim>(), corr_dof_handler, locations);
     sol.reinit(locations.size());
-    std::vector <Point<dim>> check_locations(sol.size());
+    std::vector<Point<dim>> check_locations(sol.size());
     for (unsigned int i = 0; i < sol.size(); i++) {
         std::getline(input, line);
         std::istringstream iss1(line);
         iss1 >> sol(i);
-        Point <dim> point;
+        Point<dim> point;
         for (unsigned int j = 0; j < dim; j++) {
             iss1 >> point(j);
         }
