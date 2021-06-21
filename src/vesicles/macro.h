@@ -80,6 +80,8 @@ public:
      */
     void compute_residual(double &l2_residual);
 
+    void get_concentration(Vector<double> &concentration);
+
     /**
      * Set the microscopic solutions pointers, so that this solver can compute its contribution from it.
      * @param _solutions Pointer to a vector of microscopic solution vectors.
@@ -159,6 +161,7 @@ private:
      * Apply an (iterative) solver for the linear system made in `assemble_system` and obtain a solution
      */
     void solve();
+
     void print(Vector<double> vec);
 
     void set_exact_solution();
@@ -179,9 +182,9 @@ private:
     unsigned int h_inv;
     AffineConstraints<double> constraints;
     int count = 0; //debug
-    const unsigned int DIRICHLET_BOUNDARY=1;
-    const unsigned int NEUMANN_BOUNDARY=2;
-    const unsigned int ROBIN_BOUNDARY=3;
+    const unsigned int DIRICHLET_BOUNDARY = 1;
+    const unsigned int NEUMANN_BOUNDARY = 2;
+    const unsigned int ROBIN_BOUNDARY = 3;
 };
 
 #endif //PISOLVER_H

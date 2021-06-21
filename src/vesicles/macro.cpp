@@ -270,10 +270,17 @@ void MacroSolver<dim>::get_dof_locations(std::vector<Point<dim>> &locations) {
 }
 
 template<int dim>
+void MacroSolver<dim>::get_concentration(Vector<double> &color) {
+    for (unsigned int k: micro_indicator) {
+        color(k) = solution(k);
+    }
+}
+
+template<int dim>
 void MacroSolver<dim>::get_microscopic_contribution(Vector<double> &micro_contribution) {
     AssertDimension(micro_contribution.size(), dof_handler.n_dofs())
     micro_contribution = 0;
-    const double dirac_weight = std::sqrt(dof_handler.n_dofs())*0.05;
+    const double dirac_weight = std::sqrt(dof_handler.n_dofs()) * 0.05;
     for (unsigned int k: micro_indicator) {
         micro_contribution[k] = get_micro_flux(k) * dirac_weight;
     }

@@ -79,7 +79,7 @@ def transform_macro(name, level):
     :return:
     """
     trans_matrix = np.eye(4)
-    trans_matrix[2, 3] = level * 0.25  # Translation: lift it up from axis z=0 that has microscale
+    trans_matrix[2, 3] = level * -0.25  # Translation: lift it down from axis z=0 that has microscale
     transform_dataset(name, trans_matrix)
 
 

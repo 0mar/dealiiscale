@@ -7,6 +7,7 @@
 #include "manager.h"
 #include <cmath>
 #include <cstdio>
+#include <sys/stat.h>
 
 /**
  * Run that solver
@@ -18,14 +19,13 @@ void run(const std::string &input_path) {
     std::smatch m;
     std::regex_search(input_path, m, r);
     const std::string id = m[1];
-    const std::string output_path = "results/" + id + "_" + "convergence_table.txt";
-    std::ofstream ofs;
-    ofs.open(output_path, std::ofstream::out | std::ofstream::trunc);
-    ofs.close();
+    const std::string output_dir = "results/" + id + "/";
+    mkdir(output_dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir((output_dir + "micro-solutions/").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     int i = 4;
     auto macro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
     auto micro_h_inv = (unsigned int) std::round(8 * std::pow(2, i / 2.));
-    Manager manager(macro_h_inv, micro_h_inv, input_path, output_path);
+    Manager manager(macro_h_inv, micro_h_inv, input_path, output_dir);
     manager.setup();
     manager.run();
 }

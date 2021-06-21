@@ -25,7 +25,7 @@ public:
      * @param micro_refinement Resolution of the micro solver.
      */
     Manager(unsigned int macro_h_inv, unsigned int micro_h_inv, const std::string &data_file,
-                const std::string &output_file);
+                const std::string &out_dir);
 
     /**
      * Run all the methods that setup the solvers of the two scales and couple the data structures.
@@ -75,7 +75,7 @@ private:
 
     void write_micro_grid_locations(const std::string &filename);
 
-    std::string ct_file_name = "convergence.txt";
+    std::string results_dir = "convergence.txt";
     ConvergenceTable convergence_table;
 
 };
