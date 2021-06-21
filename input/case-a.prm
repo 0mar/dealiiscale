@@ -1,12 +1,12 @@
-set macro_geometry = [-1,1]x[-1,1]
+set macro_geometry = [0,5]x[0,1]
 set micro_geometry = x^2 + y^2 < 1
 set macro_diffusion = 0.2
-set u_bc = 1 - x0/5
+set u_bc = 1
 set init_u = 0
-set init_v = 2.
-set init_w = 0.9
+set init_v = 0
+set init_w = 2
 set d = 0.8
-set alpha = 5
+set alpha = 2
 set beta = 1
 set H = 0.7
 set k1 = 0.5
