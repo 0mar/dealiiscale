@@ -146,7 +146,7 @@ void Manager::patch_and_write_solutions() {
     {
         DataOut<MACRO_DIMENSIONS> macro_data_out;
         macro_data_out.attach_dof_handler(macro.dof_handler);
-        macro_data_out.add_data_vector(macro.solution, "u");
+        macro_data_out.add_data_vector(macro.solution, "solution");
         macro_data_out.build_patches();
         std::ofstream macro_output(results_dir+"/u-solution.vtk");
         macro_data_out.write_vtk(macro_output);
@@ -155,7 +155,7 @@ void Manager::patch_and_write_solutions() {
     for (unsigned int grid_num = 0; grid_num < micro.get_num_grids(); grid_num++) {
         DataOut<MICRO_DIMENSIONS> micro_data_out;
         micro_data_out.attach_dof_handler(micro.dof_handler);
-        micro_data_out.add_data_vector(micro.solutions.at(grid_num), "v");
+        micro_data_out.add_data_vector(micro.solutions.at(grid_num), "solution");
         micro_data_out.build_patches();
         std::ofstream micro_output(results_dir+"/micro-solutions/v-solution-" + std::to_string(grid_num) + ".vtk");
         micro_data_out.write_vtk(micro_output);
@@ -163,7 +163,7 @@ void Manager::patch_and_write_solutions() {
     for (unsigned int grid_num = 0; grid_num < micro.get_num_grids(); grid_num++) {
         DataOut<MICRO_DIMENSIONS> micro_data_out;
         micro_data_out.attach_dof_handler(micro.dof_handler);
-        micro_data_out.add_data_vector(micro.solutions_w.at(grid_num), "w");
+        micro_data_out.add_data_vector(micro.solutions_w.at(grid_num), "solution");
         micro_data_out.build_patches();
         std::ofstream micro_output(results_dir+"/micro-solutions/w-solution-" + std::to_string(grid_num) + ".vtk");
         micro_data_out.write_vtk(micro_output);

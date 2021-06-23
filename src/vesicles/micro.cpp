@@ -386,7 +386,7 @@ template<int dim>
 void MicroSolver<dim>::get_v_int(Vector<double> &color) {
     AssertDimension(color.size(), solutions_w.size());
     for (unsigned int k: grid_indicator) {
-        color(k) = solutions[k].l1_norm();
+        color(k) = solutions[k].l1_norm()/solutions[k].size();
     }
 }
 
@@ -394,7 +394,7 @@ template<int dim>
 void MicroSolver<dim>::get_w_int(Vector<double> &color) {
     AssertDimension(color.size(), solutions_w.size());
     for (unsigned int k: grid_indicator) {
-        color(k) = solutions_w[k].l1_norm();
+        color(k) = solutions_w[k].l1_norm()/solutions[k].size();
     }
 }
 // Explicit instantiation
